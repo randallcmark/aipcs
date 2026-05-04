@@ -1,0 +1,36 @@
+# Security Rules
+
+## Core rules
+
+- Don't weaken authentication, authorisation, or input validation
+- Don't log tokens, credentials, secrets, or PII — not in journal entries, not in code comments, not in test fixtures
+- Validate all input at system boundaries — especially the schema design prompt output, which is agent-generated and must be treated as untrusted input before execution
+- The agent-designed schema is a potential injection vector — treat it as untrusted data, validate before executing as SQL or API code
+- Keep secret names in docs, values out of the repo
+
+## OAuth / DCR specific
+
+- The DCR model (OAuth 2.0 Dynamic Client Registration) is a core part of the AIPCS design — don't bypass it in the reference implementation even for convenience
+- Client credentials must not appear in any committed file
+- The scope model for MCP tools must be explicit — record in BUILD_JOURNAL what each tool scope allows
+
+## Multi-tenant / multi-agent considerations
+
+- AIPCS services are user-scoped — no cross-user data access
+- Locking model for multi-agent access to the same service is an open question (Q004) — don't implement without a decision
+- Record any security tradeoff in the BUILD_JOURNAL and update `docs/quality/technical-debt.md`
+
+## Escalation
+
+Ask before:
+- Changing the security posture of the OAuth/DCR model
+- Accepting a new class of trust (e.g., trusting agent-generated SQL without validation)
+- Bypassing scope checks for development convenience
+
+## Review checklist
+
+- Who can access this service or data?
+- What data crosses a trust boundary?
+- What happens on malformed agent output?
+- What is logged, and does it contain sensitive data?
+- What external systems does this touch?
