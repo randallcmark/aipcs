@@ -4,16 +4,27 @@
 
 | ID | Area | Problem | Impact | Suggested Resolution | Status |
 |---|---|---|---|---|---|
-| Q001 | Trigger model | CLI vs sidecar vs skill — how does the agent trigger instantiation? Partially resolved: sidecar Option 4 for v1, but the skill/prompt trigger (Model B proactive) is not yet designed | v1 must rely on explicit user request; proactive triggering (the full pattern vision) is deferred | Design the schema design prompt and recognition heuristics for Model B | Open |
-| Q002 | Schema versioning | No defined format for schema versions in the service manifest — what travels with the service when it evolves? | Cannot safely evolve a deployed service's schema without migration risk | Define manifest format: version field, schema hash, migration log | Open |
-| Q003 | Service registry | No mechanism for an agent to discover what memory services already exist for a user | Agent may instantiate duplicate services or fail to reuse existing memory | Design a service registry API on the sidecar; define the discovery protocol | Open |
-| Q004 | Multi-agent locking | No locking model defined for concurrent access to the same instantiated service by multiple agents | Risk of write conflicts and data corruption in multi-agent scenarios | Define locking strategy: optimistic vs pessimistic; SQLite WAL mode may be sufficient for v1 | Open |
-| Q005 | Schema conflict resolution | No policy for what happens when an agent proposes a schema change that conflicts with the existing schema | Agent evolution proposals could break existing queries or consumers | Define conflict resolution rules: additive-only evolution for v1, explicit migration for breaking changes | Open |
-| Q006 | Portability | No export/import mechanism for schemas and data between deployments | Users cannot migrate their AIPCS memory between environments (e.g., local dev to hosted) | Define a portability format: schema manifest + data dump | Open |
+| Q001 | Trigger model — Model B | Mechanism resolved (Option 3 / D007). Compaction hook defined (D006). Remaining open: full skill prompt design for proactive Model B recognition beyond compaction — when should the agent volunteer AIPCS without a user hint or compaction event? | v1 relies on explicit hint + compaction; fully autonomous proactive triggering is deferred | Design and test the Model B recognition heuristics; document in skill definition | Open (partial) |
+| Q004 | Multi-agent locking | No locking model defined for concurrent access to the same Domain Service by multiple agents | Risk of write conflicts and data corruption in multi-agent scenarios | Define locking strategy: optimistic vs pessimistic; SQLite WAL mode may be sufficient for v1 | Open |
+| Q005 | Schema conflict resolution | No policy for what happens when an agent proposes a schema change that conflicts with the existing schema | Agent evolution proposals could break existing queries or consumers | Define conflict resolution rules: additive-only evolution for v1 (already designed), explicit migration for breaking changes | Open |
+| Q007 | Seed payload | Minimum viable seed payload for `aipcs_service_seed` not yet defined in implementation terms | Defines the parameter schema and Registry DB seed record | Define: domain_name + domain_class + intent_description + timestamp. Validate against v1 technical design. | Open |
+| Q008 | Seed TTL | Should seeds auto-expire if never materialised after N sessions? | Affects Registry DB design and cleanup logic | Decide: probably no TTL for v1 (seeds are cheap, loss of intent is costly) | Open |
+| Q009 | Domain taxonomy — registry model | Should domain taxonomy be an open community registry or a curated set? | Affects domain_class validation rules and interoperability scope | Develop reference taxonomy alongside reference implementation; revisit registry model in v2 | Open |
+| Q010 | Domain overlap in taxonomy | How to handle overlap — is "job_application" a subset of "career" or its own domain_class? | Affects schema manifest validation and agent guidance in skill | Define hierarchy rules: prefer broader class with specific domain_name; document in skill | Open |
+| Q011 | Tier 3 access scope | Should Tier 3 elevated access be part of v1 spec or explicitly deferred to v2? | Affects authentication model scope and v1 implementation complexity | Architecture accommodates Tier 3 from v1 (`aipcs_service_export` exists); consent mechanism is the open question | Open |
+
+## Resolved
+
+| ID | Area | Resolution | Date |
+|---|---|---|---|
+| Q001 (mechanism) | Mechanism — CLI vs sidecar vs MCP-native | Option 3 selected: AIPCS as MCP-native primitive server. No CLI, no sidecar HTTP API. (D007) | 2026-05-04 |
+| Q001 (compaction trigger) | Proactive trigger — compaction hook | Compaction identified as primary Model B trigger. Skill includes compaction hook guidance. (D006) | 2026-05-04 |
+| Q002 | Schema versioning format | Schema manifest format defined in `docs/AIPCS_v1_Technical_Design.md` — versioned JSON, travels with the service, includes migration history. | 2026-05-04 |
+| Q003 | Service registry / discovery | `aipcs_service_list` primitive + Registry DB in AIPCS Server. Agent calls list before seeding to avoid duplicates. | 2026-05-04 |
+| Q006 | Portability | `aipcs_service_export` primitive (json / sqlite / schema_only / data_only / full) provides the portability primitive. Full cross-deployment import format TBD. | 2026-05-04 |
 
 ## Cleanup Rules
 
-- Close an entry when the question is resolved — add the resolution and link to the BUILD_JOURNAL decision
-- Don't let resolved questions sit as open debt
-- If a question keeps being asked, promote the answer into a harness doc rule
+- Close an entry when the question is resolved — add to the Resolved table with the decision reference
+- Promote recurring questions into harness doc rules rather than leaving them as repeated debt
 - Record any new conceptual or technical gaps discovered during the build

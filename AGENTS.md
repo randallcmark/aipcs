@@ -11,9 +11,11 @@ Then read [docs/agent/index.md](docs/agent/index.md) for operating rules.
 | What you're doing | Start with |
 |---|---|
 | Understanding the project | [docs/product/research-brief.md](docs/product/research-brief.md) |
+| Understanding the v1 technical design | [docs/AIPCS_v1_Technical_Design.md](docs/AIPCS_v1_Technical_Design.md) |
 | Pattern / architecture work | [docs/architecture/index.md](docs/architecture/index.md) |
+| Reference implementation work | [docs/AIPCS_v1_Technical_Design.md](docs/AIPCS_v1_Technical_Design.md) + [docs/architecture/index.md](docs/architecture/index.md) |
 | Formal decision record (ADR) | [docs/architecture/decisions/template.md](docs/architecture/decisions/template.md) |
-| AI pattern / prompt design | [docs/agent/ai-feature-rules.md](docs/agent/ai-feature-rules.md) |
+| AI pattern / skill / prompt design | [docs/agent/ai-feature-rules.md](docs/agent/ai-feature-rules.md) |
 | Security considerations | [docs/agent/security-rules.md](docs/agent/security-rules.md) |
 | Complex task planning | [docs/exec-plans/template.md](docs/exec-plans/template.md) → create in `active/` |
 | Paper work | [docs/agent/paper-rules.md](docs/agent/paper-rules.md) + [paper/outline.md](paper/outline.md) |
@@ -27,7 +29,7 @@ Then read [docs/agent/index.md](docs/agent/index.md) for operating rules.
 
 ## Operating Rules (short form)
 
-- Don't invent facts about the AIPCS pattern — the spec documents and journal are authoritative
+- Don't invent facts about the AIPCS pattern — the spec documents, technical design, and journal are authoritative
 - Don't make broad changes without an execution plan for complex work
 - Add a BUILD_JOURNAL entry for every non-trivial decision or milestone
 - Include a "Paper notes" field in every journal entry — it feeds the arXiv paper
@@ -42,6 +44,7 @@ Then read [docs/agent/index.md](docs/agent/index.md) for operating rules.
 1. Read this file (done)
 2. Read [CLAUDE.md](CLAUDE.md) for project overview and repo structure
 3. Read [docs/product/research-brief.md](docs/product/research-brief.md) to understand what AIPCS is
-4. Read [docs/architecture/index.md](docs/architecture/index.md) for the v1 technical design
-5. Scan [journal/BUILD_JOURNAL.md](journal/BUILD_JOURNAL.md) decision log for context
-6. Then start your task
+4. Read [docs/AIPCS_v1_Technical_Design.md](docs/AIPCS_v1_Technical_Design.md) for the v1 architecture
+5. Read [docs/architecture/index.md](docs/architecture/index.md) for design decision summary
+6. Scan [journal/BUILD_JOURNAL.md](journal/BUILD_JOURNAL.md) decision log for context
+7. Then start your task
