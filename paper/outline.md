@@ -26,8 +26,8 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - The AIPCS irony: we built AIPCS without AIPCS — manually managing context that the pattern would structure automatically. This is the pattern's clearest illustration of its own value.
 - Paper structure overview
 
-**From BUILD_JOURNAL §1:**
-> "The irony of manually journalling AIPCS's own development — without AIPCS — is noted and should appear in the paper introduction. It is a concrete illustration of the pattern's value."
+**From BUILD_JOURNAL:**
+> "The irony of manually journalling AIPCS's own development — without AIPCS — is noted and should appear in the paper introduction."
 
 ---
 
@@ -49,21 +49,40 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - MCP specification (Anthropic, 2024)
 - RFC 7591 — OAuth 2.0 Dynamic Client Registration
 
-**From BUILD_JOURNAL §2:**
-> "Captured in invention disclosure. Refine during write-up."
-
 ---
 
 ## 3. The AIPCS Pattern
 
 **Key points:**
 - 10 core principles (P1–P10) from pattern spec — distil to paper length
-- The lifecycle: Recognition → Design → Scaffolding → Registration → Operation → Evolution
-- Three defining characteristics: agent as architect, structured queryable memory, MCP-native registration
-- Tool taxonomy: workflow-oriented tools, not database-oriented (a design contribution in itself)
-- Agent-managed schema evolution: the agent extends its own schema over time without developer intervention
+- The full lifecycle: Recognition → Seed → Design → Materialise → Operate → Evolve
 
-**Source:** `docs/AIPCS_Pattern_Specification_v0.1.docx` — distil to ~2 pages
+**Two-state lifecycle (from Entry 002 / D004, D005):**
+- SEEDED: domain marker planted, schema forming, not yet deployed. First-class primitive — queryable immediately. Agent resumes domain modelling across sessions via seed inspection.
+- MATERIALISED: schema deployed, tools active, queryable. Progression from hint → seed → accumulated knowledge → schema design → materialisation.
+- The seed is not a placeholder — it is the pattern's earliest observable state of persistence intent.
+
+**Compaction hook as Model B trigger (from Entry 003 / D006):**
+- Novel contribution: no prior art explicitly connects context compaction with structured memory instantiation
+- Before compacting context, the agent evaluates all active knowledge domains for AIPCS persistence candidacy
+- Key insight: persistence at compaction time should be closer to the source than a compressed summary — structured data does not degrade the way summaries do
+- Worth a dedicated paragraph
+
+**Self-referential MCP-native mechanism (from Entry 004 / D007):**
+- Option 3: AIPCS is an MCP server. MCP tools that create MCP tools.
+- Architecturally distinctive — worth emphasising
+- Options rejected: Option 1 (too weak), Option 2 (CLI friction), Option 4 (sidecar HTTP — environment-dependent)
+
+**Schema evolution as agent act (from Entry 005 / D008):**
+- Additive migrations by default; destructive require explicit confirmation
+- Agent proposes, AIPCS validates and applies
+- Schema manifest travels with the service — versioned, human-readable JSON
+- Every migration recorded in history — the schema's audit trail
+
+**Tool taxonomy:**
+- Workflow-oriented tools, not database-oriented
+- Naming convention: `domain_object_action` (e.g. `job_application_status_update` not `job_application_update`)
+- Tool names maximum 60 characters; descriptions maximum 250
 
 ---
 
@@ -71,18 +90,33 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 
 **Key points:**
 - Application Tracker as the proving ground (career management for job seekers)
-- Why this domain: multi-entity tracking (jobs, applications, stages, artefacts), relational dependencies, cross-session persistence — all strong AIPCS trigger conditions
-- v1 architecture: Model A trigger, sidecar HTTP mechanism, dynamic MCP registration
-- Schema design prompt: what the agent receives, what it must produce
-- Tool taxonomy examples from the career domain
-- OAuth/DCR implementation: consumer subscription as authentication
-- Docker Compose structure: sidecar alongside main application
-- Key implementation decisions (link to ADRs)
+- Why this domain: multi-entity tracking, relational dependencies, cross-session persistence — all strong AIPCS trigger conditions
 
-**From BUILD_JOURNAL §4:**
-> "Record: architecture diagram, key technology choices and why, how the agent triggers instantiation, schema design examples (career domain), tool taxonomy examples, OAuth/DCR implementation notes, Docker Compose structure"
+**Architecture (from technical design):**
+- AIPCS Server (MCP-native) + Registry DB + Domain Services
+- 8 management primitives: seed, design, materialise, evolve, list, inspect, suspend, export
+- Three-tier access: Tier 1 (agent MCP tools), Tier 2 (user via agent), Tier 3 (consent-gated read-only export)
+- Docker Compose: aipcs service alongside app + mcp
 
-*Populate this section during the build (M005–M008)*
+**Impediments and resolutions (from Entry 004 — valuable "lessons learned" material):**
+
+| Impediment | Resolution |
+|---|---|
+| Dynamic tool registration not universal | Session reconnect acceptable for v1 |
+| Agent must know AIPCS exists | Always-on in the stack |
+| Schema quality model-dependent | Validation layer — propose, validate, revise cycle |
+| No domain tools before first seed | Skill: first action is always seed |
+
+**Schema manifest format:**
+- Versioned JSON, travels with the service
+- Includes: entities, relationships, indices, migration history, tool definitions, domain_class
+- Full example in `docs/AIPCS_v1_Technical_Design.md`
+
+**Authentication:**
+- V1: local trust within Docker network; owner_id from application session
+- V2 target: OAuth 2.0 + DCR per pattern specification and Application Tracker's MCP_OAUTH_DCR_PLAN.md
+
+*Populate with implementation detail as build progresses (M005–M008)*
 
 ---
 
@@ -90,28 +124,44 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 
 **Metrics to collect during build:**
 - What workflows became possible that weren't before?
-- Latency cost of agent schema design vs hand-designed schema
+- Latency cost of agent schema design vs a hand-designed schema
 - Token cost of the schema design step
-- Schema quality: human assessment, coverage of use cases
-- Schema evolution: how did the agent handle adding fields in practice?
-- Prompt patterns: which trigger phrasings worked best?
-- Failure modes: what failed? What surprised?
+- **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
+- **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
+- Schema quality: human assessment, coverage of domain use cases
+- Which trigger phrasings worked best for Model A recognition?
+- How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?
+- What failed or surprised you?
 
-**From BUILD_JOURNAL §5:**
-> "Record: what workflows became possible, latency cost, token cost, schema evolution behaviour, prompt patterns, surprises and failures"
-
-*Populate this section during the build (M007–M008)*
+*Populate during build (M007–M008)*
 
 ---
 
 ## 6. Discussion
 
-**Seed questions (from BUILD_JOURNAL §6):**
-- How general is the pattern really? Where does it break down?
-- What are the security implications of agent-designed schemas? (schema as injection vector)
-- Does AIPCS get better as models improve? (schema design quality is model-dependent)
-- What would a mature AIPCS ecosystem look like? (service registry, schema sharing, multi-agent access)
-- Open questions not resolved in v1: Q002 (schema versioning), Q003 (service registry), Q004 (multi-agent locking), Q005 (conflict resolution), Q006 (portability)
+**Three-tier access model and transparency (from Entry 006 / D009):**
+- The md-file harness paradigm provides implicit transparency but suffers from summaries-of-summaries drift
+- AIPCS structured approach: data in a relational store, queryable precisely
+- Medical use case: agent accumulates health context; user consents to share structured export with practitioner's AI workflow. Practitioner gets richer, more accurate context than an anecdotal interview.
+- Tier 3 is consent-gated, read-only, audit-logged — privacy by design
+
+**Taxonomy and interoperability (from Entry 007 / D010):**
+- domain_class field enables future cross-agent interoperability without mandating it now
+- Open registry vs curated set question (Q009)
+- Domain overlap handling (Q010)
+- A career management AIPCS service should be recognisable and usable by another agent in a different context
+
+**Open questions from the build:**
+- Q004: Multi-agent locking model
+- Q005: Schema conflict resolution
+- Q008: Seed TTL
+- Q011: Tier 3 in v1 or v2?
+
+**Broader questions:**
+- How general is the pattern? Where does it break down?
+- Security: schema as injection vector — how does the validation layer hold up in practice?
+- Does AIPCS improve as models improve? Schema design quality is model-dependent.
+- What would a mature AIPCS ecosystem look like — shared taxonomy, cross-deployment portability, multi-agent coordination?
 
 ---
 
@@ -123,9 +173,10 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 
 ## Appendix (if needed)
 
-- Full schema design prompt
-- Service manifest format
+- Full schema design prompt (skill definition)
+- Schema manifest format (reference)
 - Tool taxonomy conventions
+- Management tool primitive schemas
 
 ---
 

@@ -56,6 +56,225 @@ The irony of manually journalling AIPCS's own development — without AIPCS — 
 
 ---
 
+### Entry 002 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Trigger model refined — Model A is a hint, not an instruction. Tool seed concept established.
+
+**Context:**
+Working through the three core v1 design questions: trigger, mechanism, registration.
+
+**Detail:**
+Model A (explicit user instruction) is retained as a valid initiation path but reframed. The user instruction is a *hint* — sufficient to trigger the agent to evaluate what it knows about the domain. The agent should not wait for a complete specification before acting.
+
+The **tool seed** concept emerged: when a user hint is received, the agent immediately plants a minimal domain marker — enough to describe the domain intent even if there is nothing yet to persist. The seed is a first-class object, queryable immediately ("what domains am I tracking?"). It carries:
+- Domain name
+- Discovery metadata stub
+- Intent description
+- Confidence level (seeded vs materialised)
+- Timestamp
+
+The seed transitions to a materialised service as the agent accumulates sufficient domain knowledge. This gives AIPCS two operating states per domain:
+
+```
+SEEDED       — marker exists, schema forming, not yet deployed
+MATERIALISED — schema deployed, tools active, queryable
+```
+
+**Decision made:**
+Tool seed is a first-class AIPCS primitive. `aipcs_service_seed` is always the first action when a persistence need is recognised, before any schema design begins.
+
+**Implications:**
+The `aipcs_service_list` tool must return both seeded and materialised services, with state indicated. The agent can inspect seeds to resume domain modelling across sessions.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — the two-state model (seeded/materialised) is a concrete architectural decision worth describing. Section 5 (Evaluation) — how quickly do seeds materialise in practice? What is the average number of interactions before materialisation?
+
+**Open questions:**
+- What is the minimum viable seed payload? Domain name + intent description + timestamp is probably sufficient for v1. (→ Q007)
+- Should seeds have a TTL — auto-expire if never materialised after N sessions? (→ Q008)
+
+---
+
+### Entry 003 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Compaction identified as a primary Model B (proactive) trigger for AIPCS instantiation.
+
+**Context:**
+Exploring when an agent should proactively recognise a persistence need without explicit user instruction.
+
+**Detail:**
+Compaction — the process by which an agent summarises and compresses its context window — is a natural AIPCS trigger point. The agent is already performing a meta-cognitive act when it compacts: evaluating what is worth preserving. AIPCS adds a second question to that evaluation: *should this be preserved as structured data rather than compressed text?*
+
+Key insight: persistence at compaction time should be **closer to the source** than a compacted summary. A summarised summary is further from truth than the original. AIPCS should capture the structured essence of the domain knowledge before compression degrades it.
+
+This gives Model B a concrete, implementable trigger: the AIPCS skill hooks into the compaction process and evaluates each domain of knowledge for persistence candidacy.
+
+**Decision made:**
+Compaction is a primary Model B trigger. The AIPCS skill must include compaction hook guidance — "at compaction time, evaluate all active domains for AIPCS persistence candidacy before compressing."
+
+**Implications:**
+The skill definition becomes more specific — it needs to describe both the explicit hint trigger (Model A) and the compaction trigger (Model B). This makes the skill richer and more portable.
+
+**Paper notes:**
+Section 3 (Pattern) — the compaction hook is a novel contribution to the trigger design. No prior art explicitly connects context compaction with structured memory instantiation. Worth a dedicated paragraph.
+
+---
+
+### Entry 004 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Mechanism selected — Option 3. AIPCS as MCP-native self-referential primitive server.
+
+**Context:**
+Evaluating CLI, sidecar, MCP-native, and prompt-only approaches for the scaffolding mechanism.
+
+**Detail:**
+Options evaluated:
+- Option 1 (pure prompt/skill): Too weak — agent describes but does not act. Undermines the pattern.
+- Option 2 (CLI): Platform distribution complexity, non-developer friction, support burden.
+- Option 3 (MCP-native): AIPCS is itself an MCP server exposing management primitives. Self-referential — MCP tools that create MCP tools. Agent-autonomous. No CLI, no sidecar management API.
+- Option 4 (sidecar HTTP API): Good for developer/infrastructure users, but adds complexity and friction for non-technical users. Also environment-dependent — IT/security constraints may block sidecar services.
+
+Option 3 selected as the target architecture.
+
+**Identified impediments and resolutions:**
+
+| Impediment | Resolution |
+|-----------|------------|
+| Dynamic tool registration not universal in MCP clients | Session reconnect acceptable for v1; design assumes dynamic as target |
+| Agent must know AIPCS exists before using it | Deployment concern — AIPCS is always-on in the stack, always connected |
+| Schema quality depends on model capability | Schema validation layer in AIPCS — agent proposes, system validates, agent revises |
+| Bootstrapping — no domain tools before first seed | AIPCS skill teaches agent: first action is always `aipcs_service_seed` |
+
+**Decision made:**
+Option 3. AIPCS is an MCP server. All management operations are MCP tool calls. No CLI, no separate HTTP management API.
+
+**Paper notes:**
+Section 3 (Pattern) — the self-referential nature of AIPCS (MCP tools that create MCP tools) is architecturally distinctive and worth emphasising. Section 4 — document the impediments and resolutions as lessons learned.
+
+---
+
+### Entry 005 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Schema evolution requirement formalised — schema-forward, additive-only by default.
+
+**Context:**
+Exploring schemaless (KVS), protobuf, and relational approaches to schema evolution.
+
+**Detail:**
+The schemaless/protobuf discussion was an illustration of the problem space rather than a concrete proposal. The requirement is clear: AIPCS must support schema evolution in a backward-compatible way as the agent accumulates more domain knowledge.
+
+Resolution: SQLite with a migration-tracked schema manifest.
+
+Rules:
+- Additive migrations only by default (add columns, add tables, add indices)
+- Destructive changes (drop column, rename, type change) require explicit agent-proposed migration with confirmation
+- Each migration is versioned and stored in the schema manifest
+- Schema manifest travels with the service and is human-readable
+- Agent proposes migrations; AIPCS validation layer enforces backward-compatibility rules before applying
+
+This preserves structured queryability (the core AIPCS principle) while allowing the agent to evolve its understanding of a domain.
+
+**Decision made:**
+Schema-forward, additive-by-default, migration-tracked. This is a v1 requirement, not a deferred feature.
+
+**Implications:**
+The schema manifest format needs to be defined early — it is the versioning and audit record for the data model. It should include: domain name, version, migration history, entity definitions, relationship definitions, index definitions, created_at, last_evolved_at.
+
+**Paper notes:**
+Section 3 (Pattern) — schema evolution as an agent act is part of the lifecycle definition. Section 5 (Evaluation) — how many evolutions occur in practice during a typical domain tracking lifecycle?
+
+---
+
+### Entry 006 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Three-tier access model established for transparency and auditability.
+
+**Context:**
+Discussing implicit transparency requirements — user, IT/security/compliance, and elevated stakeholder access to agent memory.
+
+**Detail:**
+The md-file harness paradigm provides implicit transparency (human-readable files) but suffers from summaries-of-summaries drift and hallucination proximity. AIPCS's structured approach provides better transparency because data is in a relational store that can be queried precisely.
+
+Three-tier access model:
+
+**Tier 1 — Agent access**
+Full read/write via MCP tools. Normal operating mode.
+
+**Tier 2 — User access**
+Query and inspect via natural language. Agent mediates using its MCP tools. User can request exports, deletions, corrections. No direct database access required.
+
+**Tier 3 — Elevated access (IT / compliance / practitioner / stakeholder)**
+Direct read-only access to the service's HTTP query API or structured export. Scoped export tools. Audit log access. Cannot write — preserves agent memory integrity. Requires explicit user consent to grant.
+
+The medical scenario is the clearest use case: a user's agent accumulates implicit medical context across conversations. The user can consent to share a structured export with a medical practitioner's AI-supported workflow. The practitioner receives richer, more accurate context than an anecdotal interview.
+
+**Decision made:**
+Three-tier model is a design input for v1 even if Tier 3 is not fully implemented. Architecture must accommodate it. Tier 3 access is consent-gated and read-only by design.
+
+**Note on Tier 3 and platform coverage:**
+Major AI platforms (Claude, ChatGPT) already handle data governance via their ToS/EULA frameworks. Tier 3 in AIPCS is specifically relevant for self-hosted deployments where the user owns all data and needs explicit mechanisms for controlled sharing.
+
+**Paper notes:**
+Section 6 (Discussion) — the transparency and auditability question is a significant design consideration for agent memory systems generally. The three-tier model is a contribution worth describing. The medical use case is a compelling illustration.
+
+---
+
+### Entry 007 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Taxonomy question raised — top-level domain taxonomy may aid interoperability.
+
+**Context:**
+Discussing whether a shared taxonomy is needed for AIPCS services to interoperate across applications and deployments.
+
+**Detail:**
+If AIPCS is a universal primitive, and multiple agents or applications instantiate services for similar domains, some consistency in top-level taxonomy could enable interoperability. A career management AIPCS service instantiated by one agent should be recognisable and usable by another agent in a different context.
+
+Two levels where taxonomy could help:
+- **Top-level domain taxonomy** — a shared vocabulary of common domains (career, medical, financial, project, legal, etc.) that allows agents to recognise and connect to existing services
+- **Sub-level object taxonomy** — within a domain, shared entity naming conventions that allow cross-agent queries
+
+This is not a v1 requirement but is an architectural consideration — the schema manifest should include a domain classification field that could eventually map to a shared taxonomy.
+
+**Decision made:**
+Taxonomy is a deferred but designed-for feature. Schema manifest must include a `domain_class` field from v1. A reference taxonomy will be developed alongside the reference implementation.
+
+**Open questions:**
+- Should the domain taxonomy be an open registry (community-contributed) or a curated set? (→ Q009)
+- How do you handle domain overlap — is "job application" a subset of "career" or its own domain class? (→ Q010)
+
+**Paper notes:**
+Section 6 (Discussion) — taxonomy and interoperability as future work. The domain_class field in the manifest enables this without requiring it.
+
+---
+
+### Entry 008 — 2026-05-04
+
+**Type:** Milestone
+
+**Summary:** Working model for Claude.ai / Claude Code collaboration established.
+
+**Detail:**
+Claude.ai (this chat) = thinking, design, architecture decisions, document drafting.
+Claude Code = repo operations, file placement, git commits.
+
+Handoff pattern: at end of each Claude.ai session, a summary is produced containing decisions made, files to commit, open questions, and a suggested commit message. Claude Code handles the rest.
+
+Repo location: ~/GitHub/aipcs
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -99,6 +318,13 @@ Use this for quick orientation when resuming work after a break.
 | D001 | 2026-05-04 | Attribution via arXiv, not patent | Open contribution goal | 001 |
 | D002 | 2026-05-04 | OAuth 2.0 + DCR as consumer access model | Reduce API key friction | 001 |
 | D003 | 2026-05-04 | Application Tracker as reference implementation | Already building it; proven ground | 001 |
+| D004 | 2026-05-04 | Tool seed as first-class primitive | Enables immediate domain registration before schema is complete | 002 |
+| D005 | 2026-05-04 | Two-state model: SEEDED / MATERIALISED | Reflects real progression of domain knowledge | 002 |
+| D006 | 2026-05-04 | Compaction as primary Model B trigger | Natural meta-cognitive moment; captures knowledge before compression degrades it | 003 |
+| D007 | 2026-05-04 | Option 3 — AIPCS as MCP-native primitive server | Agent-autonomous, no CLI, no sidecar management API | 004 |
+| D008 | 2026-05-04 | Schema-forward, additive-by-default, migration-tracked | Backward compatibility as a v1 requirement | 005 |
+| D009 | 2026-05-04 | Three-tier access model | Transparency and auditability are design inputs from v1 | 006 |
+| D010 | 2026-05-04 | domain_class field in schema manifest | Enables future taxonomy and interoperability without requiring it now | 007 |
 
 ---
 
@@ -118,12 +344,17 @@ Running list of unresolved questions. Close them with a decision log entry when 
 
 | # | Question | Raised | Resolved | Decision |
 |---|----------|--------|----------|----------|
-| Q001 | CLI vs sidecar vs skill — how does the agent trigger instantiation? | 001 | — | — |
-| Q002 | Schema versioning format — what travels with the service manifest? | 001 | — | — |
-| Q003 | Service registry — how does the agent discover existing memory? | 001 | — | — |
+| Q001 | Trigger model — Model A/B: how does the agent proactively recognise a persistence need? (Mechanism resolved as Option 3 / D007; compaction trigger defined / D006. Remaining: full skill prompt design for Model B proactive recognition.) | 001 | Partial | D006, D007 |
+| Q002 | Schema versioning format — resolved by schema manifest design in v1 technical design. Schema manifest travels with every service; format defined in `docs/AIPCS_v1_Technical_Design.md`. | 001 | ✅ 2026-05-04 | See technical design §Schema Manifest Format |
+| Q003 | Service registry — resolved by `aipcs_service_list` primitive tool and Registry DB in AIPCS Server. | 001 | ✅ 2026-05-04 | D007, technical design §Service Lifecycle |
 | Q004 | Multi-agent access — locking model when multiple clients hit same service? | 001 | — | — |
 | Q005 | Schema conflict resolution — what if agent proposes conflicting evolution? | 001 | — | — |
-| Q006 | Portability — export/import of schema + data between deployments? | 001 | — | — |
+| Q006 | Portability — resolved in part by `aipcs_service_export` primitive tool (json / sqlite / schema_only / data_only / full). Full portability format still TBD. | 001 | Partial | D007, technical design §Management Tools |
+| Q007 | Minimum viable seed payload — what fields are required for `aipcs_service_seed`? | 002 | — | — |
+| Q008 | Should seeds have a TTL — auto-expire if never materialised after N sessions? | 002 | — | — |
+| Q009 | Should domain taxonomy be open registry or curated set? | 007 | — | — |
+| Q010 | How to handle domain overlap in taxonomy (e.g. job application vs career)? | 007 | — | — |
+| Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? | 006 | — | — |
 
 ---
 
@@ -134,8 +365,8 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M001 | Invention disclosure published | 2026-05-04 | ✅ 2026-05-04 | |
 | M002 | Pattern spec v0.1 published | 2026-05-04 | ✅ 2026-05-04 | |
 | M003 | Public GitHub repo live | 2026-05-04 | ✅ 2026-05-04 | |
-| M004 | v1 technical design complete | — | — | |
-| M005 | AIPCS sidecar prototype running | — | — | |
+| M004 | v1 technical design complete | 2026-05-04 | ✅ 2026-05-04 | `docs/AIPCS_v1_Technical_Design.md` |
+| M005 | AIPCS Server prototype running | — | — | Option 3 — MCP-native server |
 | M006 | OAuth/DCR foundation implemented | — | — | |
 | M007 | First MCP tool registered by agent | — | — | |
 | M008 | End-to-end flow validated in App Tracker | — | — | |
@@ -180,33 +411,45 @@ Key works to cite:
 
 *Captured in pattern specification. Distil to paper length during write-up.*
 
+Key points to include from design iteration:
+- **Two-state lifecycle**: SEEDED → MATERIALISED. The seed is a first-class primitive, not a placeholder. Describe the progression from hint → seed → accumulated knowledge → schema design → materialisation.
+- **Compaction as Model B trigger**: Novel contribution — no prior art connects context compaction with structured memory instantiation. Agent evaluates active domains for persistence candidacy before compressing. Captures knowledge closer to the source than a summary.
+- **Self-referential MCP-native mechanism**: MCP tools that create MCP tools. Option 3 vs alternatives evaluated (Option 1: too weak; Option 2: CLI friction; Option 4: sidecar HTTP complexity). Impediments and resolutions documented in Entry 004.
+- **Schema evolution as agent act**: Agent proposes migrations; AIPCS validates and applies. Additive-by-default, destructive requires confirmation. Schema manifest travels with the service.
+
 ### 4. Reference Implementation
 
-*To be populated during build. Record:*
-- Architecture diagram
-- Key technology choices and why
-- How the agent triggers instantiation
-- Schema design examples (career domain)
-- Tool taxonomy examples
-- OAuth/DCR implementation notes
-- Docker Compose structure
+Key points from design iteration:
+- Architecture: AIPCS Server (MCP-native) + Registry DB + Domain Services. Diagram in `docs/AIPCS_v1_Technical_Design.md`.
+- 8 management primitives: seed, design, materialise, evolve, list, inspect, suspend, export
+- Schema manifest format (versioned, human-readable JSON) — full example in technical design doc
+- Option 3 impediments and resolutions — valuable "lessons learned" material
+- Three-tier access model (Tier 1 agent / Tier 2 user / Tier 3 elevated) — architecture accommodates Tier 3 from v1 even if not implemented
+- Docker Compose structure: aipcs service alongside app + mcp
+- V1 local trust model; v2 OAuth/DCR target
+
+*Populate with implementation details as build progresses (M005–M008)*
 
 ### 5. Evaluation
 
-*To be populated during build. Record:*
+Evaluation questions seeded from design:
 - What workflows became possible that weren't before?
-- What was the latency cost of schema design vs a pre-defined schema?
-- How many tokens does the schema design step consume?
-- How did the agent handle schema evolution in practice?
+- Latency cost of agent schema design vs a pre-defined schema
+- Token cost of the schema design step
+- **How quickly do seeds materialise?** Average interactions before materialisation (from Entry 002)
+- **How many schema evolutions occur** in a typical domain tracking lifecycle? (from Entry 005)
 - What prompt patterns worked best for triggering recognition?
 - What failed or surprised you?
 
+*Populate during build (M007–M008)*
+
 ### 6. Discussion
 
-*To be populated. Seed questions:*
+- **Three-tier access model** — transparency and auditability as design considerations for agent memory systems generally. Medical use case: agent-accumulated health context shared with practitioner's AI workflow via consent-gated structured export. (Entry 006)
+- **Taxonomy and interoperability** — domain_class field enables future cross-agent interoperability without mandating it now. Open vs curated registry question. (Entry 007)
 - How general is the pattern really? Where does it break down?
-- What are the security implications of agent-designed schemas?
-- How does AIPCS interact with model capability — does it get better as models improve?
+- Security implications of agent-designed schemas (schema as injection vector)
+- Does AIPCS improve as models improve? (schema design quality is model-dependent)
 - What would a mature AIPCS ecosystem look like?
 
 ### 7. Conclusion

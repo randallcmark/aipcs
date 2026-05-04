@@ -4,66 +4,103 @@
 
 AIPCS (Agent-Instantiated Persistent Context Services) is a pattern in which an AI agent, upon encountering a sufficiently complex stateful tracking problem:
 
-1. **Recognises** the need for structured persistent memory
-2. **Designs** an appropriate data schema for the domain
-3. **Scaffolds** a lightweight persistent service (database + API) around that schema
-4. **Registers** the service as an MCP tool, making it available across all future sessions and any MCP-compatible client
+1. **Recognises** the need for structured persistent memory (via user hint or compaction trigger)
+2. **Seeds** a domain marker immediately — a first-class primitive, queryable before schema exists
+3. **Designs** an appropriate data schema as domain knowledge accumulates
+4. **Materialises** a live service (SQLite + FastAPI + MCP tools) around the validated schema
+5. **Evolves** the schema additively as the agent's understanding grows
 
-The agent is the schema architect — not a consumer of a pre-defined schema. This is the core novelty.
+The agent is the schema architect — not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as MCP tools, composable and portable.
+
+**Authoritative v1 design document:** [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
+
+---
+
+## Two-State Service Lifecycle
+
+Every AIPCS domain service exists in one of two states:
+
+```
+SEEDED       — marker planted, schema forming, not yet deployed
+MATERIALISED — schema deployed, tools active, queryable
+```
+
+A seed is a first-class object. It is immediately queryable (`aipcs_service_list`, `aipcs_service_inspect`). The agent can resume domain modelling across sessions by inspecting seeds. This gives the system visibility into persistence intent before the schema is ready.
+
+---
 
 ## v1 Design Decisions
 
-Three questions define the v1 architecture. Each is resolved below.
+Three questions define the v1 architecture. All resolved.
 
-### Q: How does the agent recognise it needs AIPCS? (Trigger)
+### Trigger (Q001 — partially resolved)
 
-**v1 decision: Model A — explicit user request**
+**v1: Model A — explicit user hint**  
+The user hint is a *hint*, not a complete specification. The agent acts immediately by seeding the domain, then accumulates knowledge across interactions before designing the schema.
 
-The user says "track this for me" or similar. The agent recognises the intent and initiates AIPCS. This is the safe, tested starting point.
+**Model B — proactive agent recognition (designed for, skill in v1)**  
+Two concrete triggers:
+- The agent identifies multi-entity tracking needs with cross-session persistence
+- **Compaction hook**: before compacting context, the agent evaluates all active knowledge domains for AIPCS persistence candidacy. Captures structured knowledge before compression degrades it. (D006)
 
-**Designed to evolve to: Model B — agent-initiated**
+The AIPCS skill definition documents both triggers. Full proactive recognition beyond these two cases is future work.
 
-A skill or system prompt teaches the agent to recognise AIPCS trigger conditions proactively (multi-entity tracking, relational dependencies, cross-session persistence need) and propose instantiation. The user confirms. This is the pattern's full vision.
+### Mechanism (Q001 — resolved: D007)
 
-Model C (application-triggered) is rejected for the general pattern — it reintroduces developer-defined schema.
+**Option 3 — AIPCS as MCP-native primitive server**
 
-### Q: How does the scaffolding happen? (Mechanism)
+AIPCS is itself an MCP server. All management operations are MCP tool calls. Self-referential: MCP tools that create MCP tools. No CLI, no sidecar HTTP management API.
 
-**v1 decision: Option 4 — AIPCS sidecar with HTTP management API**
+Impediments resolved during design (Entry 004):
 
-An always-running AIPCS sidecar service exposes an HTTP management API. The agent calls a `service_instantiate` MCP tool, which calls the sidecar. The sidecar:
-- Generates a SQLite schema from the agent's domain description
-- Generates a FastAPI service around it
-- Starts the service on an available port
-- Writes a service manifest
+| Impediment | Resolution |
+|---|---|
+| Dynamic tool registration not universal in MCP clients | Session reconnect acceptable for v1 |
+| Agent must know AIPCS exists | Always-on in the Docker Compose stack |
+| Schema quality depends on model capability | AIPCS validation layer — agent proposes, system validates, agent revises |
+| No domain tools before first seed | AIPCS skill: first action is always `aipcs_service_seed` |
 
-**Designed to evolve to: Option 3 — MCP tool that scaffolds other MCP tools**
+Options rejected: Option 1 (pure prompt — too weak), Option 2 (CLI — friction), Option 4 (sidecar HTTP — environment-dependent, complexity).
 
-The AIPCS runtime itself is an MCP server exposing `service_instantiate`. The agent calls it; it creates the database, API, and registers new tools — all within the MCP layer. Elegant and self-referential, but more complex to build.
+### Registration (resolved)
 
-Option 1 (pure prompt/no deployment) and Option 2 (CLI) are rejected — too loose and too much user friction respectively.
+**Dynamic MCP tool discovery** — new domain services register their tools dynamically. Session reconnect acceptable for v1 clients that don't support live discovery.
 
-### Q: How does the result get registered? (Registration)
+---
 
-**v1 decision: Option B — dynamic MCP tool discovery**
+## Management Tool Primitives
 
-New services appear as MCP tools immediately without requiring a client restart. MCP supports dynamic tool discovery. This is the correct model and not significantly harder than static config.
+The AIPCS Server exposes 8 management tools available from the moment AIPCS is connected:
 
-Option A (static config, requires restart) is acceptable temporarily for development only.
-Option C (agent updates its own system prompt) is fragile and rejected.
+| Tool | Purpose |
+|---|---|
+| `aipcs_service_seed` | Plant a domain marker — always the first action |
+| `aipcs_service_design` | Submit a schema design for a seeded domain (validated before acceptance) |
+| `aipcs_service_materialise` | Deploy a validated schema as a live service with MCP tools |
+| `aipcs_service_evolve` | Propose and apply a schema migration (additive or destructive with confirmation) |
+| `aipcs_service_list` | Discover all seeded and materialised services |
+| `aipcs_service_inspect` | Get full schema manifest and migration history for a service |
+| `aipcs_service_suspend` | Pause a service without deleting data |
+| `aipcs_service_export` | Export schema and data (consent-gated portability primitive) |
+
+---
 
 ## Subsystems
 
 | Subsystem | Purpose | Owner doc |
 |---|---|---|
-| AIPCS Sidecar | HTTP management API; scaffolds services on demand | [decisions/](decisions/) |
-| Schema Designer | Prompt that elicits domain schema from the agent | [../agent/ai-feature-rules.md](../agent/ai-feature-rules.md) |
-| MCP Interface | Exposes `service_instantiate` and dynamically registers new tools | [boundaries.md](boundaries.md) |
-| Service Registry | Manifest of instantiated services and their schemas | Open (Q003) |
+| AIPCS Server | MCP-native server exposing all 8 management primitives | [decisions/](decisions/) |
+| Registry DB | Internal SQLite tracking services, seeds, manifests, migrations, audit log | Technical design §Architecture |
+| Schema Validator | Validates agent-submitted schemas before materialisation | Technical design §Schema Design Requirements |
+| Schema Designer (skill) | Prompt/skill teaching the agent to recognise triggers and use AIPCS correctly | [../agent/ai-feature-rules.md](../agent/ai-feature-rules.md) |
+| Domain Services | Dynamically created per-domain SQLite + FastAPI + MCP tools | Technical design §Service Lifecycle |
 | Reference Implementation | Application Tracker — the proving ground | `randallcmark/application_tracker` |
+
+---
 
 ## Architecture Routes
 
+- Full v1 design → [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
 - Boundary definitions → [boundaries.md](boundaries.md)
 - Formal decisions (ADRs) → [decisions/](decisions/)
 - Pattern principles (P1–P10) → `docs/AIPCS_Pattern_Specification_v0.1.docx`
@@ -71,6 +108,6 @@ Option C (agent updates its own system prompt) is fragile and rejected.
 
 ## Change Rules
 
-- No change to the trigger/mechanism/registration decisions without a BUILD_JOURNAL entry and an ADR
+- No change to trigger/mechanism/registration decisions without a BUILD_JOURNAL entry and an ADR
 - No new dependency without checking [boundaries.md](boundaries.md)
 - Agent-generated outputs (schemas, API code) are always treated as untrusted input — validate before executing
