@@ -106,7 +106,7 @@ The author also holds prior personal work: an earlier agent memory layer that wa
 
 | Document | Description |
 |----------|-------------|
-| [`docs/AIPCS_Invention_Disclosure_v2.docx`](docs/AIPCS_Invention_Disclosure_v2.docx) | Timestamped invention disclosure establishing authorship and novelty claims |
+| [`docs/AIPCS_Invention_Disclosure_v2.pdf`](docs/AIPCS_Invention_Disclosure_v2.pdf) | Timestamped invention disclosure establishing authorship and novelty claims |
 | [`docs/AIPCS_Pattern_Specification_v0.1.docx`](docs/AIPCS_Pattern_Specification_v0.1.docx) | Implementation-agnostic pattern specification (v0.1 working draft) |
 
 ---
