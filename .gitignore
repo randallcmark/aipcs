@@ -1,0 +1,73 @@
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ── Claude Code tooling ───────────────────────────────────────────────────────
+# Local worktrees and session state — not part of the project
+.claude/
+
+# ── Python (reference implementation) ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
+
+# ── Environment and secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+secrets.json
+credentials.json
+
+# ── Runtime data (AIPCS will create these) ────────────────────────────────────
+# SQLite databases created by Domain Services and Registry DB
+*.db
+*.sqlite
+*.sqlite3
+
+# AIPCS service manifests and per-domain data (runtime artefacts)
+aipcs_data/
+aipcs_services/
+
+# Log files
+*.log
+logs/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Local override files (keep docker-compose.yml but ignore local overrides)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ── Editors ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
