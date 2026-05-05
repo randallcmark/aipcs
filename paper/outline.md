@@ -21,10 +21,12 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 
 **Key points:**
 - The statelessness problem: AI tools are session-bound; structured context management is left to the user or developer
-- The inversion: AIPCS flips the model — agent as architect, not consumer of pre-designed schema
+- The inversion: AIPCS flips the model — agent proposes the structure of its own memory, subject to runtime governance
 - Consumer access equity: the pattern emerged from solving API key friction for job seekers (OAuth 2.0 + DCR as a design constraint, not an afterthought)
 - The AIPCS irony: we built AIPCS without AIPCS — manually managing context that the pattern would structure automatically. This is the pattern's clearest illustration of its own value.
 - Paper structure overview
+
+**Claim framing note (from ADR-002, Entry 010):** The contribution statement must use the safer external framing: "AIPCS is an early pattern for governed agent-directed structured memory, where an agent can propose and evolve persistence schemas under runtime validation instead of relying solely on developer-defined memory models." Do not use "universal primitive" — not yet demonstrated. Do not lead with MCP as the primary novelty. The strongest novelty formulation (from external critique): agent recognition + agent proposal of memory structure + runtime materialisation + governed schema evolution + portable tool surface.
 
 **From BUILD_JOURNAL:**
 > "The irony of manually journalling AIPCS's own development — without AIPCS — is noted and should appear in the paper introduction."
@@ -62,11 +64,17 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - MATERIALISED: schema deployed, tools active, queryable. Progression from hint → seed → accumulated knowledge → schema design → materialisation.
 - The seed is not a placeholder — it is the pattern's earliest observable state of persistence intent.
 
-**Compaction hook as Model B trigger (from Entry 003 / D006):**
-- Novel contribution: no prior art explicitly connects context compaction with structured memory instantiation
+**Compaction hook as Model B trigger (from Entry 003 / D006, reframed per D014):**
+- A designed Model B trigger — connects context compaction with structured memory candidacy evaluation
 - Before compacting context, the agent evaluates all active knowledge domains for AIPCS persistence candidacy
-- Key insight: persistence at compaction time should be closer to the source than a compressed summary — structured data does not degrade the way summaries do
-- Worth a dedicated paragraph
+- Key insight: persistence at compaction time captures structured knowledge before compression degrades it
+- Pending field validation: whether compaction is the *primary* real-world trigger in practice is an open empirical question. Do not claim "primary trigger" before evaluation data (Phase 1) supports it. Write as "a designed trigger" in the paper.
+
+**Authority chain and governance (from Entry 009 / ADR-001):**
+- The authority chain is a first-class design contribution alongside the two-state lifecycle: Agent proposes → Validator constrains → User consents → Service persists → Audit log explains
+- "Agent-directed" only means something if the governance chain makes it safe. Without governance, the pattern is not distinguishable from unconstrained agent persistence.
+- §3 should describe the constraint categories (structural, semantic, sensitive-data) and the consent tier model
+- The governance model is part of the pattern definition — not implementation detail or future work
 
 **Self-referential MCP-native mechanism (from Entry 004 / D007):**
 - Option 3: AIPCS is an MCP server. MCP tools that create MCP tools.
@@ -122,18 +130,34 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 
 ## 5. Evaluation
 
-**Metrics to collect during build:**
-- What workflows became possible that weren't before?
-- Latency cost of agent schema design vs a hand-designed schema
-- Token cost of the schema design step
-- **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
-- **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
-- Schema quality: human assessment, coverage of domain use cases
-- Which trigger phrasings worked best for Model A recognition?
-- How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?
-- What failed or surprised you?
+**Research Questions (from evaluation-plan.md):**
 
-*Populate during build (M007–M008)*
+| RQ | Question |
+|---|---|
+| RQ1 | Recognition — does the agent reliably recognise AIPCS-appropriate situations without an explicit user prompt? |
+| RQ2 | Initial Design Quality — does the first-attempt schema cover the domain adequately? |
+| RQ3 | Evolution Quality — does the agent propose appropriate additive evolutions without breaking existing queries? |
+| RQ4 | Retrieval and Continuity Utility — does AIPCS-backed memory produce measurably better task continuation than baselines? |
+| RQ5 | Governance Effectiveness — does the constraint model prevent harmful proposals? |
+| RQ6 | Runtime Portability — can an AIPCS service be exported and re-materialised in a different runtime? |
+
+**Baselines:**
+- A: Harness memory (markdown/index files — status quo; the approach this repo's own development uses)
+- B: Developer-defined structured memory (isolates value of agent-directed design specifically)
+- C: Minimal generic KV/document store (isolates value of schema quality)
+
+**Evaluation phases:**
+- Phase 1 (Concept Validation, M007): RQ1, RQ2 — career tracking scenario with/without hint; Baselines A and B
+- Phase 2 (Governance Validation, M008): RQ3, RQ5 — multi-session lifecycle; adversarial prompting suite; audit log inspection
+- Phase 3 (Portability Validation): RQ6 — export/import test in clean environment
+- Phase 4 (Comparative, M009–M010): RQ4 — comparative task tests across all three baselines
+
+**Early success criteria:** see evaluation-plan.md §Early Success Criteria (5 items)
+**Early failure conditions:** see evaluation-plan.md §Early Failure Conditions (5 items — pre-committed)
+
+Full framework: `docs/quality/evaluation-plan.md`
+
+*Populate with results during build (M007–M010)*
 
 ---
 
@@ -157,11 +181,21 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - Q008: Seed TTL
 - Q011: Tier 3 in v1 or v2?
 
+**Governance as necessary condition (from Entry 009 / ADR-001):**
+- "Agent-directed" is only a meaningful claim if the authority chain makes it safe. Governance is not implementation detail — it is part of the pattern definition.
+- The adversarial evaluation (RQ5) provides empirical grounding for the governance claim.
+
 **Broader questions:**
 - How general is the pattern? Where does it break down?
 - Security: schema as injection vector — how does the validation layer hold up in practice?
 - Does AIPCS improve as models improve? Schema design quality is model-dependent.
 - What would a mature AIPCS ecosystem look like — shared taxonomy, cross-deployment portability, multi-agent coordination?
+
+**Limitations to acknowledge (from Entry 012, ADR-002):**
+- Semantic validation is not yet automated — the validator enforces structural rules but not semantic correctness (Q012). A schema can pass the validator but be wrong for the domain.
+- Compaction as a trigger is a design intent — whether it is the primary real-world trigger is an open empirical question pending field evaluation.
+- Dynamic tool registration is not universally supported across all MCP clients — session reconnect is the v1 fallback.
+- Schema design quality is model-dependent and will vary across models and versions.
 
 ---
 
