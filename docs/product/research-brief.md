@@ -2,9 +2,13 @@
 
 ## What is AIPCS?
 
-Agent-Instantiated Persistent Context Services (AIPCS) is a pattern for autonomous, domain-adaptive memory infrastructure. An AI agent, upon encountering a sufficiently complex stateful tracking problem, designs an appropriate data schema, scaffolds a lightweight persistent service around it, and registers that service as an MCP tool — making structured, queryable memory available across all future sessions and any MCP-compatible client.
+Agent-Instantiated Persistent Context Services (AIPCS) is an early pattern for governed agent-directed structured memory, where an agent can propose and evolve persistence schemas under runtime validation instead of relying solely on developer-defined memory models.
 
-The key distinction from all prior work: the agent is the schema architect, not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as an MCP tool, composable and portable.
+More specifically: an AI agent, upon encountering a sufficiently complex stateful tracking problem, proposes a domain-appropriate relational schema, which a governed runtime validates and materialises as a persistent, queryable service, registered as MCP tools — making structured memory available across future sessions and any MCP-compatible client.
+
+The key distinction from prior work: the agent proposes the structure of its own memory, subject to runtime governance. Memory is structurally queryable (not just semantically searchable). The schema can evolve under agent direction as domain understanding grows.
+
+> **Working core claim:** "AIPCS is a constrained runtime pattern for agent-directed creation and evolution of structured persistent memory services." See `docs/architecture/claims-and-scope.md` for the full claims boundary.
 
 ## Who is this for?
 
@@ -20,6 +24,7 @@ The key distinction from all prior work: the agent is the schema architect, not 
 1. **Attribution** — publish an arXiv preprint establishing authorship. Open contribution: CC BY 4.0 for documents, MIT for code.
 2. **Reference implementation** — prove the pattern in Application Tracker (career management platform), then extract as a general open framework.
 3. **Paper** — a 6–10 page systems paper suitable for arXiv and optionally HotOS / SOSP / AI systems workshop.
+4. **Governance specification** — prove the "agent proposes, runtime governs" claim with a fully specified governance model and an adversarial evaluation suite (RQ5).
 
 ## Origin
 
@@ -28,7 +33,12 @@ AIPCS emerged from Application Tracker's MCP architecture, which solved a specif
 ## Non-Goals
 
 - Commercial restriction — attribution only; no proprietary lock-in
-- Pre-defining memory schemas — that's the anti-pattern AIPCS replaces
+- Pre-defining memory schemas — that is the anti-pattern AIPCS replaces
+- Arbitrary database generation at agent direction — the agent proposes within governance constraints
+- Unrestricted code generation by the agent — schema design and tool generation are in scope; general code generation is not
+- Replacing an application's canonical source-of-truth — AIPCS is the agent's working memory, not the product's data model
+- Permissionless persistence — governance is not optional; see `docs/architecture/governance.md`
+- Bypassing the host application's own auth, consent, or audit requirements
 - Building a UI product in this repo — this repo is the pattern spec + paper; the reference implementation lives in `application_tracker`
 - Supporting every possible AI client — MCP-compatible clients only
 

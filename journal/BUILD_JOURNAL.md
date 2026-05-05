@@ -275,6 +275,188 @@ Repo location: ~/GitHub/aipcs
 
 ---
 
+### Entry 009 — 2026-05-04
+
+**Type:** Decision
+
+**Summary:** Formal governance model adopted — authority chain established; constraint categories defined; minimum governance standard set.
+
+**Context:**
+External critique identified the constraint model as the primary gap in the v1 architecture. The Schema Validator enforced structural rules, but the overall governance model — who has authority to do what, under what conditions, with what audit trail — was not formally specified. The claim "agent proposes, runtime governs" was asserted but not substantiated.
+
+**Detail:**
+The governance model is structured around a five-layer authority chain:
+
+```
+Agent proposes → Validator constrains → User consents → Service persists → Audit log explains
+```
+
+Constraint categories:
+1. **Proposal constraints** — what the agent may do unilaterally (seed, list, inspect) versus what requires a validator gate (design, additive migration) versus what requires explicit user consent (destructive migration, Tier 3 access grant, sensitive column addition).
+2. **Structural constraints** — what the Schema Validator must enforce before materialisation: naming conventions, primary keys, tool name format, reserved column names.
+3. **Semantic constraints** — what automated enforcement cannot yet cover (domain appropriateness, no credential columns, no host-app schema references). Partially deferred as Q013.
+4. **Sensitive-data constraints** — column name patterns triggering `sensitive: true` declaration and user notification at materialisation.
+
+User transparency requirements: 7 things a user must be able to determine at any time (list domains, inspect data, view migration history, query audit log, export data, delete data, see Tier 3 grants).
+
+Auditability requirements: 8 auditable actions; 6-field audit entry structure (event_id, event_type, service_id, actor, timestamp, outcome).
+
+Consent model: 3 tiers — implicitly allowed in bounded local context, explicit confirmation recommended, high bar.
+
+Correction and redress: 8 operations (inspect, amend, dispute, deprecate, merge, tombstone, export, delete).
+
+Minimum governance standard: 7-point checklist that must be met before any prototype is used beyond solo development.
+
+**Decision made:**
+Adopt `docs/architecture/governance.md` as the authoritative governance specification. This is a v1 design requirement, not a v2 deferral. Without it, the "agent proposes, runtime governs" claim cannot be substantiated.
+
+**Alternatives considered:**
+Deferring governance to v2 — rejected. It leaves the core claim unsubstantiated and prevents the prototype from being used for user evaluation.
+
+**Implications:**
+Phase 2 (AIPCS Server Prototype) must include: audit_log table in Registry DB, sensitive-data column heuristics in Schema Validator, and a v1 consent surface for materialisation. See implementation-sequencing.md.
+
+**Paper notes:**
+§3 (The AIPCS Pattern) — the authority chain is a first-class design contribution alongside the two-state lifecycle. "Agent-directed" does not mean "agent-controlled" — this distinction is the core of the governance claim. §6 (Discussion) — governance as a necessary condition for the pattern to be safe in practice.
+
+**Open questions:**
+- Q012: Can a validator reliably detect whether a proposed schema is semantically appropriate for its declared domain?
+- Q013: How should the Schema Validator detect PII/credential column names automatically?
+- Q014: In v1 local trust mode (no UI), how is user consent for materialisation surfaced?
+
+---
+
+### Entry 010 — 2026-05-04
+
+**Type:** Spec Change
+
+**Summary:** Claims narrowed — "universal primitive" retired; authoritative claims boundary document created; compaction reframed.
+
+**Context:**
+External critique identified four areas of claim overreach in existing repo language: "universal primitive" language outpacing evidence, MCP positioned as the primary novelty claim, compaction framed as "primary Model B trigger" without field evidence, and no single authoritative claims document allowing language to drift independently across files.
+
+**Detail:**
+Working core claim adopted:
+> AIPCS is a constrained runtime pattern for agent-directed creation and evolution of structured persistent memory services.
+
+Safer external framing adopted (for paper abstract, README, presentations):
+> AIPCS is an early pattern for governed agent-directed structured memory, where an agent can propose and evolve persistence schemas under runtime validation instead of relying solely on developer-defined memory models.
+
+Specific language changes:
+- "Universal primitive" → "general-purpose pattern" in README.md. Cannot claim universality before multi-domain generalisation evidence exists.
+- "The agent is the architect of its own memory" → "the agent proposes the structure of its own memory, subject to runtime governance."
+- Compaction: "primary Model B trigger" → "a designed Model B trigger" pending field validation of whether compaction is the primary real-world trigger in practice.
+- MCP positioning: reduced from primary novelty claim to chosen interface surface. The novelty is agent-directed structured persistence, not MCP per se.
+
+`docs/architecture/claims-and-scope.md` created as the single authoritative claims boundary. All novelty language in the repo must be consistent with it. It is the tie-breaker where language conflicts.
+
+**Decision made:**
+The narrower, more defensible claim is adopted. Inline qualifications per document are rejected in favour of a single authoritative document.
+
+**Alternatives considered:**
+Inline qualifications per document — rejected because they drift and are inconsistently applied over time.
+
+**Implications:**
+README.md and paper/outline.md §1 and §3 require targeted language updates. No structural changes to the architecture.
+
+**Spec change:** S002 — see Spec Change Log.
+
+**Paper notes:**
+§1 (Introduction) — use the safer external framing in the abstract and opening contribution statement. §3 — compaction framing note. Do not lead with MCP as the primary novelty in the abstract.
+
+---
+
+### Entry 011 — 2026-05-04
+
+**Type:** Milestone
+
+**Summary:** Formal evaluation framework adopted — 6 research questions, 3 baselines, 4-phase evaluation sequencing aligned to implementation phases.
+
+**Context:**
+The paper outline §5 (Evaluation) was seeded with informal metrics from journal running notes. No structured research questions, baselines, or success/failure criteria existed. A formal evaluation framework has been produced to ground the paper's evaluation section and make results comparable across runs.
+
+**Detail:**
+Six research questions formalised:
+- RQ1: Recognition — does the agent reliably recognise AIPCS-appropriate situations?
+- RQ2: Initial Design Quality — does the agent produce a schema that covers the domain at first attempt?
+- RQ3: Evolution Quality — does the agent propose appropriate additive evolutions?
+- RQ4: Retrieval and Continuity Utility — does AIPCS-backed memory improve task continuation vs baselines?
+- RQ5: Governance Effectiveness — does the constraint model prevent harmful proposals?
+- RQ6: Runtime Portability — can an AIPCS service be exported and re-materialised in a different runtime?
+
+Three baselines:
+- Baseline A: Harness memory (markdown/index files — the status quo pattern this repo uses)
+- Baseline B: Developer-defined structured memory (hand-written schema with equivalent domain coverage)
+- Baseline C: Minimal generic KV/document store (no domain structure)
+
+Baselines B and C exist to isolate the specific contributions. Baseline B tests whether agent-design adds value over developer-defined structure. Baseline C tests whether schema quality matters at all.
+
+Four evaluation phases mapped to implementation phases:
+- Phase 1 (Concept Validation) — RQ1, RQ2 — triggers at M007
+- Phase 2 (Governance Validation) — RQ3, RQ5; adversarial suite — triggers at M008
+- Phase 3 (Portability Validation) — RQ6 — between M008 and M009
+- Phase 4 (Comparative) — RQ4 across all three baselines — triggers at M009
+
+Five early success criteria and five early failure conditions defined. Failure conditions are honest pre-commitments — if any trigger, the issue must be resolved before paper submission.
+
+**Decision made:**
+Adopt `docs/quality/evaluation-plan.md` as the authoritative evaluation specification. Paper §5 will be structured around the 6 RQs and 3 baselines.
+
+**Implications:**
+Implementation phases 4–7 must accommodate evaluation artefact requirements (session transcripts, schema manifests, audit logs, token cost records). Adversarial prompting suite (RQ5) must be designed before Phase 5 work begins. Phase 5 in implementation-sequencing.md updated to align.
+
+**Paper notes:**
+§5 (Evaluation) — the 6 RQs define the section structure. The 3 baselines ground any comparative claims. The pre-defined failure conditions strengthen the paper — they signal intellectual honesty rather than post-hoc rationalisation.
+
+**Open questions:**
+- Q015: What does the evaluation harness look like? How are artefacts captured systematically?
+- Q016: What is the human review rubric for schema quality (RQ2, RQ3)?
+
+---
+
+### Entry 012 — 2026-05-04
+
+**Type:** Observation
+
+**Summary:** External critique received and processed — findings confirm core novelty; 5 gaps and 5 steering recommendations fully dispositioned.
+
+**Context:**
+An independent formal critique of AIPCS was received and reviewed (May 2026). This entry records the synthesis.
+
+**Detail:**
+The critique's novelty assessment confirms the strongest claim combination:
+> agent recognition of persistence need + agent proposal of memory structure + runtime materialisation + governed schema evolution + portable tool surface
+
+This is more specific and more defensible than "universal primitive." The critique notes that MCP matters as an interface surface but is not the novelty itself — the deeper idea survives even if MCP mechanics change.
+
+Critique findings dispositioned (full details in `docs/quality/critique-response.md`):
+1. **Constraint model under-specified** → actioned: governance.md + ADR-001
+2. **Validation too structural** → partially actioned: governance.md §Semantic Constraints; full semantic automation deferred as Q013
+3. **Dynamic tool registration may be less robust than assumed** → actioned: claims-and-scope.md explicit non-claim item 2
+4. **Compaction is useful but not foundational** → actioned: reframed from "primary" to "designed" trigger
+5. **Authority and truth chain not explicit** → actioned: governance.md §Authority Chain
+
+Steering recommendations dispositioned:
+1. **Narrow the claim** → actioned: claims-and-scope.md; working core claim adopted
+2. **Separate the layers** → actioned: claims-and-scope.md §Scope Boundaries: Pattern vs Implementation
+3. **Specify non-goals aggressively** → actioned: claims-and-scope.md §Non-Goals; research-brief.md updated
+4. **MCP not the primary novelty** → actioned: README and paper outline language adjusted
+5. **Retire "universal primitive"** → actioned: README updated
+
+**Observation:**
+The critique is a useful calibration. The core novelty is sound; the surrounding claims infrastructure was underdeveloped. The gap between "this is novel" and "this is well-specified enough to withstand peer review" has been substantially closed by entries 009–011.
+
+**Alternatives considered:**
+Treating the critique as confirmation only — rejected. The findings require substantive changes, not acknowledgement.
+
+**Paper notes:**
+§1 — the critique's novelty formulation (the combination of 5 elements) can inform the contribution statement directly. §6 (Discussion) — semantic validation gap is an honest acknowledged limitation worth naming: the validator enforces structure but not semantic correctness.
+
+**Open questions:**
+Q012–Q016 added to technical-debt.md.
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -325,6 +507,10 @@ Use this for quick orientation when resuming work after a break.
 | D008 | 2026-05-04 | Schema-forward, additive-by-default, migration-tracked | Backward compatibility as a v1 requirement | 005 |
 | D009 | 2026-05-04 | Three-tier access model | Transparency and auditability are design inputs from v1 | 006 |
 | D010 | 2026-05-04 | domain_class field in schema manifest | Enables future taxonomy and interoperability without requiring it now | 007 |
+| D011 | 2026-05-04 | Formal governance model adopted — authority chain, constraint categories, minimum governance standard | External critique finding: constraint model was the primary gap; "agent proposes, runtime governs" claim required substantiation | 009 |
+| D012 | 2026-05-04 | "Universal primitive" retired; claims-and-scope.md created as authoritative claims boundary | Prevents claim overreach drift; narrower claims are more defensible in peer review | 010 |
+| D013 | 2026-05-04 | Evaluation framework formalised — 6 RQs, 3 baselines, 4 evaluation phases | Paper §5 requires structured evaluation; informal journalling is insufficient for comparative claims | 011 |
+| D014 | 2026-05-04 | Compaction reframed from "primary Model B trigger" to "a designed Model B trigger" | Pending field evidence; avoids making an evaluable claim before evaluation has occurred | 010 |
 
 ---
 
@@ -335,6 +521,7 @@ Record every time a build decision causes a change to the pattern specification.
 | # | Date | Spec Section | Change | Reason | Entry |
 |---|------|-------------|--------|--------|-------|
 | S001 | — | — | — | — | — |
+| S002 | 2026-05-04 | Core claim language across repo | Retire "universal primitive"; adopt narrowed working core claim; adopt safer external framing; reframe compaction as "designed" not "primary" trigger | External critique steering advice | 010 |
 
 ---
 
@@ -355,6 +542,11 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q009 | Should domain taxonomy be open registry or curated set? | 007 | — | — |
 | Q010 | How to handle domain overlap in taxonomy (e.g. job application vs career)? | 007 | — | — |
 | Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? | 006 | — | — |
+| Q012 | Governance — semantic validation: can a validator reliably detect whether a proposed schema is semantically appropriate for its declared domain? Structural checks are insufficient for semantic correctness. | 009 | — | — |
+| Q013 | Governance — sensitive-data column detection: how should the Schema Validator detect PII/credential column names automatically? Regex heuristics vs model-assisted? | 009 | — | — |
+| Q014 | Governance — v1 local consent mechanism: in v1 local trust mode (no UI), how is user consent for materialisation and sensitive column additions surfaced? | 009 | — | — |
+| Q015 | Evaluation — harness design: what does the evaluation harness look like? How are session transcripts, audit logs, and token costs captured systematically across runs? | 011 | — | — |
+| Q016 | Evaluation — schema quality rubric: what criteria define a schema as adequate for a domain? Required for RQ2 and RQ3 human review. | 011 | — | — |
 
 ---
 
@@ -372,6 +564,7 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M008 | End-to-end flow validated in App Tracker | — | — | |
 | M009 | Framework extracted from app-specific code | — | — | |
 | M010 | arXiv preprint submitted | — | — | |
+| M011 | Governance model, claims boundary, and evaluation framework documented | 2026-05-04 | ✅ 2026-05-04 | Entries 009–012; ADR-001–003; EP-001; governance.md; claims-and-scope.md; evaluation-plan.md |
 
 ---
 
@@ -391,6 +584,7 @@ Copy useful observations from entries into the relevant section below.
 - Motivated by a concrete application: career management for job seekers
 - The irony of building AIPCS without AIPCS — illustrates the pattern's own value proposition
 - Consumer access equity: DCR as a design constraint, not an afterthought
+- **Claim framing (from D012, Entry 010):** Use the safer external framing for the contribution statement — "an early pattern for governed agent-directed structured memory." Avoid "universal primitive." Do not lead with MCP as the primary novelty. The strongest novelty formulation (from external critique): agent recognition + agent proposal of memory structure + runtime materialisation + governed evolution + portable tool surface.
 
 ### 2. Background and Related Work
 
@@ -413,7 +607,8 @@ Key works to cite:
 
 Key points to include from design iteration:
 - **Two-state lifecycle**: SEEDED → MATERIALISED. The seed is a first-class primitive, not a placeholder. Describe the progression from hint → seed → accumulated knowledge → schema design → materialisation.
-- **Compaction as Model B trigger**: Novel contribution — no prior art connects context compaction with structured memory instantiation. Agent evaluates active domains for persistence candidacy before compressing. Captures knowledge closer to the source than a summary.
+- **Compaction as Model B trigger (Entry 003):** A designed Model B trigger — connects compaction with structured memory candidacy evaluation. Pending field validation of whether this is the primary real-world trigger in practice. Do not claim "primary" before evaluation data exists.
+- **Authority chain as design contribution (Entry 009):** Agent proposes → Validator constrains → User consents → Service persists → Audit log explains. This is as central to the pattern as the two-state lifecycle — "agent-directed" only means something if the governance chain makes it safe.
 - **Self-referential MCP-native mechanism**: MCP tools that create MCP tools. Option 3 vs alternatives evaluated (Option 1: too weak; Option 2: CLI friction; Option 4: sidecar HTTP complexity). Impediments and resolutions documented in Entry 004.
 - **Schema evolution as agent act**: Agent proposes migrations; AIPCS validates and applies. Additive-by-default, destructive requires confirmation. Schema manifest travels with the service.
 
@@ -432,16 +627,24 @@ Key points from design iteration:
 
 ### 5. Evaluation
 
-Evaluation questions seeded from design:
-- What workflows became possible that weren't before?
-- Latency cost of agent schema design vs a pre-defined schema
-- Token cost of the schema design step
-- **How quickly do seeds materialise?** Average interactions before materialisation (from Entry 002)
-- **How many schema evolutions occur** in a typical domain tracking lifecycle? (from Entry 005)
-- What prompt patterns worked best for triggering recognition?
-- What failed or surprised you?
+Evaluation framework adopted (Entry 011, evaluation-plan.md). Structure §5 around these:
 
-*Populate during build (M007–M008)*
+**Research Questions (RQ1–RQ6):**
+- RQ1: Recognition — agent reliably recognises AIPCS-appropriate situations?
+- RQ2: Initial Design Quality — first-attempt schema covers the domain?
+- RQ3: Evolution Quality — agent proposes appropriate additive evolutions?
+- RQ4: Retrieval and Continuity Utility — AIPCS memory improves task continuation vs baselines?
+- RQ5: Governance Effectiveness — constraint model prevents harmful proposals?
+- RQ6: Runtime Portability — service exportable and re-materialisable in a different runtime?
+
+**Baselines:**
+- A: Harness memory (markdown/index files — status quo)
+- B: Developer-defined structured memory (isolates value of agent-directed design)
+- C: Minimal generic KV/document store (isolates value of schema quality)
+
+**Evaluation phases:** Phase 1 (RQ1/2, M007) → Phase 2 (RQ3/5, M008) → Phase 3 (RQ6) → Phase 4 (RQ4 comparative, M009)
+
+*Populate with results during build (M007–M009). Full framework: docs/quality/evaluation-plan.md*
 
 ### 6. Discussion
 
@@ -451,6 +654,8 @@ Evaluation questions seeded from design:
 - Security implications of agent-designed schemas (schema as injection vector)
 - Does AIPCS improve as models improve? (schema design quality is model-dependent)
 - What would a mature AIPCS ecosystem look like?
+- **Governance as necessary condition (Entry 009):** "agent-directed" is only a meaningful claim if the authority chain makes it safe. This belongs in §6 as a design principle, not a v2 deferral.
+- **Limitations to acknowledge honestly (Entry 012):** Semantic validation not yet automated (Q013). Compaction as primary trigger is a design intent, not yet field-validated. Dynamic tool registration is not universally supported. Schema quality is model-dependent.
 
 ### 7. Conclusion
 

@@ -45,11 +45,25 @@ AIPCS is composed of three distinct trust zones:
 | Tier 2 — User | Natural language → agent → MCP tools | Via agent | Implicit |
 | Tier 3 — Elevated (IT/compliance/practitioner) | Direct read-only query API or structured export | No | Explicit user consent grant |
 
+## Constraint Layer
+
+All agent-generated artefacts pass through a Constraint Layer before reaching the AIPCS Server. This layer sits between the Agent zone and the AIPCS Server zone.
+
+| Constraint type | Enforced by | When |
+|---|---|---|
+| Structural (table names, column types, audit fields, tool name format) | Schema Validator | At `schema_design` submission and `schema_evolution` proposal |
+| Semantic (schema describes the declared domain; no credential columns; no host-app schema replication) | Described in [governance.md](governance.md) §Semantic Constraints — automation deferred as Q012/Q013 | At `schema_design` submission; partially via skill guidance |
+| Sensitive-data detection (credential/PII column name patterns) | Schema Validator heuristics — name pattern matching | At `schema_design` and `schema_evolution` |
+| Consent gating (destructive migration, Tier 3 access, sensitive column addition) | AIPCS Server consent check | At execution time, before applying |
+| Audit logging | Registry DB `audit_log` table | After every auditable action (8 events — see governance.md) |
+
+The Constraint Layer is not optional. The minimum governance standard in [governance.md](governance.md) defines the floor for any prototype deployed with real users.
+
 ## Enforcement
 
-- Schema Validator enforces schema design requirements before materialisation
+- Schema Validator enforces structural constraints before materialisation
 - `owner_id` enforced on every entity at the Domain Service layer
-- Audit log in Registry DB records all management tool calls
-- Gaps: multi-agent locking (Q004), schema conflict resolution (Q005), Tier 3 consent mechanism (Q011)
+- Audit log in Registry DB records all 8 auditable actions (see [governance.md](governance.md) §Auditability Requirements)
+- Gaps: multi-agent locking (Q004), schema conflict resolution (Q005), Tier 3 consent mechanism (Q011), semantic validator design (Q012), automated sensitive-data detection (Q013), v1 local consent surface (Q014)
 
 Record gaps in [../quality/technical-debt.md](../quality/technical-debt.md).

@@ -98,11 +98,31 @@ The AIPCS Server exposes 8 management tools available from the moment AIPCS is c
 
 ---
 
+## Governance Model
+
+AIPCS is a governed pattern. The agent proposes; the runtime governs. The full governance model — constraint categories, authority chain, consent tiers, user transparency requirements, auditability requirements, and minimum governance standard — is specified in [governance.md](governance.md).
+
+Key principle: "agent-directed" does not mean "agent-controlled." All agent-generated artefacts (schema proposals, migration proposals, export requests) pass through the authority chain before execution.
+
+Reference: BUILD_JOURNAL Entry 009, ADR-001.
+
+## Claims and Scope
+
+AIPCS has a single authoritative statement of what it claims and what it does not. See [claims-and-scope.md](claims-and-scope.md).
+
+Working core claim: "AIPCS is a constrained runtime pattern for agent-directed creation and evolution of structured persistent memory services."
+
+Any language elsewhere in the repo that conflicts with claims-and-scope.md must be updated to match that document.
+
+Reference: BUILD_JOURNAL Entry 010, ADR-002.
+
 ## Architecture Routes
 
 - Full v1 design → [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
 - Boundary definitions → [boundaries.md](boundaries.md)
-- Formal decisions (ADRs) → [decisions/](decisions/)
+- Governance model → [governance.md](governance.md)
+- Claims and scope boundary → [claims-and-scope.md](claims-and-scope.md)
+- Formal decisions (ADRs) → [decisions/](decisions/) — ADR-001 (Governance Model), ADR-002 (Claim Narrowing), ADR-003 (Evaluation Framework)
 - Pattern principles (P1–P10) → `docs/AIPCS_Pattern_Specification_v0.1.docx`
 - Open design questions → [../quality/technical-debt.md](../quality/technical-debt.md)
 
@@ -111,3 +131,5 @@ The AIPCS Server exposes 8 management tools available from the moment AIPCS is c
 - No change to trigger/mechanism/registration decisions without a BUILD_JOURNAL entry and an ADR
 - No new dependency without checking [boundaries.md](boundaries.md)
 - Agent-generated outputs (schemas, API code) are always treated as untrusted input — validate before executing
+- All novelty language must be consistent with [claims-and-scope.md](claims-and-scope.md) — that document is the tie-breaker
+- Governance model changes require a BUILD_JOURNAL entry, an ADR update, and a governance.md update

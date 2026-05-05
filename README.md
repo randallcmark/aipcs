@@ -28,9 +28,11 @@ The result is memory infrastructure that is **structured and queryable** (not ju
 
 Most agent memory systems invert the right relationship. The developer designs the structure; the agent fills it in.
 
-AIPCS inverts this: **the agent is the architect of its own memory**. The developer provides the scaffolding capability — the ability to instantiate a schema, wrap it in a service, and register it as an MCP tool. The agent decides what structure that memory should have, based on the domain it is helping with.
+AIPCS inverts this: **the agent proposes the structure of its own memory, subject to runtime governance**. The developer provides the scaffolding capability — the ability to validate, materialise, and register a service from an agent-proposed schema. The agent decides what structure that memory should have, based on the domain it is helping with.
 
-This makes AIPCS a **universal primitive** rather than a fixed application schema. Job tracking today. Medical history tomorrow. Research notes next week. The agent selects the appropriate structure at instantiation time.
+This makes AIPCS a **general-purpose pattern** rather than a fixed application schema. Job tracking today. Medical history tomorrow. Research notes next week. The agent selects the appropriate structure at instantiation time — within a governed constraint model that prevents unconstrained persistence.
+
+> AIPCS is an early pattern for governed agent-directed structured memory, where an agent can propose and evolve persistence schemas under runtime validation instead of relying solely on developer-defined memory models.
 
 ---
 
@@ -56,6 +58,7 @@ AIPCS incorporates **OAuth 2.0 with Dynamic Client Registration (DCR)** as a des
 | P8 | Privacy-first deployment | Self-hosted, local-first. User data stays under user control. |
 | P9 | Provenance and auditability | All agent-created outputs record full provenance. |
 | P10 | MCP off by default | No ambient exposure. Must be explicitly enabled. |
+| P11 | Governed by design | The agent proposes; the runtime governs. Persistence is not permissionless. |
 
 ---
 
