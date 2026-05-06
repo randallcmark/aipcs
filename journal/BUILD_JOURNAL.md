@@ -318,6 +318,42 @@ Section 5 (Evaluation) — this is a central methodological point. The paper sho
 
 ---
 
+### Entry 010 — 2026-05-06
+
+**Type:** Milestone
+
+**Summary:** First `agent-memory-v2` baseline evidence recorded for the AIPCS evaluation plan.
+
+**Context:**
+After the evaluation framing was established, the canonical `agent-memory-v2` repository was used to run the current fixed-memory baseline. The baseline artifacts remain in `/Users/markrandall/GitHub/agent-memory-v2`; AIPCS now keeps a concise evidence note at `docs/references/evaluation-baseline-2026-05-06.md`.
+
+**Detail:**
+The baseline includes deterministic eval history, live Ollama eval history, and qualitative scenario artifacts. The inspected clean implementation SHA was `39d633664f377fa442a6bc698ae527abbf6a377d` on branch `main`.
+
+Summary of observed results:
+- Deterministic eval: passed with overall score `1.0` across classification, semantic routing, sentiment, profile, recall, and prompt stages.
+- Live Ollama eval: passed with overall score `1.0` across memory and sentiment stages using `llama3:8b` and `nomic-embed-text`.
+- `conflicting_fact_latest_wins`: profile resolved `identity.location` to `London now`; final prompt injected the latest profile value and suppressed additional recalled memory.
+- `semantic_location_candidate`: semantic routing plus structured extraction promoted "I'm based in Edinburgh in the UK" into durable `identity.location` memory.
+
+**Observation:**
+`agent-memory-v2` is a credible fixed-memory control. It already includes hybrid promotion from generic utterances into structured durable memory, but that structure is still developer-defined through taxonomy/profile keys. This makes it a useful baseline, not proof of AIPCS schema autonomy.
+
+**Alternatives considered:**
+Raw eval artifacts could have been copied into AIPCS, but that would duplicate generated data and risk drift. The chosen approach keeps raw artifacts in the implementation repo and records a compact, citable summary in AIPCS.
+
+**Implications:**
+The next implementation step should be the provider-neutral mini agent harness with OpenAI as the first agent-class reference. Future comparisons should cite this baseline note and avoid using the stale NAS checkout.
+
+**Paper notes:**
+Section 5 (Evaluation) — this provides the first baseline evidence for the fixed-memory control. It also surfaces an important distinction for the paper: `agent-memory-v2` can structure memory, but the object model is predefined by developers, whereas AIPCS claims agent-generated schema autonomy.
+
+**Open questions:**
+- Should the baseline note be promoted into a fuller experiment protocol after the OpenAI harness exists?
+- Which additional scenarios should be required before claiming the fixed-memory baseline is sufficiently characterized?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD

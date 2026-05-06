@@ -4,7 +4,7 @@
 **Owner:** Agent
 **Created:** 2026-05-06
 **Last updated:** 2026-05-06
-**BUILD_JOURNAL entries:** Entry 009
+**BUILD_JOURNAL entries:** Entry 009, Entry 010
 
 ---
 
@@ -101,6 +101,7 @@ After the OpenAI harness exists, repeat selected live/scenario runs through the 
 | Date | What happened |
 |---|---|
 | 2026-05-06 | Created draft execution plan for the two-layer experiment and first OpenAI-backed harness scope. |
+| 2026-05-06 | Recorded first `agent-memory-v2` baseline evidence in `docs/references/evaluation-baseline-2026-05-06.md`. |
 
 ## Decisions Made During Work
 
