@@ -275,6 +275,49 @@ Repo location: ~/GitHub/aipcs
 
 ---
 
+### Entry 009 — 2026-05-06
+
+**Type:** Decision
+
+**Summary:** Evaluation framing established: separate memory-system quality from agent/model capability, with OpenAI as the first agent-class reference.
+
+**Context:**
+While planning the experimental baseline, the original Application Tracker proving-ground assumption was revisited. The stronger current implementation candidate is `agent-memory-v2`, now canonical at `/Users/markrandall/GitHub/agent-memory-v2`. The older NAS checkout at `/Volumes/Media/Repository/agent_memory_v2` was identified as stale and should not be used for future baselines.
+
+The key methodological issue: `agent-memory-v2` currently runs against local Ollama models such as `llama3:8b`. That is not equivalent to AIPCS running inside an agent harness such as ChatGPT, Claude, or Gemini, where the model can reliably follow instructions and use tools.
+
+**Detail:**
+The experiment will be structured as two layers:
+
+1. **Layer 1 — memory mechanics:** evaluate capture, extraction, recall, conflict handling, prompt-context cleanliness, storage growth, and maintenance behavior independently of live model quality.
+2. **Layer 2 — agent behavior:** evaluate an instruction-following model operating through a minimal tool-loop harness, measuring tool-use validity, tool-use judgment, answer correctness, grounding, latency, and call count.
+
+The first API-backed agent-class reference will be OpenAI. Claude and Gemini remain useful future comparisons, but adding them immediately would expand scope before the baseline is stable. Local models remain part of the model ladder (`llama3:8b`, `gpt-oss:20b`, `gemma3:12b`, `gemma3:27b`), but no AIPCS claim should rely on `llama3:8b` behavior alone.
+
+An execution plan was created at `docs/exec-plans/active/aipcs-experiment-baseline-and-agent-harness.md`.
+
+**Decision made:**
+Evaluation results must distinguish memory-system performance from agent/model capability. The first agent-class comparison should use an OpenAI-backed, provider-neutral mini harness. Cloud GPU use is deferred unless local open-model comparison becomes a blocker.
+
+**Alternatives considered:**
+- Treat the whole assistant as one end-to-end unit. Rejected because it would make weak-model behavior look like memory-system failure.
+- Use only deterministic memory tests. Rejected because AIPCS is an agentic pattern and must eventually be evaluated through agent decisions.
+- Rent cloud GPU first. Rejected for the initial baseline because stronger open-weight inference does not directly test the expected AIPCS configuration of a tool-using instruction-following agent.
+- Implement Claude and Gemini immediately. Deferred to keep the first harness bounded and reproducible.
+
+**Implications:**
+The paper's Evaluation section must report two categories of evidence: model-independent memory mechanics and agent-class behavior. `application_tracker` should be treated as a fixed-schema contrast rather than the main experimental baseline. The current baseline path is `/Users/markrandall/GitHub/agent-memory-v2`; the stale NAS path should be avoided in all future baseline commands.
+
+**Paper notes:**
+Section 5 (Evaluation) — this is a central methodological point. The paper should explicitly state that AIPCS assumes an instruction-following agent harness, so evaluation separates memory substrate quality from model/tool-use capability. Section 6 (Discussion) — model dependence becomes an important limitation and future-work axis: as local/open models improve, AIPCS may become more viable without frontier API access.
+
+**Open questions:**
+- Which OpenAI model should become the first reference once the harness is implemented?
+- How much local open-model parity is needed before claiming that AIPCS is practical outside frontier API agents?
+- Should Claude or Gemini be added before the first paper draft, or only after the OpenAI reference run?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -325,6 +368,8 @@ Use this for quick orientation when resuming work after a break.
 | D008 | 2026-05-04 | Schema-forward, additive-by-default, migration-tracked | Backward compatibility as a v1 requirement | 005 |
 | D009 | 2026-05-04 | Three-tier access model | Transparency and auditability are design inputs from v1 | 006 |
 | D010 | 2026-05-04 | domain_class field in schema manifest | Enables future taxonomy and interoperability without requiring it now | 007 |
+| D011 | 2026-05-06 | Evaluation must separate memory mechanics from agent behavior | Prevents model weakness from being misreported as memory-system failure | 009 |
+| D012 | 2026-05-06 | OpenAI is the first agent-class reference provider | Closest bounded match to AIPCS assumptions before adding Claude/Gemini/cloud GPU | 009 |
 
 ---
 
@@ -440,6 +485,8 @@ Evaluation questions seeded from design:
 - **How many schema evolutions occur** in a typical domain tracking lifecycle? (from Entry 005)
 - What prompt patterns worked best for triggering recognition?
 - What failed or surprised you?
+- **Two-layer evidence model**: report memory mechanics separately from agent behavior. Layer 1 evaluates capture, extraction, recall, conflict handling, prompt cleanliness, storage growth, and maintenance independently of model quality. Layer 2 evaluates tool-use validity, judgment, answer correctness, grounding, latency, and call count through a mini agent harness. (Entry 009)
+- **Agent-class reference**: OpenAI-backed harness results become the first reference configuration for AIPCS-like agent behavior. Local models remain a ladder, but `llama3:8b` must not be the sole basis for AIPCS claims. (Entry 009)
 
 *Populate during build (M007–M008)*
 
@@ -447,6 +494,7 @@ Evaluation questions seeded from design:
 
 - **Three-tier access model** — transparency and auditability as design considerations for agent memory systems generally. Medical use case: agent-accumulated health context shared with practitioner's AI workflow via consent-gated structured export. (Entry 006)
 - **Taxonomy and interoperability** — domain_class field enables future cross-agent interoperability without mandating it now. Open vs curated registry question. (Entry 007)
+- **Model dependence** — AIPCS assumes an instruction-following, tool-using agent. Evaluation should discuss how far local/open models can approximate that role versus requiring frontier API-class agents. (Entry 009)
 - How general is the pattern really? Where does it break down?
 - Security implications of agent-designed schemas (schema as injection vector)
 - Does AIPCS improve as models improve? (schema design quality is model-dependent)
