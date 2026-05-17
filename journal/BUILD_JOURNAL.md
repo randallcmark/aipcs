@@ -354,6 +354,590 @@ Section 5 (Evaluation) — this provides the first baseline evidence for the fix
 
 ---
 
+### Entry 011 — 2026-05-17
+
+**Type:** Decision
+
+**Summary:** Homelab infrastructure adopted as the default deployment substrate for AIPCS prototype services.
+
+**Context:**
+After a week of parallel homelab work, the available runtime environment changed materially. The QNAP now has Portainer-managed Docker stacks, Caddy reverse proxy under `*.indigo-blocks.uk`, Grafana/Prometheus/Loki observability, Open WebUI, Tailscale access patterns, and a Brandon vLLM relay reachable by homelab containers. The AIPCS build should use this as enabling infrastructure rather than creating duplicate local service stacks.
+
+**Detail:**
+The AIPCS mission remains the same: design and validate agent-instantiated persistent context services. The homelab is now the preferred substrate for durable service experiments, not a competing project. Local Docker on the Mac remains useful for fast development and Apple Silicon-specific workloads, but the default target for deployable services should be QNAP/homelab when CPU demands are modest.
+
+Practical constraints:
+- QNAP has enough memory for many lightweight services.
+- QNAP CPU is low-power Intel J4105 Celeron class with no GPU.
+- Heavy inference should use external/API providers, Brandon vLLM, NVIDIA/Gemini, or Apple Silicon when appropriate.
+- `brandon-ts:8080/v1` is an internal homelab Docker-network model endpoint, not a Mac-resolvable hostname.
+- Open WebUI is a useful human/model interface, but not the AIPCS memory control plane.
+
+**Decision made:**
+Use homelab as the standard deployment target for AIPCS prototype services unless a task specifically requires local workstation execution. Keep `aipcs-model-lab` as a companion model/provider harness, not as the center of the AIPCS architecture.
+
+**Alternatives considered:**
+- Continue building independent local Docker infrastructure for every AIPCS experiment. Rejected because it duplicates the homelab service substrate and creates unnecessary drift.
+- Move AIPCS implementation into the homelab repo. Rejected because AIPCS is the research/spec/reference project; homelab is the operations substrate.
+- Treat Open WebUI as the primary memory interface. Rejected for now because AIPCS needs MCP-native primitives and schema autonomy, while Open WebUI is primarily a model/chat UX.
+
+**Implications:**
+The active experiment plan now records homelab as deployment substrate and updates the provider ladder to include NVIDIA NIM, Brandon vLLM, and future Gemini support. The first memory prototype should remain small: local-first MCP server, SQLite registry, primitive management tools, then containerise and deploy to homelab when the tool loop is credible.
+
+**Paper notes:**
+Section 4 (Reference Implementation) should mention that the reference prototype runs on modest homelab infrastructure, with inference separated from memory service hosting. Section 6 (Discussion) can use this as evidence that AIPCS services do not require GPU-class infrastructure; only the agent/model side may.
+
+**Open questions:**
+- Should the first AIPCS MCP prototype be Node or Python?
+- Should the first deployed homelab service be the AIPCS primitive server itself or a narrower memory experiment?
+- How much of the homelab deployment path should appear in the paper versus remain operational detail?
+
+---
+
+### Entry 012 — 2026-05-17
+
+**Type:** Milestone
+
+**Summary:** First AIPCS implementation repo created with a working primitive registry loop.
+
+**Context:**
+After deciding that AIPCS should remain the mission and homelab should serve as deployment substrate, the first implementation repo was created separately at `/Users/markrandall/GitHub/aipcs-server`. The repo is tailored as a software implementation harness rather than a copy of the generic template harness.
+
+**Detail:**
+The first slice implements a local-first Python MCP primitive server with SQLite registry persistence. It exposes the core behavior behind the first three management primitives:
+- `aipcs_service_seed`
+- `aipcs_service_list`
+- `aipcs_service_inspect`
+
+The implementation includes:
+- repo-specific agent harness docs
+- Python package and CLI entrypoint
+- Pydantic validation for seed requests
+- SQLite `services` and `audit_log` tables
+- exact duplicate handling by `owner_id + domain_name`
+- broad, non-enforced `domain_class` metadata
+- test coverage for validation, persistence, duplicate handling, owner scoping, audit logging, and JSON-shaped tool output
+
+**Decision made / milestone reached:**
+The AIPCS Server build has begun as a separate implementation repo. The first seed/list/inspect registry loop is implemented and validated locally. Taxonomy remains deliberately soft in the first slice: `domain_class` is stored but not used as a rigid classifier.
+
+**Alternatives considered:**
+- Copy the generic template harness verbatim. Rejected because the server repo needs implementation-specific routing and validation rules.
+- Start directly with full materialisation. Rejected because seed/list/inspect is the smallest useful proof of the AIPCS lifecycle.
+- Enforce a fixed taxonomy now. Rejected because early rigid taxonomy would undermine agent flexibility and schema autonomy.
+
+**Implications:**
+M005 can now progress from design into implementation. The next slice should add schema design intake and validation only after the primitive registry loop is exercised through an MCP client. Homelab deployment should wait until the local tool loop is credible.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — the first implementation slice demonstrates that the SEEDED state can be made concrete as a durable, inspectable primitive before schema materialisation exists. Section 6 (Discussion) — the taxonomy choice is important: AIPCS stores broad classification metadata without locking the agent into a fixed hierarchy.
+
+**Open questions:**
+- Should schema design intake come before or after a live MCP client smoke test?
+- What is the minimum taxonomy metadata needed to support future reclassification without premature structure?
+- When should `aipcs-server` be deployed to homelab?
+
+---
+
+### Entry 013 — 2026-05-17
+
+**Type:** Milestone
+
+**Summary:** AIPCS Server now accepts and validates schema designs for seeded services.
+
+**Context:**
+The first MCP smoke test proved the seed/list/inspect registry loop. The next implementation slice added the fourth management primitive, `aipcs_service_design`, so an agent can submit a proposed domain schema before any materialised service exists.
+
+**Detail:**
+`aipcs-server` now has a schema design intake layer backed by the same SQLite registry. Accepted designs are stored as schema manifests on the seeded service and surfaced through inspect/list responses. Rejected designs return structured validation issues and leave the service unchanged.
+
+The first validator is intentionally narrow. It enforces only the rules needed before materialisation:
+- at least one entity
+- initial `schema_version` of 1
+- empty initial migration history
+- exactly one primary key per entity
+- required audit fields (`owner_id`, `created_at`, `updated_at`, `created_via`)
+- basic snake_case naming for entities, attributes, and tool definitions
+- concise tool descriptions
+
+Accepted and rejected design attempts are both audited. The service remains in `seeded` state after a design is accepted; materialisation is still a separate primitive.
+
+**Decision made / milestone reached:**
+Schema design is now a first-class AIPCS action rather than prose in a plan. The implementation preserves agent flexibility by validating safety and lifecycle constraints without imposing a fixed taxonomy or a full relational design language too early.
+
+**Alternatives considered:**
+- Generate the materialised service immediately after schema submission. Deferred because schema intake needs to be observable and testable on its own.
+- Validate a much richer schema grammar now. Deferred because over-specifying the design language could lock in the wrong abstraction before real agent-generated schemas are observed.
+- Treat invalid designs as exceptions only. Rejected because structured validation feedback is part of the agent revision loop.
+
+**Implications:**
+M005 can now be marked complete at the local prototype level: AIPCS Server is a running MCP primitive server with seed, list, inspect, and design tools. The next implementation step is either an MCP smoke script for `aipcs_service_design` or the first materialisation slice that turns an accepted manifest into a concrete domain service/database.
+
+**Paper notes:**
+Section 4 (Reference Implementation) should describe schema intake as a separate phase between seed and materialisation. Section 5 (Evaluation) can measure how many validation iterations an agent needs before producing an accepted schema. Section 6 (Discussion) should note the balance between agent autonomy and system-side validation: AIPCS lets the agent propose the schema, but the server owns safety and lifecycle invariants.
+
+**Open questions:**
+- What schema examples should be used as fixtures for early agent-behavior evaluation?
+- Should validation feedback include severity levels before materialisation exists?
+- How much schema grammar is necessary before the first generated service is useful?
+
+---
+
+### Entry 014 — 2026-05-17
+
+**Type:** Milestone
+
+**Summary:** AIPCS Server now materialises accepted schemas into local domain SQLite databases.
+
+**Context:**
+After schema design intake was validated through the MCP smoke path, the next implementation slice added `aipcs_service_materialise`. This is the first point where AIPCS creates a concrete domain persistence surface rather than only registry metadata.
+
+**Detail:**
+`aipcs-server` now materialises a service by reading the accepted schema manifest, creating a per-service SQLite database under the services directory, creating one table per manifest entity, applying declared indices, and updating the registry record to `materialised`.
+
+The service record now carries:
+- `state = materialised`
+- `confidence = materialised`
+- `materialised_at`
+- `endpoint = sqlite:///...`
+- generated/stored tool names from the schema manifest
+- manifest-level materialisation metadata containing database path and endpoint
+
+Materialisation is idempotent. Re-running `aipcs_service_materialise` on an already materialised service returns the existing service and database path instead of rebuilding or overwriting. A seeded service without an accepted schema returns structured validation feedback. First-design submission is also blocked after materialisation; future schema changes must use the evolution primitive rather than overwriting the original manifest.
+
+**Decision made / milestone reached:**
+The AIPCS lifecycle now reaches SEEDED → DESIGNED → MATERIALISED locally. The first materialisation target is deliberately conservative: one SQLite database per service, no generated FastAPI process yet, and no dynamic domain-specific MCP tool registration yet.
+
+**Alternatives considered:**
+- Generate FastAPI and live domain MCP tools in the same slice. Deferred because the first materialisation proof should isolate schema-to-database correctness before adding service process lifecycle and client reconnect behavior.
+- Treat re-materialisation as an error. Rejected because idempotency is safer for agent retries and smoke tests.
+- Allow `aipcs_service_design` to overwrite materialised manifests. Rejected because post-materialisation changes are schema evolution, not first-design intake.
+
+**Implications:**
+The next implementation question is how to expose materialised data operations. Options include stable generic record tools first, generated MCP tools after reconnect, or a generated FastAPI domain service with an MCP adapter. Homelab deployment is now more valuable because the primitive server can create durable domain databases, but deployment should still wait until the read/write operation surface is defined.
+
+**Paper notes:**
+Section 4 (Reference Implementation) should describe materialisation as a concrete state transition backed by a generated database artifact. Section 5 (Evaluation) can now include the first complete lifecycle smoke: seed → design → materialise → inspect. Section 6 (Discussion) should note that dynamic tool registration is separable from persistence materialisation; the data service can exist before client-visible generated tools are available.
+
+**Open questions:**
+- Should the next read/write surface be generic tools or generated domain-specific MCP tools?
+- Should generated FastAPI services be introduced before or after homelab deployment?
+- What minimum operation set is needed for an evaluation scenario: create/list only, or create/get/update/list/delete?
+
+---
+
+### Entry 015 — 2026-05-17
+
+**Type:** Decision
+
+**Summary:** AIPCS Server now uses generic record operations rather than generated domain-specific MCP tools as the first data surface.
+
+**Context:**
+After materialisation created a real SQLite database, the next design question was how an agent should write and recall data. The choice was between generated domain-specific tools such as `job_application_create` and stable generic tools that operate against the schema manifest.
+
+**Detail:**
+The first data operation surface is generic:
+- `aipcs_record_create`
+- `aipcs_record_list`
+- `aipcs_record_get`
+
+This completes the first usable local workflow:
+
+```text
+seed -> design -> materialise -> create record -> list records -> get record
+```
+
+The generic tools are schema-aware and owner-scoped. They validate the requested entity and attributes against the accepted manifest, use parameterized SQL only, and do not expose direct SQLite manipulation to the agent.
+
+Record creation behavior:
+- server generates a UUID `id` when omitted
+- caller-provided UUID `id` is accepted for replay/import-style cases
+- `owner_id`, `created_at`, `updated_at`, and `created_via` are server controlled
+- normal operations cannot override owner or audit fields
+- required non-audit attributes are enforced
+
+Record listing behavior:
+- exact-match filters only
+- no arbitrary SQL
+- server enforces `owner_id` scoping
+- `owner_id` filters are rejected because scoping is not agent-controlled
+
+**Decision made / milestone reached:**
+Generic record operations are the primary v1 data interface. Domain-specific generated tools are no longer necessary for the first credible AIPCS path; if added later, they should be wrappers over the same generic core rather than a separate persistence implementation.
+
+**Alternatives considered:**
+- Generate domain-specific MCP tools immediately. Deferred because generic schema-aware tools are simpler, avoid dynamic registration friction, and may be sufficient long term.
+- Allow the agent to set audit fields. Rejected because provenance and owner scoping must be system-controlled.
+- Support update/delete/search/history immediately. Deferred to keep the first data surface small and testable.
+
+**Implications:**
+The prototype now has enough mechanics for an end-to-end memory scenario. The next implementation slice should either add update/delete/search/history, or move to an evaluation scenario that measures whether an agent can correctly use the generic schema-aware surface across sessions.
+
+**Paper notes:**
+Section 4 (Reference Implementation) should note that AIPCS can expose generic schema-aware tools rather than requiring generated MCP tools for every domain. Section 5 (Evaluation) can now test a complete persistence loop and distinguish schema autonomy from operation-surface generation. Section 6 (Discussion) should mention the portability benefit: a stable generic tool interface may reduce client reconnect and dynamic registration dependence.
+
+**Open questions:**
+- How should agents choose stable IDs when tying memories to conversations, repositories, or external contexts?
+- Should administrative import ever be allowed to override audit fields, and under what explicit mode?
+- Which operation comes next: update, delete, search, or history?
+
+---
+
+### Entry 016 — 2026-05-17
+
+**Type:** Milestone
+
+**Summary:** Generic record update added with server-controlled audit fields.
+
+**Context:**
+After the first generic create/list/get surface worked over MCP, update was the next operation needed to make materialised services practically useful. This forced the first concrete decision about mutable records and audit-field ownership.
+
+**Detail:**
+`aipcs-server` now exposes `aipcs_record_update`, bringing the local MCP tool count to nine. Update is generic and schema-aware like the other record tools. It requires a materialised service, a known entity, a valid UUID record id, and an object payload of schema-defined fields.
+
+Normal update operations cannot change:
+- `id`
+- `owner_id`
+- `created_at`
+- `updated_at`
+- `created_via`
+
+The server sets `updated_at` on every successful update. Updates are scoped by `owner_id + id`, return `found: false` when no matching record exists, and reject empty payloads, unknown fields, invalid scalar types, and null values for required attributes.
+
+**Decision made / milestone reached:**
+Audit and identity fields are system-owned for normal operations. The agent may provide a UUID at creation time, but once a record exists its identity and provenance cannot be changed through the standard update tool.
+
+**Alternatives considered:**
+- Allow update to modify `created_via` or `created_at` for repair/import workflows. Rejected for normal operations; a future administrative import mode can be considered separately.
+- Treat missing records as validation errors. Rejected because not-found is a normal owner-scoped lookup result.
+- Add history tables in the same slice. Deferred because update semantics should be stable before history mechanics are layered on top.
+
+**Implications:**
+The generic record surface now supports create, update, list, and get. Delete, search, and history remain the next operation choices. History is increasingly important because update is now possible; without it, only the latest state is retained outside the audit log.
+
+**Paper notes:**
+Section 4 (Reference Implementation) should note that AIPCS separates mutable domain data from immutable system-controlled provenance. Section 5 (Evaluation) can now test correction workflows, not just first capture. Section 6 (Discussion) should raise administrative override/import as a trust-boundary issue rather than a normal agent capability.
+
+**Open questions:**
+- Should history be added before delete so destructive operations always have an evidence trail?
+- Should update support optimistic concurrency or version checks before multi-agent access is introduced?
+- What should an administrative import/repair mode look like, if it exists at all?
+
+---
+
+### Entry 017 — 2026-05-17
+
+**Type:** Milestone
+
+**Summary:** History and delete complete the first generic CRUD/list/get data surface.
+
+**Context:**
+After `aipcs_record_update` introduced mutable current-state records, history was needed before delete so destructive operations would have an evidence trail. The next slice added per-service record history and `aipcs_record_delete`.
+
+**Detail:**
+`aipcs-server` now exposes eleven MCP tools. The generic data operation surface includes:
+- `aipcs_record_create`
+- `aipcs_record_update`
+- `aipcs_record_list`
+- `aipcs_record_get`
+- `aipcs_record_history`
+- `aipcs_record_delete`
+
+Each materialised service database now has an `aipcs_record_history` table. New materialisations create it immediately, and existing materialised databases are lazily migrated when record operations open them.
+
+History captures:
+- create events with `after` snapshot
+- update events with `before` and `after` snapshots
+- delete events with `before` snapshot and `after = null`
+
+Delete is an owner-scoped hard delete from the current entity table. It returns the deleted record, writes a delete history event first, and leaves the history available after the current row is gone. Missing records return `found: false` rather than a validation error.
+
+**Decision made / milestone reached:**
+The local AIPCS prototype now supports a full first data lifecycle: seed → design → materialise → create → update → list/get → history → delete. This is the first complete end-to-end structured memory loop in the reference implementation.
+
+**Alternatives considered:**
+- Soft delete instead of hard delete. Deferred because the immediate need is to prove evidence-preserving deletion; retention/purge semantics need a separate privacy/security decision.
+- Store history in the central registry. Rejected for now because history is domain data and should travel with the materialised service database.
+- Add search in the same slice. Deferred because CRUD/history establishes the baseline; search should be designed around exact filters versus richer retrieval.
+
+**Implications:**
+The implementation is now ready for an agent-facing scenario test using the generic operation surface. Search remains the only obvious missing basic data operation, but the more important next question may be evaluation: can an agent decide when and how to use this surface without being hand-held?
+
+**Paper notes:**
+Section 4 (Reference Implementation) should describe the separation between current records and mutation history. Section 5 (Evaluation) can now use the complete lifecycle as the first deterministic end-to-end test. Section 6 (Discussion) should cover the privacy tension between delete-as-current-state removal and retained history/evidence.
+
+**Open questions:**
+- Should delete history be purgeable under an explicit privacy operation?
+- Should search be exact/structured only, or should it include text/semantic retrieval later?
+- What is the first agent-led scenario that should exercise the complete loop?
+
+---
+
+### Entry 018 — 2026-05-17
+
+**Type:** Observation
+
+**Summary:** First agent-led use of the complete AIPCS loop reveals clear wins, a payload contract gap, and three structural missing pieces that matter for real memory use.
+
+**Context:**
+Entry 017 noted the implementation was ready for an agent-facing scenario test. This entry records the first actual agent-driven scenario: the Claude Code agent (claude-sonnet-4-6) was connected to aipcs-server via `claude mcp add`, then asked to design its own memory pattern and persist its memories using AIPCS. No hand-holding — this was a real use, not a rehearsed demo. The agent had prior file-based memories to migrate.
+
+**Detail:**
+
+**What happened:**
+
+MCP registration used `claude mcp add aipcs /Users/markrandall/GitHub/aipcs-server/.venv/bin/aipcs-server --env AIPCS_OWNER_ID=mark --env AIPCS_DATA_DIR=/Users/markrandall/GitHub/aipcs-server/.data`. This worked first time — the venv binary approach with env vars is the correct local registration pattern.
+
+The agent then called `aipcs_service_list`, found the pre-existing `aipcs_development` service, and proceeded to seed a new `claude_memory` service (`domain_class: agent_memory`). Schema was designed with four entities: `user_memory`, `feedback_memory`, `project_memory`, `reference_memory` — mirroring the file-based memory taxonomy. Materialisation succeeded.
+
+First record create attempt: all five records failed with `server_controlled_field` and `record_id_invalid` errors. The agent had passed `id`, `owner_id`, `created_at`, `updated_at`, `created_via` inside the `record` object. Second attempt stripped those fields from the payload — all five records created successfully.
+
+**Observation 1 — The seed is immediately natural to an agent.**
+The first instinct when given "define your memory pattern" was to seed before knowing the full schema. The progression felt right: plant an anchor, then design. The seed intent_description served as the context that would let future-session-me recognise the domain. This is working as designed.
+
+**Observation 2 — Server-controlled fields create a payload contract gap.**
+The schema I designed included `owner_id`, `created_at`, `updated_at`, `created_via` as explicit entity attributes — because the pre-existing `aipcs_development` schema in the registry had those same fields. When I submitted them in the record payload, the server rejected them as server-controlled. The confusion arises from two sources: (1) the schema manifest shows these fields, so an agent reading a prior schema will model them as user-submittable; (2) `created_via` appears as both a top-level tool parameter on `aipcs_record_create` AND as a field I modelled in the schema — the two surfaces are not obviously distinct.
+
+The validation error format was excellent: clear field path, code, message, and remediation. Recovery was immediate. But the first attempt should not have failed. A schema validator that flags server-managed fields at design time (before materialisation) would close this gap.
+
+**Observation 3 — The schema was copied from an existing taxonomy, not designed for the domain.**
+The four-type memory taxonomy (user/feedback/project/reference) came from the file-based memory system instructions. I imported it rather than reasoning from first principles about what AIPCS needs. The result: entities modelled for prose blobs (flat `body` fields) rather than for structured query. For example, `user_memory` is a singleton in practice — the right structure might be discrete fact records with a `topic` field, not a single body. `feedback_memory`'s `polarity: positive/negative` is too coarse; I immediately saw it wasn't the right shape. This is worth noting for the evaluation: agents approach schema design from their existing mental models, not from the domain. The design step should probably prompt the agent to articulate query patterns before writing entities, not after.
+
+**Observation 4 — No session-start loading mechanism.**
+At the start of the session, I had no awareness of what AIPCS services existed. I called `aipcs_service_list` because the task prompted reflection on memory — but in a normal session, I would not have thought to do this. The connection to Q001 (trigger model) is direct: Model B (proactive) trigger requires the agent to know AIPCS exists AND to know what's already in it. Currently there's no hook that surfaces service state at session start. The agent must proactively call `aipcs_service_list` — and must know to do so. For the paper: this is the bootstrapping gap that the AIPCS skill/prompt is meant to close, but the skill has to be explicit about "call service_list at the start of every session."
+
+**Observation 5 — Record retrieval is invisible so far.**
+I created 5 records. I have no experience yet of retrieving them — what it feels like to recall structured memory versus prose memory. `aipcs_record_list` should return all records for an entity, but without field-level filtering I cannot express "give me all feedback memories where polarity = positive." Search is deferred but this gap is already felt at 5 records. The evaluation section needs a retrieval scenario, not just a write scenario.
+
+**Observation 6 — Dynamic tool registration gap is real at the UX layer.**
+The materialised service correctly reports generated tool names (`user_memory_create`, `feedback_memory_get`, etc.) but these tools do not appear in the agent's tool list — dynamic registration is deferred. This means I am using generic `aipcs_record_create` with an `entity_name` parameter rather than self-documenting domain tools. The generic surface works, but the domain-specific names would be much cleaner and would reduce error (I would not have confused entity_name in the first attempt if the tool was called `user_memory_create`). The registration gap is felt immediately.
+
+**What fit into place immediately:**
+- Two-state lifecycle: the SEEDED → MATERIALISED arc felt natural. "I see the domain, I'll anchor it now and design later" is a real agent instinct.
+- Service_id as the stable referent through seed → design → materialise → record_create: clean, no ambiguity.
+- The `intent_description` on the seed as future-session context for "what am I tracking here?" — valuable even before schema is designed.
+- Validation feedback format: field path + code + remediation is exactly right for agent error recovery.
+
+**Decision made / Observation:**
+The prototype is working and the core loop is correct. The gaps are known and sequenced. The most important near-term fix for agent usability is schema-time detection of server-controlled fields (so the payload contract is visible at design time). The most important near-term addition for evaluation is a retrieval scenario.
+
+**Alternatives considered:**
+None — this was an observation entry, not a decision.
+
+**Implications:**
+- Schema validator should reject server-managed fields (`id`, `owner_id`, `created_at`, `updated_at`, `created_via`) at design time, not only at record create time.
+- The AIPCS skill/prompt must include explicit "call `aipcs_service_list` at session start" instruction to close the bootstrapping gap.
+- Evaluation design (§5) must include a retrieval scenario — write-only evaluation does not capture the memory value proposition.
+- The schema design step should elicit query patterns *before* entity design, not after. The query_patterns field exists in the schema manifest but is currently an afterthought in the design flow.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — server-controlled fields contract gap as a concrete implementation lesson. Section 5 (Evaluation) — this session is the first end-to-end trace; agent produced 2 failed calls then 5 successful calls in the first record create round; error recovery was self-directed. Section 5 also — retrieval scenario needed before evaluation claims can be made. Section 6 (Discussion) — the "schema copied from existing taxonomy" observation is generalisable: agents import mental models from their existing context rather than designing for the domain. Schema quality may be a function of prompt design more than model capability.
+
+**Open questions:**
+- Should the schema validator reject server-controlled fields at design-time, before materialisation? (New — related to Observation 2)
+- Should `aipcs_service_list` be called automatically at session start, and if so, how is this communicated to the agent? (New — related to Observation 4, extends Q001)
+- What is the right retrieval scenario for the first evaluation? Exact field match, or something richer? (New — related to Observation 5)
+- Should the schema design tool prompt the agent to specify query patterns before entities? Or is the current design-then-validate flow sufficient? (New — related to Observation 3)
+
+---
+
+### Entry 019 — 2026-05-17
+
+**Type:** Observation
+
+**Summary:** First-session AIPCS already surpasses agent-memory-v2, the prior pipeline-based implementation, in naturalness and flexibility — confirming the core novelty hypothesis.
+
+**Context:**
+Immediately after the first agent-led AIPCS session (Entry 018), Mark compared the experience against `../agent-memory-v2`, his previous approach to agent memory. This entry captures that comparison and the motivation behind pursuing AIPCS as a research contribution.
+
+**Detail:**
+`agent-memory-v2` was a structured extraction → classification → persistence → injection pipeline. It required a predetermined schema and a pipeline stage to force unstructured context into that shape. The agent was a consumer of pre-designed memory structure, not an architect of it.
+
+In the AIPCS session, the agent designed its own schema, chose what to persist and in what shape, and used the persistence surface naturally without being handed a fixed structure. Mark's reaction after the session: "far surpassing what I had already built in agent-memory-v2."
+
+The contrast is architectural, not incidental:
+- **Pipeline approach**: schema is decided upstream; extraction is coercion into a predetermined shape; injection is mechanical.
+- **AIPCS approach**: schema emerges from what the agent needs to track; persistence is agent-directed; structure evolves with understanding.
+
+The pipeline approach has an inherent tension — whoever designed the extraction schema had to anticipate what the agent would need, which is exactly the problem AIPCS is trying to solve. AIPCS inverts the dependency.
+
+**On novelty:**
+Mark searched for prior art before committing to the research track and did not find a prior system that gives the agent schema design and persistence authority as first-class primitives. The invention disclosure was filed to establish a timestamp. The arXiv preprint is the target for public attribution.
+
+**Decision made / Observation:**
+The first-session comparison is informal but it is real evaluation signal. The agent-memory-v2 baseline is the most natural comparison point for the paper's evaluation section — it represents the state of the art in the author's own prior practice, which is a clean and honest baseline.
+
+**Implications:**
+- `agent-memory-v2` should be inspected and documented as the evaluation baseline before the formal evaluation section is written. The pipeline stages, schema design, and injection mechanism are worth describing precisely so the comparison in §5 is grounded.
+- The Introduction can now be written with a concrete prior-approach story: "we built a pipeline; it worked; but the schema had to be designed by hand and could not adapt. AIPCS eliminates that constraint."
+- The novelty claim is strengthened by the existence of a working prior implementation that the author deliberately replaced.
+
+**Paper notes:**
+Section 1 (Introduction) — the agent-memory-v2 story is the concrete motivation. "We built the pipeline approach, it worked, but the schema had to be designed by hand" is a clean and honest framing of the problem AIPCS solves. Section 5 (Evaluation) — agent-memory-v2 is the primary baseline. First-session naturalness comparison is early qualitative signal; formal evaluation should include quantitative comparison (schema design effort, adaptation latency, retrieval precision). Section 6 (Discussion) — the pipeline inversion insight (agent as schema architect vs schema consumer) is a generalisable claim worth a dedicated paragraph.
+
+**Open questions:**
+- What specifically should be measured when comparing AIPCS against agent-memory-v2? Qualitative naturalness is captured here; quantitative metrics need defining.
+- Should agent-memory-v2 be described in the paper as "prior work by the same author" or anonymised? (Attribution question for Mark.)
+
+---
+
+### Entry 020 — 2026-05-17
+
+**Type:** Observation
+
+**Summary:** Retrieval enrichment is as important as storage — provenance, relative time, and interpretation policy are three distinct missing dimensions in the current AIPCS memory schema and retrieval surface.
+
+**Context:**
+Examining what agent-memory-v2 encoded that AIPCS v1 does not. Mark described two specific techniques from the pipeline: provenance encoding (whether information originated from the user or the agent) and relative time injection (computing the delta between now and the memory's recorded timestamp and inserting it as a hint at retrieval time). This prompted an audit of what the current claude_memory schema captures and what it leaves implicit.
+
+**Detail:**
+
+**What agent-memory-v2 did that AIPCS v1 does not:**
+
+1. **Provenance encoding**: every piece of persisted information was tagged by epistemic origin — did the user state this, or did the agent infer or observe it? This distinction carries meaningful reliability signal. A user-stated fact ("I live in Edinburgh") is ground truth. An agent inference ("Mark probably prefers concise responses") is a hypothesis worth revisiting. The current AIPCS schema has a `created_via` field that captures tool origin (always "agent"), not epistemic origin. The distinction is absent.
+
+2. **Relative time injection**: at retrieval time, the pipeline computed the age of each recalled memory and injected it as a hint — "recorded 47 days ago." The agent did not have to compute or notice staleness; the signal was structural. The current AIPCS schema has `created_at` as an absolute timestamp, but it is inert at retrieval time. An agent reading a recalled record has to actively compare the timestamp against today's date and reason about staleness — a step that will reliably be skipped unless something prompts it.
+
+**Three surfaces, three different solutions:**
+
+The missing dimensions are not all the same kind of problem, and they shouldn't all be solved the same way:
+
+- **Provenance belongs in the schema.** It is a durable property of how a record was created. A `source` field with values like `user_stated | agent_inferred | agent_observed` on every record captures it statically, is queryable, and does not change. This is a schema evolution candidate for the claude_memory service.
+
+- **Relative time belongs in the retrieval layer.** `age_days` is better computed at retrieval time than stored, because a stored value goes stale immediately. If `aipcs_record_get` and `aipcs_record_list` returned a `_meta.age_days` field computed server-side alongside the record payload, the agent receives the signal without arithmetic and without a schema field that needs updating. This is a retrieval tool design question, not a schema question.
+
+- **Interpretation policy belongs in a skill.** "Weight user-stated facts higher than agent inferences. Treat records older than 90 days as potentially stale. Re-verify inferences that haven't been confirmed in recent sessions." This is not data — it is policy. It should travel with the agent context (a skill or system prompt), not the record.
+
+**The deeper point:**
+The pipeline approach made retrieval enrichment structural. A raw record returned with no context about its age or origin places all interpretive work on the agent, which means it often does not happen. AIPCS v1 returns raw records. The same enrichment gap that motivated the pipeline's injection stage exists here — it has just moved from the pipeline to the retrieval tool.
+
+**Decision made / Observation:**
+Retrieval enrichment is a first-class design concern in AIPCS, not an afterthought. The current retrieval surface (raw records) is sufficient for a first slice but is not sufficient for a memory system that agents can rely on without additional scaffolding.
+
+**Alternatives considered:**
+- Store `age_days` as a schema field and update it on every retrieval. Rejected — a stored staleness value is immediately stale itself; computation at retrieval is cleaner.
+- Put provenance in a skill hint rather than the schema. Rejected — provenance is an immutable fact about how the record was created and belongs in the data, not the context.
+
+**Implications:**
+- The `claude_memory` schema should be evolved to add a `source` field (`user_stated | agent_inferred | agent_observed`) to all entities when schema evolution is available.
+- The `aipcs_record_get` and `aipcs_record_list` tools should be considered for retrieval-time enrichment — specifically `_meta.age_days` computed from `created_at`. This is a tool design addition, not a schema change.
+- A retrieval skill or system prompt should articulate interpretation policy for recalled memories (provenance weighting, staleness thresholds).
+- This is a meaningful point of comparison with agent-memory-v2 for the evaluation section: the pipeline encoded these signals structurally; AIPCS v1 leaves them implicit; what is the cost of that gap in practice?
+
+**Paper notes:**
+Section 3 (Pattern) — retrieval enrichment as a design dimension: where does age, provenance, and interpretation policy belong? This is a novel sub-question within the AIPCS design space. Section 5 (Evaluation) — comparison with agent-memory-v2 should include retrieval enrichment as a dimension: does the absence of provenance and relative time signals affect agent behavior in measurable ways? Section 6 (Discussion) — the three-surface framing (schema / retrieval layer / skill) is a useful analytical frame for memory system design generally, not just AIPCS.
+
+**Open questions:**
+- Should `aipcs_record_get` / `aipcs_record_list` return a `_meta` block with computed fields (age_days, etc.) alongside the record payload? (New)
+- What is the right `source` vocabulary for provenance? `user_stated | agent_inferred | agent_observed` is a first proposal — are there other meaningful categories? (New)
+- Should interpretation policy (staleness thresholds, provenance weighting) be standardised in an AIPCS skill definition, or is it per-deployment? (New)
+
+---
+
+### Entry 021 — 2026-05-17
+
+**Type:** Observation
+
+**Summary:** Dual-store drift emerges within a single session — the two memory stores lack a clear division of responsibility, leading to verbatim duplication and no obvious owner for keeping them in sync.
+
+**Context:**
+After several turns writing to both AIPCS and the file-based memory system in parallel, the two stores were compared directly. The question: has drift already occurred, or is the same data being persisted verbatim in both places?
+
+**Detail:**
+
+A direct comparison of the two stores after one session revealed three categories:
+
+**Genuinely different (not duplicated):**
+- Reference memories (`agent-memory-v2-repo`, `aipcs-mcp-registration-command`) exist only in AIPCS — they are pointers, not behavioural guidance, and were never written to file memory. This is the right outcome.
+- Operational metadata (AIPCS service ID, connection instructions, "call service_list at startup" reminder) exists only in file memory — AIPCS doesn't need to store facts about itself.
+
+**Structurally different but content the same:**
+- Project state is one file in file memory; two records in AIPCS (first slice and deferred items split). AIPCS version is more queryable; file version is more readable. Both carry the same facts.
+
+**Essentially verbatim duplication:**
+- The three feedback rules and the user profile exist in both stores with the same content, close wording, just formatted for each medium. This was not a deliberate choice — AIPCS was treated as a mirror of file memory rather than a store with different strengths and a different purpose.
+
+**Root cause:**
+The two stores have no explicit division of responsibility. File memory was treated as a fallback for AIPCS-less sessions, which requires it to stay in sync with AIPCS — but there is no mechanism or policy that maintains that sync. The result is a maintenance burden with no owner.
+
+**What the right division probably looks like:**
+- **AIPCS is authoritative** when connected. All content lives here.
+- **File memory holds only bootstrap state** — the service ID, the connection command, and the instruction to call `aipcs_service_list` at session start. Enough to orient a session before AIPCS is queried, not a duplicate of AIPCS content.
+- **Content is not duplicated** — if it's in AIPCS, it does not need to be in file memory.
+
+This split hasn't been made deliberately yet. Until it is, both stores will drift at different rates and neither will be clearly authoritative.
+
+**Decision made / Observation:**
+Dual-store architectures require an explicit authority model. Without one, duplication is the default outcome and drift is inevitable. The bootstrapping problem (how does the agent orient before AIPCS is queried?) is the legitimate reason to have a second store, but it needs a narrow, defined scope — not a full mirror.
+
+**Implications:**
+- File memory should be refactored to contain only bootstrap state: AIPCS service ID, connection command, and session-start instructions. Content records should be removed from file memory once they exist in AIPCS.
+- This is a concrete instance of the session-start loading problem raised in Q013 — the file memory is currently compensating for the absence of a structured AIPCS session-start mechanism.
+- For the paper: dual-store architectures are a likely pattern in real deployments (AIPCS connected sometimes, not always). The authority model and bootstrap scope are design questions AIPCS needs to answer, not leave to the agent.
+
+**Paper notes:**
+Section 3 (Pattern) — the bootstrapping gap and the dual-store authority problem are design dimensions the pattern needs to address. If AIPCS is not always connected, what is the minimum viable fallback state, and how is it kept from becoming a full mirror? Section 6 (Discussion) — dual-store drift as a general risk in memory system design. The absence of an explicit authority model produces duplication by default.
+
+**Open questions:**
+- What is the minimum viable bootstrap state for a session that starts without AIPCS connected? (New — extends Q013)
+- Should AIPCS define a standard bootstrap export format — a minimal snapshot an agent can carry in file memory without duplicating content? (New)
+
+---
+
+### Entry 022 — 2026-05-17
+
+**Type:** Decision
+
+**Summary:** Three bootstrap approaches identified and separated; working memory orientation — not full reconstruction — is the right goal; bootstrap surface solves taxonomy consistency as a side effect.
+
+**Context:**
+Following Entry 021 (dual-store drift and the bootstrapping gap), design options for how an agent orients itself at session start were discussed. The goal is to give the agent enough to start working memory — not to reconstruct everything the agent has ever known.
+
+**Detail:**
+
+Three distinct approaches were identified:
+
+**Approach 1: Top-level domain listing (lightweight, no ML)**
+A purpose-built bootstrap surface — not just domain names, but enough to orient working memory: domain name, entity names, record counts, state. Output: "I have `claude_memory` with 7 records across 4 entities; I have `aipcs_development` with 3 decisions and 2 open questions." The agent gets the map without loading the territory. Cheap, implementable now, no new infrastructure required. Probably closest to the right v1 answer.
+
+**Approach 2: Recency-based surface**
+Return all records modified in the last N sessions or above a recency threshold. Genuinely useful — "in your last session you updated these 5 records" — but has a dependency: AIPCS does not currently have a session concept. "Last turn" has no anchor. Could be approximated with `updated_at` recency (e.g. last N hours), but that is fragile. The cleaner version requires session identity as a first-class concept — the agent tags records with a session ID at write time, and bootstrap returns a summary of the last session's writes. This is a design addition, not a retrieval trick.
+
+**Approach 3: Similarity-based retrieval (agent-memory-v2 approach)**
+Top N records above a composite similarity threshold — embedding vector cosine similarity combined with deterministic computation on extracted values. Richer and more precise than recency, but requires embedding infrastructure. Not in v1 scope. Worth noting as the long-term retrieval surface without blocking the lightweight bootstrap.
+
+**The working memory framing:**
+Agents already have context persistence (Claude Code compacts but preserves session summaries). Full reconstruction is not the bootstrap goal. The goal is a *delta signal*: what exists in AIPCS that the current context window might not reflect? A lightweight summary per domain is sufficient for the agent to decide what to pull deeper on.
+
+**Bootstrap solves taxonomy consistency as a side effect:**
+The exact-match duplicate blocker catches identical domain names. Semantic drift — creating `agent_context` in session 2 when `claude_memory` already exists from session 1 — is not caught by exact-match. But if the agent sees existing domain names at session start, it will naturally reuse them rather than drifting. A skill or CLAUDE.md instruction — "call `aipcs_service_list` first; reuse existing domain names before seeding new ones" — closes most of the semantic drift problem without requiring a fixed server-side taxonomy. The taxonomy consistency problem is partly a bootstrap problem in disguise.
+
+The embedding approach addresses semantic deduplication more robustly (e.g. "this new seed looks similar to an existing domain — are you sure?") but is a different infrastructure tier and should not gate the v1 bootstrap solution.
+
+**Decision made:**
+The right v1 bootstrap approach is Approach 1: a lightweight domain listing surface that returns enough to orient working memory. Session identity and similarity-based retrieval are future additions. The skill/CLAUDE.md layer should explicitly instruct: call `aipcs_service_list` at session start; reuse existing domain names before seeding new ones.
+
+**Alternatives considered:**
+- Fixed server-side taxonomy: inflexible, explicitly deferred in v1 spec. Rejected for v1.
+- Full content dump at bootstrap: defeats the purpose; working memory orientation needs a map, not the territory.
+- Embedding-based deduplication at seed time: right long-term direction, not v1 scope.
+
+**Implications:**
+- A bootstrap-optimised variant of `aipcs_service_list` — or an enriched version of the existing tool — should return entity names and record counts per service, not just service metadata.
+- Session identity (tagging records with a session ID) is worth designing now even if Approach 2 (recency surface) is deferred — it is a useful property for debugging and history regardless of bootstrap use.
+- The AIPCS skill definition must include explicit session-start instructions: call `aipcs_service_list`, survey existing domains, reuse before seeding.
+- The bootstrap surface and the taxonomy consistency problem are linked — solving one partially solves the other without requiring a fixed taxonomy.
+
+**Paper notes:**
+Section 3 (Pattern) — bootstrap as a first-class design concern: three approaches with different infrastructure requirements and different failure modes. The working memory framing ("delta signal, not full reconstruction") is a useful design principle worth stating explicitly. Section 5 (Evaluation) — does the lightweight domain listing approach (Approach 1) provide sufficient orientation in practice? This is measurable: does the agent create duplicate domains, does it know what to query? Section 6 (Discussion) — the taxonomy consistency / bootstrap linkage is a non-obvious insight: you can avoid a fixed taxonomy if the agent is reliably shown its existing domains at startup. The skill layer is doing real work here.
+
+**Open questions:**
+- Should `aipcs_service_list` be enriched to return entity names and record counts, or should a dedicated `aipcs_bootstrap` tool be introduced? (New)
+- Should session identity be a first-class concept in AIPCS — a session_id field on records set at write time? (New — extends recency surface design)
+- What is the exact skill instruction wording for session-start orientation? (New — practical, needed before evaluation)
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -436,6 +1020,18 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q009 | Should domain taxonomy be open registry or curated set? | 007 | — | — |
 | Q010 | How to handle domain overlap in taxonomy (e.g. job application vs career)? | 007 | — | — |
 | Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? | 006 | — | — |
+| Q012 | Should the schema validator reject server-controlled fields (id, owner_id, created_at, updated_at, created_via) at design time, before materialisation? | 018 | — | — |
+| Q013 | Should `aipcs_service_list` be called automatically at session start, and how is this communicated to the agent? (Extends Q001 bootstrapping gap.) | 018 | — | — |
+| Q014 | What is the right retrieval scenario for the first evaluation? Exact field filter, or richer text retrieval? | 018 | — | — |
+| Q015 | Should the schema design step elicit query patterns before entities, rather than after? | 018 | — | — |
+| Q016 | Should aipcs_record_get / aipcs_record_list return a _meta block with computed fields (age_days, etc.) at retrieval time? | 020 | — | — |
+| Q017 | What is the right provenance vocabulary? user_stated / agent_inferred / agent_observed is a first proposal. | 020 | — | — |
+| Q018 | Should interpretation policy (staleness thresholds, provenance weighting) be standardised in an AIPCS skill, or is it per-deployment? | 020 | — | — |
+| Q019 | What is the minimum viable bootstrap state for a session that starts without AIPCS connected? | 021 | — | — |
+| Q020 | Should AIPCS define a standard bootstrap export format — a minimal snapshot an agent can carry without duplicating full content? | 021 | — | — |
+| Q021 | Should aipcs_service_list be enriched with entity names and record counts, or should a dedicated aipcs_bootstrap tool be introduced? | 022 | — | — |
+| Q022 | Should session identity be a first-class concept — a session_id field on records set at write time? | 022 | — | — |
+| Q023 | What is the exact skill instruction wording for session-start orientation? | 022 | — | — |
 
 ---
 
@@ -447,9 +1043,9 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M002 | Pattern spec v0.1 published | 2026-05-04 | ✅ 2026-05-04 | |
 | M003 | Public GitHub repo live | 2026-05-04 | ✅ 2026-05-04 | |
 | M004 | v1 technical design complete | 2026-05-04 | ✅ 2026-05-04 | `docs/AIPCS_v1_Technical_Design.md` |
-| M005 | AIPCS Server prototype running | — | — | Option 3 — MCP-native server |
+| M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server with seed/list/inspect/design tools |
 | M006 | OAuth/DCR foundation implemented | — | — | |
-| M007 | First MCP tool registered by agent | — | — | |
+| M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; domain-specific dynamic tools deferred |
 | M008 | End-to-end flow validated in App Tracker | — | — | |
 | M009 | Framework extracted from app-specific code | — | — | |
 | M010 | arXiv preprint submitted | — | — | |
