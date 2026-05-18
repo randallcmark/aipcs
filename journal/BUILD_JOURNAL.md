@@ -1447,6 +1447,112 @@ Section 3 (Pattern) — supports the claim that bootstrap is a cognitive orienta
 
 ---
 
+### Entry 034 — 2026-05-18
+
+**Type:** Observation
+
+**Summary:** Claude audited its own AIPCS memory schemas and used schema evolution plus record tools to restructure memory around retrieval, lifecycle, and authority boundaries.
+
+**Context:**
+Mark started another fresh Claude Code session with only the portable AIPCS instruction text: discover with bootstrap, retrieve bounded relevant records, persist proactively, and challenge schema shape when existing entities do not fit. Claude immediately bootstrapped, retrieved memory records, and then was asked to inspect whether its current memory structure represented the data well. Mark explicitly allowed Claude to restructure memory through AIPCS tools if it found a better shape.
+
+**Detail:**
+Claude audited both `aipcs_development` and `claude_memory` and identified several schema and record-quality issues:
+
+- `user_memory` contained a single prose `mark-profile` blob containing role, location, project authorship, and interaction style. This contradicted the retrieval principle that records should be granular.
+- `project_memory` duplicated facts already represented by structured `aipcs_development` entities, especially deferred work and completed implementation slices.
+- `decision` and `deferred_item` had no lifecycle status field, making it difficult to mark decisions as superseded or deferred items as picked up without deleting history.
+- `reference_memory` lacked a `kind` field, so repository pointers, commands, dashboards, documents, and runbooks were structurally indistinguishable.
+- A duplicate `service_lifecycle` implementation slice existed.
+- Some `decision.date` values appeared suspicious or placeholder-like, but Claude could not safely correct them because it did not know the true decision dates.
+
+Claude then used AIPCS tools, not direct SQLite access, to restructure the memory:
+
+- evolved `aipcs_development` to add `status` to `decision` and `deferred_item`;
+- evolved `claude_memory` to add `kind` to `reference_memory`;
+- deleted duplicate or redundant records that created multiple authorities for the same facts;
+- backfilled lifecycle/status fields on existing decision and deferred records;
+- tagged reference records by kind;
+- split the prose `mark-profile` record into separate `user_memory` records for role/employer, location, AIPCS authorship, and interaction style, with different provenance values where appropriate.
+
+The important observation is that Claude explained the restructuring in terms of retrieval and maintenance rather than cosmetic normalisation. It described the old memory pattern as "shaped for writing" and the new one as "shaped for retrieval": individual facts can now be queried, updated, superseded, and weighted independently.
+
+It also surfaced a useful authority-boundary principle. `project_memory` should not summarise records already owned by `aipcs_development`; otherwise two services become competing sources of truth and drift is inevitable. Cross-cutting context can remain in `project_memory`, but project execution state belongs in the project-development service.
+
+**Decision made / Problem encountered / Observation:**
+Agent-led schema self-audit is a distinct AIPCS behavior from stale-memory repair. With bootstrap, bounded retrieval, schema evolution, and CRUD/history tools available, an agent can evaluate whether its own memory design is serving retrieval, then apply additive schema changes and data cleanup through the sanctioned tool interface.
+
+**Alternatives considered:**
+- Treat the transcript as ordinary memory cleanup. Rejected because the agent generated a structural critique and changed schema, not just content.
+- Preserve duplicate project summaries as convenience memories. Rejected by the agent because convenience summaries create authority drift when structured records already exist elsewhere.
+- Correct suspicious date fields. Deferred because the agent did not know the true historical dates and the current schema requires the field.
+
+**Implications:**
+- Evaluation should include a schema self-audit scenario, separate from basic CRUD/search and stale-memory repair.
+- AIPCS instructions should continue to tell agents to challenge schemas when the shape does not fit, but evaluation should check whether agents restructure toward queryability rather than arbitrary churn.
+- The pattern needs an authority-boundary convention: services should avoid duplicating facts owned by another service unless the duplication is explicitly marked as summary, cache, or derived view.
+- Future schema evolution work may need rename/backfill/deprecation operations, because additive-only evolution can improve shape but cannot fully repair poor required fields such as the suspicious `decision.date`.
+
+**Paper notes:**
+Section 3 (Pattern) — strengthens the "agent as schema architect" claim by showing the agent acting as schema maintainer after use, not only as initial designer. Section 4 (Reference Implementation) — validates additive evolution and generic record tools as sufficient for meaningful memory restructuring. Section 5 (Evaluation) — add an agent-led schema self-audit scenario measuring whether the agent can identify blobs, duplicates, lifecycle gaps, ambiguous references, and authority drift, then repair them through AIPCS tools. Section 6 (Discussion) — authority boundaries between services are an emerging design concern for multi-service memory ecosystems.
+
+**Open questions:**
+- What objective rubric should score an agent-led schema self-audit?
+- Should AIPCS define a convention for summaries/derived views to avoid accidental duplicate authorities?
+- Should required agent-authored fields such as `decision.date` have a deprecation or confidence mechanism when later evidence shows they may be unreliable?
+
+---
+
+### Entry 035 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** Separate static AIPCS instructions, bootstrap discovery, migration history, session reasoning, and behavioral memory into distinct authority layers.
+
+**Context:**
+After the schema self-audit trace, Mark asked Claude how it would inform a future session about the decision to switch memory persistence schemas. The question tested whether the agent would push evolving memory policy back into an `AGENTS.md`-style prose instruction file or use AIPCS itself to maintain the reasoning.
+
+**Detail:**
+Claude rejected updating `AGENTS.md` for this kind of evolving schema-memory reasoning. Its reasoning was that placing structured, queryable memory strategy back into a static prose dump would regress toward the pattern AIPCS is meant to replace.
+
+It proposed a useful authority model:
+
+| Concern | Authority |
+|---|---|
+| Static awareness and trigger instruction | `AGENTS.md` / portable AIPCS instruction artifact |
+| Current service/entity shape | `aipcs_bootstrap` |
+| Exact schema changes | `migration_history` on the service manifest |
+| Session-level reasoning about why changes were made | `session` records |
+| Reusable behavioral rule about how to persist | `feedback_memory` or equivalent memory-policy entity |
+
+The distinction is important. `migration_history` already records the what: migration name, rationale, operations, and timestamp. But it does not capture the wider session-level reasoning that led to the change, such as "the earlier profile blob was easy to write but poor for retrieval." A `session` record can preserve that reasoning without turning bootstrap into a content dump or bloating the static instruction file.
+
+Claude then used AIPCS tools to write a session record and sharpen an existing feedback-memory rule with the concrete counterexample of the old `mark-profile` prose blob. That produced a self-maintaining loop: future agents bootstrap, see that session history exists, retrieve the relevant session record, and understand the schema's current direction through AIPCS rather than through a manually updated static file.
+
+**Decision made / Problem encountered / Observation:**
+Static agent instructions should remain thin and stable. Evolving memory policy, schema rationale, and session-level lessons should be persisted in AIPCS records. Bootstrap remains a map of where to look, not the place where the reasoning itself is inlined.
+
+**Alternatives considered:**
+- Add the schema-restructuring lesson to `AGENTS.md`. Rejected because it would mix static trigger instructions with evolving memory state and recreate a prose-dump memory pattern.
+- Put the reasoning directly in bootstrap. Rejected because bootstrap must remain lightweight and content-free.
+- Rely only on migration history. Rejected because migration history records the schema delta but not the broader interaction context and behavioral lesson.
+
+**Implications:**
+- The `session` entity is more important than it first appeared; it is the natural place for narrative reasoning that explains why memory or schema changed.
+- AIPCS bootstrap may need to expose enough session-entity shape/count/recent-activity signal that agents know session reasoning exists, while still requiring explicit retrieval for content.
+- Portable instructions should tell agents that AIPCS is self-maintaining: use migration history for what changed, session records for why, and behavioral memory for reusable persistence rules.
+- Evaluation should test whether future agents retrieve session rationale instead of relying only on static instructions or migration metadata.
+
+**Paper notes:**
+Section 3 (Pattern) — clarifies the layered bootstrap model: static instruction triggers discovery; dynamic bootstrap maps state; content records carry evolving reasoning. Section 4 (Reference Implementation) — session records are not just logs but a rationale layer complementing migration history. Section 5 (Evaluation) — add a scenario where an agent must explain why a schema changed by combining migration history with retrieved session records. Section 6 (Discussion) — avoid turning static harness files into another memory store.
+
+**Open questions:**
+- What minimum fields should a standard `session` entity include for memory rationale without becoming a transcript store?
+- Should bootstrap highlight recently active session/rationale entities more explicitly while staying content-free?
+- Should the portable AIPCS instruction artifact explicitly describe the authority split between static instructions, bootstrap, migration history, session records, and behavioral memory?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -1510,6 +1616,8 @@ Use this for quick orientation when resuming work after a break.
 | D021 | 2026-05-18 | Keep first schema evolution primitive additive-only and materialised-service-only | Required/destructive changes need backfill, confirmation, and stronger conflict semantics; agents should use design before materialisation and evolve after | 031 |
 | D022 | 2026-05-18 | Keep Bootstrap V2 schema-derived and content-free | Discovery should guide bounded retrieval/evolution without becoming a hidden record recall surface | 032 |
 | D023 | 2026-05-18 | Treat stale-memory repair as a first-class evaluation behavior | Live Claude trace showed an agent can compare recalled records with current tools and update/delete stale memory through AIPCS | 033 |
+| D024 | 2026-05-18 | Treat agent-led schema self-audit as a first-class evaluation behavior | Live Claude trace showed an agent can critique its own memory shape, evolve schemas, remove duplicate authorities, and split prose blobs through AIPCS tools | 034 |
+| D025 | 2026-05-18 | Keep static agent instructions thin and persist evolving memory rationale inside AIPCS | Static files should trigger discovery; migration history records what changed, session records explain why, and behavioral memory carries reusable persistence rules | 035 |
 
 ---
 
@@ -1561,6 +1669,12 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q030 | Should `memhub` be experimentally evaluated, or is related-work comparison sufficient for the first paper? | 028 | — | — |
 | Q031 | How should AIPCS prevent agents from mischaracterising local/homelab memory as cloud-backed? | 033 | — | — |
 | Q032 | Should memory maintenance be an explicit bootstrap/instruction behavior with its own evaluation criteria? | 033 | — | — |
+| Q033 | What objective rubric should score agent-led schema self-audit and distinguish retrieval-oriented repair from arbitrary churn? | 034 | — | — |
+| Q034 | Should AIPCS define a convention for summaries or derived views so services do not accidentally become duplicate authorities for the same facts? | 034 | — | — |
+| Q035 | Should required agent-authored fields have deprecation, confidence, or correction semantics when later evidence shows they may be unreliable? | 034 | — | — |
+| Q036 | What minimum fields should a standard `session` entity include for memory rationale without becoming a transcript store? | 035 | — | — |
+| Q037 | Should bootstrap highlight recently active session/rationale entities more explicitly while staying content-free? | 035 | — | — |
+| Q038 | Should the portable AIPCS instruction artifact explicitly describe the authority split between static instructions, bootstrap, migration history, session records, and behavioral memory? | 035 | — | — |
 
 ---
 
@@ -1574,7 +1688,7 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M004 | v1 technical design complete | 2026-05-04 | ✅ 2026-05-04 | `docs/AIPCS_v1_Technical_Design.md` |
 | M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server; now includes Bootstrap V2, exact search, provenance conventions, retrieval metadata, and additive schema evolution |
 | M006 | OAuth/DCR foundation implemented | — | — | |
-| M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; later Claude trace used bootstrap, retrieval, update/delete, and schema-evolved memory. Domain-specific dynamic tools deferred |
+| M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; later Claude traces used bootstrap, retrieval, update/delete, and schema evolution for stale-memory repair and schema self-audit. Domain-specific dynamic tools deferred |
 | M008 | End-to-end flow validated in App Tracker | — | — | |
 | M009 | Framework extracted from app-specific code | — | — | |
 | M010 | arXiv preprint submitted | — | — | |
@@ -1658,6 +1772,8 @@ Evaluation questions seeded from design:
 - **Two-layer evidence model**: report memory mechanics separately from agent behavior. Layer 1 evaluates capture, extraction, recall, conflict handling, prompt cleanliness, storage growth, and maintenance independently of model quality. Layer 2 evaluates tool-use validity, judgment, answer correctness, grounding, latency, and call count through a mini agent harness. (Entry 009)
 - **Agent-class reference**: OpenAI-backed harness results become the first reference configuration for AIPCS-like agent behavior. Local models remain a ladder, but `llama3:8b` must not be the sole basis for AIPCS claims. (Entry 009)
 - **Live-agent stale memory repair**: Claude compared recalled records to current AIPCS tool/schema state, detected stale facts, and used AIPCS update/delete tools to repair memory. This should become an evaluation scenario. (Entry 033)
+- **Live-agent schema self-audit**: Claude evaluated whether its own memory schemas served retrieval, split a prose user-memory blob into granular records, added lifecycle/reference fields through schema evolution, and removed duplicate authorities. This should become a separate evaluation scenario. (Entry 034)
+- **Memory-rationale authority layers**: Claude rejected putting evolving schema rationale into `AGENTS.md`, instead identifying migration history for what changed, session records for why, feedback memory for reusable behavior, and bootstrap for shape-only orientation. (Entry 035)
 
 *Populate during build (M007–M008)*
 

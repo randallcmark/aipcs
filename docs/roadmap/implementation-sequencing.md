@@ -113,6 +113,7 @@ Not yet complete:
    - How to weight user-stated facts vs agent inferences.
    - How to treat stale memories.
    - When to re-verify old inferences.
+   - How to encourage schema self-audit without causing arbitrary schema churn.
 
 5. Decide whether session identity is a v1 field.
    - Useful for "last session" surfaces and debugging.
@@ -145,6 +146,7 @@ Not yet complete:
 4. Keep session-start behavior split across two layers.
    - Static AIPCS instruction tells the agent to bootstrap and persist.
    - Dynamic bootstrap map tells the agent what currently exists.
+   - Evolving rationale belongs in retrieved records such as session history, not in the static instruction or bootstrap payload.
 
 **Completed plan:** `/Users/markrandall/GitHub/aipcs-server/docs/exec-plans/completed/bootstrap-v2-data-dictionary.md`
 
@@ -188,9 +190,11 @@ Not yet complete:
 2. Use AIPCS as the agent-instantiated schema candidate.
 3. Include write and retrieval scenarios.
 4. Include stale-memory detection and repair scenarios.
-5. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, and duplicate-domain avoidance.
-6. Check that agents do not mischaracterise local/homelab memory as inherently cloud-backed.
-7. Keep memory mechanics separate from model/tool-use capability.
+5. Include schema self-audit scenarios where the agent reviews whether existing memory is granular, queryable, non-duplicative, and lifecycle-aware.
+6. Include schema-rationale recall scenarios where the agent must explain why a schema changed by using migration history plus session records.
+7. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, duplicate-domain avoidance, and authority-boundary handling.
+8. Check that agents do not mischaracterise local/homelab memory as inherently cloud-backed.
+9. Keep memory mechanics separate from model/tool-use capability.
 
 **Acceptance:** BUILD_JOURNAL and paper §5 contain agent-led traces that compare AIPCS with `agent-memory-v2` on both persistence and retrieval behavior.
 

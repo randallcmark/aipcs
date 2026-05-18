@@ -139,6 +139,8 @@ Current implementation evidence to promote:
 - **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
 - **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
 - **Stale-memory repair**: can an agent compare recalled records against current tool/schema state, identify stale facts, and correct them through AIPCS tools? (from Entry 033)
+- **Schema self-audit**: can an agent inspect its own memory structure, identify prose blobs, duplicate authorities, missing lifecycle fields, and ambiguous references, then repair them through AIPCS tools? (from Entry 034)
+- **Schema-rationale recall**: can an agent explain why a schema changed by combining manifest migration history with retrieved session records, without relying on static instruction files? (from Entry 035)
 - Schema quality: human assessment, coverage of domain use cases
 - Which trigger phrasings worked best for Model A recognition?
 - How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?
@@ -172,6 +174,8 @@ Current implementation evidence to promote:
 - How general is the pattern? Where does it break down?
 - Security: schema as injection vector — how does the validation layer hold up in practice?
 - Does AIPCS improve as models improve? Schema design quality is model-dependent.
+- How should services avoid duplicate authority when one memory domain wants a convenience summary of facts owned by another domain?
+- How should durable rationale be distributed across static instructions, bootstrap, migration history, session records, and behavioral memory?
 - What would a mature AIPCS ecosystem look like — shared taxonomy, cross-deployment portability, multi-agent coordination?
 
 ---

@@ -48,6 +48,15 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 - Prefer common top-level domain categories with stable definitions when they fit, but do not force all services into a closed taxonomy. Propose a new `domain_class` when the common categories do not describe the domain.
 - Multi-step procedures may later live as portable skills when they are better expressed as agent workflow than as atomic MCP tools. This is deferred and should not be confused with record content.
 
+## AIPCS memory authority layers
+
+- Keep static instruction files thin. They should make the agent aware of AIPCS, trigger bootstrap, and define broad persistence responsibilities; they should not become an evolving memory store.
+- Use bootstrap for shape-only orientation: which services, entities, schemas, counts, and hints exist.
+- Use service migration history to understand what schema changed and when.
+- Use session records to preserve why important memory or schema changes were made. Session records should capture durable rationale, not full transcripts.
+- Use feedback or memory-policy records for reusable behavioral rules about how to persist, retrieve, and maintain memory.
+- When explaining or evaluating a schema change, combine migration history with relevant session records rather than relying on static instructions alone.
+
 ## Paper implications
 
 Every significant prompt design choice, failure mode discovered, or evaluation result is potential paper material. Capture it in the BUILD_JOURNAL with a "Paper notes" field pointing to the Evaluation or Implementation section.
