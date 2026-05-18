@@ -35,6 +35,7 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 ## AIPCS session-start orientation
 
 - Example thin instruction artifact: [examples/aipcs-persistent-memory-instruction.md](examples/aipcs-persistent-memory-instruction.md). Treat it as a starting point for Claude/Codex/hosted-agent variants, not a final spec.
+- Codex CLI local MCP setup example: [examples/codex-cli-local-mcp.md](examples/codex-cli-local-mcp.md). Use this for local `stdio` experiments without public MCP exposure.
 - AIPCS bootstrap has two mandatory layers:
   - Static agent instructions: what AIPCS is, when to seed, when to persist, and how to use the tools.
   - Dynamic service map: the current data-dictionary view of persisted domains, entities, counts, and descriptions.

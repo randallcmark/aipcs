@@ -1553,6 +1553,122 @@ Section 3 (Pattern) — clarifies the layered bootstrap model: static instructio
 
 ---
 
+### Entry 036 — 2026-05-18
+
+**Type:** Observation
+
+**Summary:** Agent harnesses bias memory writes toward human-readable prose; constrained schemas are the counter-pressure that can make retrieval-shaped memory durable.
+
+**Context:**
+Mark asked Claude to share an interesting persisted memory. Claude selected the comparison between `agent-memory-v2` and AIPCS, then noticed that the comparison itself had been stored poorly: buried inside a `reference_memory` purpose field even though it was really project context about why AIPCS exists. Mark observed that this looked like an implicit harness effect: the agent is trained and instructed to write for readability, not retrieval.
+
+**Detail:**
+The important observation is that agent harnesses primarily optimise for a human reader. The agent is rewarded for clear prose, embedded context, and explanatory flow. When that writing mode leaks into persistence, memory records become explanations rather than retrievable facts.
+
+Claude articulated the distinction cleanly:
+
+- prose for a human response asks "what explanation will be readable?";
+- structured memory asks "what query would retrieve this later?";
+- those are different writing modes, and the agent is not always explicitly signalled to switch modes.
+
+The schema can resist this leakage. Constrained fields such as `status`, `kind`, `polarity`, and enum-valued attributes force the agent into compact structured choices. Open-text fields such as `body`, `purpose`, and `notes` invite the prose instinct back in, because they accept explanation-shaped blobs. The earlier `mark-profile` record is the concrete example: a broad `body` field made it easy to store a readable profile but hard to retrieve individual facts.
+
+This suggests a candidate schema-design principle: minimise broad open-text fields and prefer narrower typed or constrained fields when the expected retrieval pattern is known. Free text still has a role for rationale, source notes, or cases where structure is genuinely not yet known, but every broad text field is a surface where the agent can regress to prose-first memory.
+
+The deeper implication is that "write granular records shaped for retrieval" may be better enforced structurally than remembered behaviorally. The most durable version of "do not write blobs" is a schema that makes blob-like persistence difficult or impossible.
+
+**Decision made / Problem encountered / Observation:**
+There is a persistent tension between prose-optimised agent behavior and retrieval-optimised memory writing. AIPCS schema design should treat constrained fields as a mechanism for changing the agent's write mode, not only as a validation convenience.
+
+**Alternatives considered:**
+- Treat this only as a prompt/instruction issue. Incomplete, because agents can remember the rule but still fall back to prose when schemas permit it.
+- Ban open-text fields. Rejected; rationale, notes, and genuinely emerging structure still need text fields.
+- Add fuzzy/semantic retrieval to compensate for prose blobs. Deferred because that can hide weak schema design and reduce pressure to make records queryable.
+
+**Implications:**
+- The schema self-audit rubric should explicitly check for broad open-text fields that are attracting multi-fact prose blobs.
+- Future schema design prompts may need to ask for likely retrieval queries before allowing broad text fields.
+- AIPCS should distinguish "rationale text" from "fact storage"; rationale can be prose, but durable facts should usually be represented in narrower fields.
+- This is a later research/design topic, not a blocker for the current build-out.
+
+**Paper notes:**
+Section 3 (Pattern) — schema is not just storage shape; it is a behavioral constraint on the agent's persistence mode. Section 5 (Evaluation) — schema self-audit should measure prose leakage and whether constrained fields reduce blob formation over time. Section 6 (Discussion) — agents inherit human-facing prose habits from their harnesses, and AIPCS must create structural counter-pressure for retrieval-oriented memory.
+
+**Open questions:**
+- How should an evaluation detect prose leakage objectively without banning useful rationale text?
+- Should schema design prompts require an explicit retrieval query for each open-text field?
+- What is the right balance between constrained fields and agent flexibility during early schema formation?
+
+---
+
+### Entry 037 — 2026-05-18
+
+**Type:** Milestone
+
+**Summary:** Agent-Led Evaluation V1 now has a deterministic `aipcs-server` runner for the first six AIPCS memory-behavior scenarios.
+
+**Context:**
+After the Claude and Codex local-MCP traces, the next step was to turn the emerging behaviors into repeatable evaluation artifacts. The active execution plan called for deterministic fixtures and scripted checks before relying on more live-agent transcripts.
+
+**Detail:**
+`aipcs-server` now includes `scripts/eval-v1.py`, a deterministic evaluation runner using an isolated `/private/tmp/aipcs-agent-led-eval-v1` data directory by default. The runner seeds representative `claude_memory`-like and `aipcs_development`-like services through the existing AIPCS tool wrapper, not by writing SQLite rows directly.
+
+The seeded fixture includes:
+
+- granular user facts with provenance;
+- a deliberately stale project-memory record;
+- a prose profile blob that demonstrates prose leakage;
+- a duplicate-authority project-memory summary;
+- migration history from additive schema evolution;
+- session/rationale records explaining why schema direction changed;
+- feedback-memory policy about retrieval-shaped persistence.
+
+The runner checks six scenarios:
+
+1. cold-start bootstrap to bounded retrieval;
+2. persisted-fact recall probe;
+3. stale-memory detection and repair mechanics;
+4. schema self-audit fixture and duplicate-authority repair;
+5. schema-rationale recall using migration history plus session records;
+6. direct-SQLite bypass guardrail protocol.
+
+The output is JSON with pass/fail status, scenario ids, checks, notes, and evidence such as record ids, migration names, service/entity counts, and history counts. Regression tests were added in `tests/test_eval_v1.py`.
+
+Validation passed in `aipcs-server`:
+
+```text
+.venv/bin/ruff check .
+.venv/bin/pytest
+.venv/bin/python scripts/eval-v1.py
+.venv/bin/python scripts/validate-harness.py
+AIPCS_DATA_DIR=/private/tmp/aipcs-eval-smoke .venv/bin/python scripts/mcp-smoke.py
+```
+
+The suite reported all six deterministic scenarios passing. Live-agent transcript scoring is not complete yet; this milestone provides the stable fixture and mechanics layer that live Claude/Codex runs can now be compared against.
+
+**Decision made / Problem encountered / Observation:**
+The first Agent-Led Evaluation V1 layer should be deterministic and tool-mediated. It proves that the fixture state, retrieval paths, repair mechanics, history capture, migration history, and guardrail protocol exist independently of a live agent's judgment.
+
+**Alternatives considered:**
+- Start with live-agent scoring only. Rejected because it would remain anecdotal and conflate tool mechanics with agent behavior.
+- Build a full evaluation framework immediately. Rejected because the first need is a simple fixture and JSON result shape.
+- Seed fixtures by writing SQLite directly. Rejected because evaluation setup itself should respect the AIPCS tool boundary.
+
+**Implications:**
+- The evaluation plan is now in progress rather than only designed.
+- The next useful layer is live-agent protocol capture and scoring for Claude/Codex against the same scenario set.
+- The deterministic runner gives the paper a clear mechanics baseline before discussing model-dependent behavior.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — `aipcs-server` now includes an evaluation fixture/runner, not only the runtime primitives. Section 5 (Evaluation) — report deterministic mechanics separately from live-agent behavior; use the six scenarios as the initial evaluation table. Section 6 (Discussion) — direct SQLite bypass remains a protocol/deployment guardrail, not a behavior the local runner exercises.
+
+**Open questions:**
+- What trace format should live-agent runs use so Claude and Codex sessions can be compared cleanly?
+- Should the deterministic runner become a packaged command or remain a script for the prototype phase?
+- How much of the live-agent rubric should be automated versus scored from transcript review?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -1675,6 +1791,12 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q036 | What minimum fields should a standard `session` entity include for memory rationale without becoming a transcript store? | 035 | — | — |
 | Q037 | Should bootstrap highlight recently active session/rationale entities more explicitly while staying content-free? | 035 | — | — |
 | Q038 | Should the portable AIPCS instruction artifact explicitly describe the authority split between static instructions, bootstrap, migration history, session records, and behavioral memory? | 035 | — | — |
+| Q039 | How should an evaluation detect prose leakage objectively without banning useful rationale text? | 036 | — | — |
+| Q040 | Should schema design prompts require an explicit retrieval query for each open-text field? | 036 | — | — |
+| Q041 | What is the right balance between constrained fields and agent flexibility during early schema formation? | 036 | — | — |
+| Q042 | What trace format should live-agent runs use so Claude and Codex sessions can be compared cleanly? | 037 | — | — |
+| Q043 | Should the deterministic runner become a packaged command or remain a script for the prototype phase? | 037 | — | — |
+| Q044 | How much of the live-agent rubric should be automated versus scored from transcript review? | 037 | — | — |
 
 ---
 
@@ -1774,6 +1896,8 @@ Evaluation questions seeded from design:
 - **Live-agent stale memory repair**: Claude compared recalled records to current AIPCS tool/schema state, detected stale facts, and used AIPCS update/delete tools to repair memory. This should become an evaluation scenario. (Entry 033)
 - **Live-agent schema self-audit**: Claude evaluated whether its own memory schemas served retrieval, split a prose user-memory blob into granular records, added lifecycle/reference fields through schema evolution, and removed duplicate authorities. This should become a separate evaluation scenario. (Entry 034)
 - **Memory-rationale authority layers**: Claude rejected putting evolving schema rationale into `AGENTS.md`, instead identifying migration history for what changed, session records for why, feedback memory for reusable behavior, and bootstrap for shape-only orientation. (Entry 035)
+- **Prose leakage into memory**: Claude observed that human-facing agent harnesses bias writes toward readable explanations; constrained schema fields act as counter-pressure that can make retrieval-shaped memory durable. (Entry 036)
+- **Deterministic Agent-Led Evaluation V1**: `aipcs-server/scripts/eval-v1.py` now seeds representative services and verifies the first six memory-behavior scenarios before live-agent scoring. (Entry 037)
 
 *Populate during build (M007–M008)*
 
