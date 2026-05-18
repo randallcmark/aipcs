@@ -391,25 +391,47 @@ Before any migration is applied:
 
 The AIPCS skill is the prompt/instruction set that teaches an agent to recognise persistence needs and use AIPCS correctly. It must be portable across different agent skill frameworks.
 
+### Bootstrap model
+Bootstrap is the combination of:
+
+1. **Static agent instructions** — the agent must know AIPCS exists, what purpose it serves, when to seed, and when to persist data likely to be useful in a future session.
+2. **Dynamic discovery map** — the current organisation of persisted services, exposed as a lightweight data-dictionary view rather than record content.
+3. **Deferred procedural skills** — optional multi-step workflows that may later be packaged as skills when they are better represented as agent procedure than atomic MCP tools.
+
+The dynamic bootstrap map should include enough description to reduce blind probing: service intent, domain class, entity names, record counts, recent activity, and schema/entity descriptions where available. It should help the agent understand what information is likely to be found under each domain branch and whether a new fact fits the current schematic approach or suggests schema evolution.
+
+Bootstrap must remain lightweight. It should not dump record content, and it should not replace task-specific retrieval.
+
 ### Trigger conditions
 The agent should evaluate AIPCS when:
 - A user explicitly asks to track, remember, or persist something across sessions
+- The agent judges that information from the current interaction is likely to be useful in a future session
 - The agent identifies multiple related entities that need to be tracked together over time
+- The agent starts a new session with AIPCS available — call bootstrap/discovery before making claims about persisted context
 - The agent is about to perform context compaction — evaluate all active knowledge domains for persistence candidacy before compressing
 - The agent recognises it is re-explaining domain context it has explained before (a signal that persistence would have helped)
 
 ### Behaviour on trigger
-1. Check `aipcs_service_list` — does a service already exist for this domain?
-2. If yes — use it. Update it if new information warrants evolution.
-3. If no — call `aipcs_service_seed` immediately with domain_name, domain_class, and intent_description
-4. Accumulate domain knowledge across interactions
-5. When sufficient domain knowledge exists, call `aipcs_service_design` with full schema
-6. Call `aipcs_service_materialise` to deploy
-7. Use domain-specific tools for all subsequent reads and writes in this domain
+1. At session start, call bootstrap/discovery to load the current data-dictionary map.
+2. For memory-like services, retrieve bounded content from low-cardinality identity, preference, feedback, behavioural-rule, and project-state entities before answering questions about the user or project.
+3. For new persistence needs, check whether an existing service already covers the domain.
+4. If yes — use it. Update it if new information warrants evolution.
+5. If no — call `aipcs_service_seed` immediately with domain_name, domain_class, and intent_description.
+6. Accumulate domain knowledge across interactions.
+7. When sufficient domain knowledge exists, call `aipcs_service_design` with full schema.
+8. Call `aipcs_service_materialise` to deploy.
+9. Use domain-specific tools for all subsequent reads and writes in this domain.
+
+### Domain classes and common use cases
+`domain_class` is not a closed taxonomy in v1. Agents should prefer common categories with stable definitions when they fit, and propose new classes when they do not.
+
+The purpose of common categories is interoperability and discovery, not restriction. They should help an agent recognise that `job_applications` belongs under `career`, or that `project_memory` belongs under `project`, without preventing more precise domain names or later reclassification.
+
+Common category definitions should be maintained as reference guidance alongside the implementation, not hard-coded validation gates in the first slice.
 
 ### Compaction hook
 Before compacting context:
-1. Call `aipcs_service_list` to identify active domains
+1. Call bootstrap/discovery to identify active domains
 2. For each active domain, evaluate whether unsaved knowledge should be persisted
 3. Write any new knowledge to the relevant domain service before compaction
 4. Persist at the level of structured data, not summaries — compaction degrades; structured data does not

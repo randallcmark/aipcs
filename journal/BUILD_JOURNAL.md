@@ -938,6 +938,331 @@ Section 3 (Pattern) — bootstrap as a first-class design concern: three approac
 
 ---
 
+### Entry 023 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** The first Claude CLI proof point keeps AIPCS on the same path, but reorders near-term planning around bootstrap, retrieval enrichment, and deployment boundaries.
+
+**Context:**
+After the first local `aipcs-server` experiment, Mark summarised the findings from wiring AIPCS into Claude CLI and comparing the behavior with existing agent memory patterns and a Reddit example of a local SQLite memory layer.
+
+**Detail:**
+The experiment did not invalidate the current architecture. It showed that the pattern has signal: once the agent understood AIPCS as a place where it could define and evolve memory patterns, it treated persistence differently from conventional generated markdown/file memory.
+
+The test also clarified the next pressure points:
+
+- Bootstrap/discovery is first-order. A cold agent needs a shape hint for existing services before it can decide what to inspect or query.
+- AIPCS supplements existing agent context. It should not try to replace native context, summaries, or client memory; it should give them a structured, inspectable persistence layer.
+- Retrieval enrichment matters. Provenance and temporal context change how an agent should cite, weight, or re-verify a memory.
+- Direct database access is a local trust-boundary artifact. Claude's attempt to write SQLite directly after a tool-path failure is useful evidence that hosted/homelab deployments must hide persistence internals and enforce tool boundaries.
+- Top-level taxonomy is still relevant, but should be introduced carefully. A bootstrap map and later embedding/reclassification support may reduce the need for a rigid early taxonomy.
+- Local `stdio`, homelab/private deployment, and hosted/public MCP are distinct phases. Hosted ChatGPT/Claude-style clients may require a publicly reachable transport or bridge because provider infrastructure initiates the MCP connection.
+- Fixed SQLite memory layers remain useful baselines and prior-art contrasts, but they do not remove AIPCS's novelty because they keep schema/control primarily developer-defined.
+
+**Decision made / Problem encountered / Observation:**
+Near-term implementation and planning should prioritise a bootstrap/discovery surface and search/retrieval before further service infrastructure. Provenance and temporal encoding should be designed as retrieval-quality features. Deployment planning must separate local development from homelab and public MCP transport.
+
+**Alternatives considered:**
+- Continue directly toward homelab/container deployment. Deferred because the local tool semantics still need bootstrap and retrieval quality.
+- Treat the Claude SQLite bypass as a reason to harden everything immediately. Deferred; it is a real boundary lesson, but not the next blocker for local semantics.
+- Adopt a fixed taxonomy immediately. Deferred; bootstrap/discovery should be tested first as a lighter way to keep domains aligned.
+
+**Implications:**
+- `docs/roadmap/implementation-sequencing.md` should keep Retrieval and Bootstrap Hardening as the current phase.
+- `aipcs-server` should add bootstrap/discovery and record search before homelab deployment.
+- Technical debt should explicitly track server-owned field contracts, retrieval metadata, provenance vocabulary, public MCP transport, and direct-DB bypass as a boundary risk.
+- Evaluation must include cold-start discovery and retrieval scenarios, not only write/materialisation success.
+
+**Paper notes:**
+Section 3 (Pattern) — bootstrap as a map, not a content dump; provenance as part of durable memory semantics; AIPCS as a supplement to native agent context rather than a replacement. Section 5 (Evaluation) — retrieval and cold-start behavior must be measured separately from write success. Section 6 (Discussion) — local SQLite memory systems are an important baseline, while public MCP deployment and direct storage access are security/deployment limitations worth naming.
+
+**Open questions:**
+- Should the first bootstrap primitive be a dedicated `aipcs_bootstrap` tool or an enriched `aipcs_service_list`?
+- What is the v1 search contract: exact structured filters only, field-level contains, or simple cross-field text search?
+- What provenance vocabulary is stable enough to recommend without over-prescribing schemas?
+- What public MCP transport/auth approach fits hosted ChatGPT/Claude clients without distorting local AIPCS semantics?
+
+---
+
+### Entry 024 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** The first retrieval slice will use dedicated bootstrap and exact structured search only; `LIKE`/partial text search is intentionally deferred.
+
+**Context:**
+While designing search/retrieval, Mark noted that an agent pushed back against exact-only search and suggested at least `LIKE` would be useful. The design question was whether partial search helps retrieval enough to justify weakening pressure on agent-owned schema quality.
+
+**Detail:**
+Partial text search is cheap to implement in SQLite, but it changes the agent's incentives. If the agent can retrieve with broad substring matching, it may lean on loose search instead of improving the schema, taxonomy, and discovery behavior it owns. That would make early experiments less clear: successful retrieval could come from forgiving search rather than from useful AIPCS structure.
+
+The current slice therefore chooses:
+
+- `aipcs_bootstrap` as a dedicated session-start shape tool rather than overloading `aipcs_service_list`.
+- `aipcs_record_search` as exact structured search over one service/entity.
+- No raw SQL, `LIKE`, field-level contains, FTS, embeddings, or cross-service search in this slice.
+- `aipcs_record_list` remains available for browsing; `aipcs_record_search` requires at least one exact filter.
+
+**Decision made / Problem encountered / Observation:**
+V1 retrieval hardening should test whether bootstrap plus exact filters are enough for agent-owned schemas. Fuzzy/partial retrieval is deferred until there is evidence that exact retrieval blocks useful scenarios rather than merely revealing weak schema design.
+
+**Alternatives considered:**
+- Add `contains`/`LIKE` now. Rejected for this slice because it risks a laziness effect and would make retrieval quality harder to attribute.
+- Keep only `aipcs_record_list`. Rejected because the agent benefits from an explicit retrieval/search primitive with a narrower contract than list.
+- Add semantic/vector search. Rejected as later infrastructure and evaluation work.
+
+**Implications:**
+- Search tests should assert exact matching, including that `"Acme"` does not match `"Acme Labs"`.
+- The evaluation should watch whether agents improve schemas when exact search fails.
+- If exact search proves too brittle, partial search can be introduced later as an explicit retrieval tier, not as the default.
+
+**Paper notes:**
+Section 3 (Pattern) — retrieval capability shapes schema-evolution incentives; too-powerful fallback search can hide weak agent-designed structure. Section 5 (Evaluation) — exact retrieval failure is useful signal, not merely a tool gap. Section 6 (Discussion) — future fuzzy/semantic retrieval should be framed as a tiered capability with cost and behavioral tradeoffs.
+
+**Open questions:**
+- What failure threshold justifies adding partial text search later?
+- Should schema evolution prompts explicitly ask the agent to improve fields/indices when exact search fails?
+- Should future fuzzy retrieval be opt-in per service, per entity, or per query?
+
+---
+
+### Entry 025 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** Provenance is a recommended schema convention, and recency is computed dynamically in retrieval `_meta`.
+
+**Context:**
+After deciding to keep search exact, Mark prioritised provenance conventions over richer retrieval and clarified that age/recency should be computed on the fly as a marker for how long since a record was updated.
+
+**Detail:**
+The implementation now treats provenance as durable record data, not server inference. Agents can include recommended provenance fields in their schemas:
+
+- `provenance_type`
+- `provenance_note`
+- `provenance_source`
+
+Recommended `provenance_type` values are:
+
+- `user_stated`
+- `agent_inferred`
+- `agent_observed`
+- `imported`
+
+The server advertises these conventions through `aipcs_bootstrap` and identifies which convention fields are present per entity. When records are retrieved through list/get/search, the server adds `_meta` with:
+
+- `computed_at`
+- `updated_age_seconds`
+- `updated_age_label`
+- `provenance` when convention fields are present on the record
+
+This keeps temporal signal fresh without storing relative time, and keeps provenance explicit without pretending the server knows where content originated.
+
+**Decision made / Problem encountered / Observation:**
+Provenance convention is part of v1 retrieval hardening. Dynamic recency metadata belongs in retrieval responses, while interpretation policy remains an agent/skill concern.
+
+**Alternatives considered:**
+- Server-inferred provenance. Rejected because it would create false authority.
+- Storing relative age. Rejected because it becomes stale immediately.
+- Making provenance fields mandatory. Rejected because AIPCS should support minimal schemas and let agents evolve structure as needed.
+
+**Implications:**
+- Future schema guidance should recommend provenance fields for memory-like entities.
+- Evaluation should test whether agents use provenance and recency to qualify recalled facts.
+- Interpretation policy is still open: the server surfaces signal, but the agent decides how to weight it.
+
+**Paper notes:**
+Section 3 (Pattern) — provenance is durable content semantics; recency is retrieval-time context. Section 5 (Evaluation) — measure whether agents treat `user_stated` differently from `agent_inferred`, and whether updated-age changes recall behavior. Section 6 (Discussion) — this separates storage truth from interpretive policy.
+
+**Open questions:**
+- Should the skill explicitly require provenance fields for memory-like entities?
+- What should the default interpretation policy be for old inferred memories?
+- Should `created_age_seconds` also be computed, or is updated-age enough for v1?
+
+---
+
+### Entry 026 — 2026-05-18
+
+**Type:** Observation
+
+**Summary:** The second Claude CLI test showed bootstrap and exact search work, but session-start retrieval policy is now the exposed weak point.
+
+**Context:**
+Mark ran a live Claude CLI experiment against the updated AIPCS tools after `aipcs_bootstrap` and `aipcs_record_search` were added. Claude used bootstrap, loaded selected records, updated stale project memory, then ran a live functional test suite over bootstrap/search/list/history behavior.
+
+**Detail:**
+The live test gave useful evidence:
+
+- Bootstrap gave a clean structural view of persisted services without leaking record content.
+- Exact search worked for single-filter, multi-filter, no-match, pagination, and list/search consistency scenarios.
+- History captured create/update before/after state as expected.
+- Filtering on `owner_id` was rejected because `owner_id` is server-scoped. This is the desired safe-fail posture; invalid filters should not be stripped and the query should not be broadened silently.
+
+The more important behavioral finding came from the question "do you remember where I live?" Claude initially answered no, even though a `user_memory` record existed and bootstrap showed that entity had one record. It had loaded feedback and project memory, but skipped user memory. After fetching `user_memory`, it correctly found that Mark is based in Edinburgh.
+
+This is not a bootstrap failure. Bootstrap did its job: it showed the shape. The gap is session-start retrieval discipline. An agent must learn that bootstrap is only orientation; it still has to retrieve bounded record content from identity, preference, feedback, behavioral-rule, and project-state entities before making claims about what it knows.
+
+**Decision made / Problem encountered / Observation:**
+Add session-start guidance: bootstrap first, then bounded content retrieval from memory-like low-cardinality entities. Do not fetch all records from all services by default, and do not treat shape as equivalent to loaded context.
+
+**Alternatives considered:**
+- Make bootstrap return record content. Rejected because it would turn orientation into a content dump and increase context/cost.
+- Require agents to list every entity every session. Rejected because domain services may grow large and not all persisted content is session-critical.
+- Strip invalid filters and run partial queries. Rejected because it would hide tool-contract mistakes and could broaden retrieval unexpectedly.
+
+**Implications:**
+- The AIPCS skill needs explicit session-start wording: bootstrap → identify memory-like entities → load bounded records needed for identity/behavior/project context → then answer.
+- Evaluation should include a "known persisted fact" probe where the fact exists in AIPCS but is not in active context.
+- `owner_id` filter rejection should remain documented as intended behavior.
+
+**Paper notes:**
+Section 5 (Evaluation) — the test separates storage capability from agent recall discipline. The system had the fact, but the agent failed to retrieve it until challenged. This is a strong example of why memory evaluations must test agent/tool-use policy, not only persistence mechanics. Section 6 (Discussion) — bootstrap should remain shape-only; loading policy belongs in the skill/agent layer.
+
+**Open questions:**
+- What exact entity naming patterns should the session-start policy treat as "memory-like"?
+- Should AIPCS expose an optional bounded orientation helper later, or is skill wording enough?
+- What is the right default record limit for session-start loading of low-cardinality memory entities?
+
+---
+
+### Entry 027 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** Bootstrap is a three-layer design: static AIPCS instructions, dynamic data-dictionary map, and later procedural skills where tools are the wrong abstraction.
+
+**Context:**
+Mark clarified that the repeated need to tell an agent about AIPCS before it discovers persisted services is the most significant learning so far. The bootstrap tool helps once called, but it cannot make the agent aware of AIPCS by itself.
+
+**Detail:**
+Bootstrap should be understood as the combination of:
+
+1. **Static agent instructions** — the agent must know what AIPCS is, what purpose it serves, when to seed, and when to persist information that may be useful in the future.
+2. **Dynamic service map** — a lightweight data-dictionary view of persisted domains, including what information is likely to be found down each branch and enough schema description to plan evolution when new data does not fit.
+3. **Possible procedural skills** — deferred; some multi-step operations may eventually belong in a skill rather than as atomic tools or persisted records.
+
+The dynamic map should remain lightweight, but it needs descriptive value: service intent, domain class, entity names, entity descriptions, record counts, recent activity, and schematic approach where available. This makes it more like a data dictionary than a plain service list.
+
+Top-level categories should have common definitions for common use cases, but should not become a closed taxonomy in v1. Their role is to improve interoperability and discovery, not to constrain agent schema autonomy.
+
+**Decision made / Problem encountered / Observation:**
+The bootstrap tool is necessary but insufficient. AIPCS needs a portable skill/instruction package that triggers bootstrap at session start and teaches persistence posture. The server-side bootstrap map should grow as a descriptive data dictionary, while common domain-class definitions remain non-binding guidance.
+
+**Alternatives considered:**
+- Put all bootstrap behavior in the MCP tool. Rejected because tools only help after the agent knows to call them.
+- Enforce static top-level categories. Rejected because it risks premature rigidity and conflicts with agent-owned schema design.
+- Store multi-step procedures as ordinary data records. Deferred; skills may be the better representation when behavior, not data, is being persisted.
+
+**Implications:**
+- The AIPCS skill is now part of the minimal bootstrap surface, not later polish.
+- `domain_class` guidance should evolve into a non-binding reference dictionary.
+- Bootstrap output should include definitions/descriptions where available, not just names and counts.
+- Tool vs skill vs record boundary is now a real design question.
+
+**Paper notes:**
+Section 3 (Pattern) — bootstrap has static and dynamic layers; no tool can trigger its own use without an instruction layer. Section 4 (Reference Implementation) — the bootstrap endpoint is a data-dictionary view, not a content dump. Section 6 (Discussion) — non-binding common domain classes offer interoperability without closing the taxonomy.
+
+**Open questions:**
+- What should the first portable AIPCS skill/instruction artifact look like for Claude CLI, Codex, and later hosted clients?
+- What common domain classes are useful enough to define first?
+- What criteria decide whether an AIPCS operation is an atomic tool, a persisted record, or a skill?
+
+---
+
+### Entry 028 — 2026-05-18
+
+**Type:** Observation
+
+**Summary:** `memhub` is a strong adjacent fixed-taxonomy memory system and should be treated as related work/baseline, not as an AIPCS overlap threat.
+
+**Context:**
+Mark shared [`kninetimmy/memhub`](https://github.com/kninetimmy/memhub), a Reddit-discovered local memory project, and noted that it has clear pre-processing/classification/indexing machinery similar in family to `agent-memory-v2`.
+
+**Detail:**
+The relevant comparison is not merely that `memhub` uses SQLite or MCP. Mark had already built SQLite-based agent memory in `agent-memory-v2`; many systems can share that substrate. The important overlap is architectural:
+
+- predefined memory classes
+- classifier/router or write-policy pipeline
+- indexing and retrieval layer
+- local SQLite persistence
+- agent-facing MCP/skill surface
+- provenance/source attribution
+
+`memhub` is coding-project focused, with predefined classes such as facts, decisions, tasks, commands, session notes, state/architecture narratives, pending writes, and reference docs. It has strong engineering around local-first operation, FTS/hybrid recall, staged agent writes, and Claude/Codex interoperability.
+
+This places it in the same broad family as `agent-memory-v2`: fixed-domain, developer-defined memory infrastructure. AIPCS must not claim novelty for local SQLite memory, MCP memory access, staged writes, provenance/source attribution, classifier pipelines, or hybrid recall.
+
+The AIPCS distinction remains schema ownership and service instantiation: the agent seeds, designs, materialises, and evolves domain-specific persistent context services across arbitrary domains. `memhub` gives the agent a strong memory system for a predefined coding-project domain; AIPCS gives the agent primitives to create the memory system shape.
+
+**Decision made / Problem encountered / Observation:**
+Add `memhub` to related work and baseline notes as a fixed-taxonomy/pipeline comparator. Use it to sharpen AIPCS claims rather than treating it as a blocker.
+
+**Alternatives considered:**
+- Treat `memhub` as direct overlap. Rejected because it does not appear to support agent-instantiated arbitrary domain services or agent-owned schema evolution.
+- Ignore it because it is coding-specific. Rejected because its classifier/index/retrieval architecture is directly relevant to the fixed-memory baseline family.
+- Position AIPCS against SQLite/MCP memory generally. Rejected because that would be too broad and easily contradicted by existing projects.
+
+**Implications:**
+- Paper related work should include `memhub`.
+- Evaluation should compare against fixed-taxonomy/pipeline systems, not strawman memory stores.
+- AIPCS claims should emphasise agent schema autonomy and domain-adaptive service materialisation, not storage substrate or retrieval mechanics.
+
+**Paper notes:**
+Section 2 (Related Work) — `memhub` belongs beside `agent-memory-v2` as a modern local coding-agent memory system with predefined classes and strong retrieval. Section 5 (Evaluation) — it may be a future comparator for coding-project memory, but it is not an AIPCS candidate. Section 6 (Discussion) — common infrastructure does not imply common pattern; schema ownership is the key dividing line.
+
+**Open questions:**
+- Should `memhub` be experimentally evaluated, or is a related-work comparison sufficient for the first paper?
+- Which fixed-taxonomy systems are strong enough to include as baselines without over-expanding scope?
+- How should AIPCS describe classifier/indexing pipelines without appearing to dismiss their practical value?
+
+---
+
+### Entry 029 — 2026-05-18
+
+**Type:** Milestone
+
+**Summary:** First portable AIPCS persistent-memory instruction artifact added.
+
+**Context:**
+After the Claude CLI experiments showed that the agent must be explicitly aware of AIPCS before it will bootstrap, Mark asked for a thin generic instruction suitable for a `CLAUDE.md`, `AGENTS.md`, or equivalent agent harness.
+
+**Detail:**
+Added `docs/agent/examples/aipcs-persistent-memory-instruction.md` as an evolvable example. It is intentionally short and covers:
+
+- AIPCS awareness as persistent structured memory when connected.
+- Session-start `aipcs_bootstrap`.
+- Bounded retrieval after bootstrap.
+- Use of AIPCS memory while working, not only at session start.
+- Proactive persistence before compaction/session wrap-up.
+- Granular record writing.
+- Schema challenge/evolution when new information does not fit without losing meaning.
+
+This is not a final skill spec. It is the first portable instruction artifact to test against Claude/Codex/hosted-agent variants.
+
+**Decision made / Problem encountered / Observation:**
+The first instruction artifact should remain thin and behaviour-oriented. Tool descriptions should carry most interface detail; the instruction should primarily trigger awareness, discovery, persistence, recall usage, and schema challenge behaviour.
+
+**Alternatives considered:**
+- Write a comprehensive skill spec now. Rejected because the live agent tests are still shaping the required behaviour.
+- Put the instruction only in journal text. Rejected because it needs to be reusable and versioned as an artifact.
+- Include detailed tool schemas. Rejected because that makes the instruction brittle and duplicates MCP tool metadata.
+
+**Implications:**
+- Future live tests should install or paste this instruction and see whether the agent calls bootstrap without prompting.
+- Client-specific variants can derive from this example.
+- Q027 is partially progressed but remains open until tested across harnesses.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — the instruction artifact is part of the bootstrap mechanism. Section 5 (Evaluation) — test whether static instructions cause bootstrap/discovery and bounded retrieval without explicit user prompting. Section 6 (Discussion) — tool availability is insufficient without agent instruction.
+
+**Open questions:**
+- How much client-specific wording is needed for Claude Code vs Codex?
+- Should the instruction include explicit record limits for bounded retrieval?
+- Should schema evolution wording change once `aipcs_service_evolve` is implemented?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -990,6 +1315,13 @@ Use this for quick orientation when resuming work after a break.
 | D010 | 2026-05-04 | domain_class field in schema manifest | Enables future taxonomy and interoperability without requiring it now | 007 |
 | D011 | 2026-05-06 | Evaluation must separate memory mechanics from agent behavior | Prevents model weakness from being misreported as memory-system failure | 009 |
 | D012 | 2026-05-06 | OpenAI is the first agent-class reference provider | Closest bounded match to AIPCS assumptions before adding Claude/Gemini/cloud GPU | 009 |
+| D013 | 2026-05-18 | Prioritise bootstrap/discovery and retrieval before further deployment infrastructure | The first Claude CLI proof point showed write semantics work, while cold-start orientation and recall quality are now the blocker | 023 |
+| D014 | 2026-05-18 | Use dedicated bootstrap plus exact structured search for the first retrieval slice | Preserves pressure on agent-owned schema/discovery quality; broad partial search could hide weak schema design | 024 |
+| D015 | 2026-05-18 | Treat provenance as schema convention and recency as retrieval-time metadata | Avoids server-inferred provenance and stale stored relative time while giving agents useful weighting signals | 025 |
+| D016 | 2026-05-18 | Keep bootstrap shape-only and add session-start retrieval discipline | The live Claude test showed shape discovery worked, but the agent skipped `user_memory` content until challenged | 026 |
+| D017 | 2026-05-18 | Define bootstrap as static instructions plus dynamic data-dictionary map plus deferred procedural skills | The tool cannot trigger itself; agents need portable AIPCS awareness before discovery can happen | 027 |
+| D018 | 2026-05-18 | Treat `memhub` as fixed-taxonomy/pipeline related work | It overlaps in SQLite/MCP/retrieval mechanics but keeps schema/classes developer-defined, unlike AIPCS agent-instantiated services | 028 |
+| D019 | 2026-05-18 | Add the first portable AIPCS persistent-memory instruction artifact | Thin static instruction is needed to trigger bootstrap, bounded retrieval, proactive persistence, and schema challenge behaviour | 029 |
 
 ---
 
@@ -1022,16 +1354,23 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? | 006 | — | — |
 | Q012 | Should the schema validator reject server-controlled fields (id, owner_id, created_at, updated_at, created_via) at design time, before materialisation? | 018 | — | — |
 | Q013 | Should `aipcs_service_list` be called automatically at session start, and how is this communicated to the agent? (Extends Q001 bootstrapping gap.) | 018 | — | — |
-| Q014 | What is the right retrieval scenario for the first evaluation? Exact field filter, or richer text retrieval? | 018 | — | — |
+| Q014 | What is the right retrieval scenario for the first evaluation? Exact field filter, or richer text retrieval? | 018 | ✅ 2026-05-18 | D014 |
 | Q015 | Should the schema design step elicit query patterns before entities, rather than after? | 018 | — | — |
-| Q016 | Should aipcs_record_get / aipcs_record_list return a _meta block with computed fields (age_days, etc.) at retrieval time? | 020 | — | — |
-| Q017 | What is the right provenance vocabulary? user_stated / agent_inferred / agent_observed is a first proposal. | 020 | — | — |
+| Q016 | Should aipcs_record_get / aipcs_record_list return a _meta block with computed fields (age_days, etc.) at retrieval time? | 020 | ✅ 2026-05-18 | D015 |
+| Q017 | What is the right provenance vocabulary? user_stated / agent_inferred / agent_observed is a first proposal. | 020 | ✅ 2026-05-18 | D015 |
 | Q018 | Should interpretation policy (staleness thresholds, provenance weighting) be standardised in an AIPCS skill, or is it per-deployment? | 020 | — | — |
 | Q019 | What is the minimum viable bootstrap state for a session that starts without AIPCS connected? | 021 | — | — |
 | Q020 | Should AIPCS define a standard bootstrap export format — a minimal snapshot an agent can carry without duplicating full content? | 021 | — | — |
-| Q021 | Should aipcs_service_list be enriched with entity names and record counts, or should a dedicated aipcs_bootstrap tool be introduced? | 022 | — | — |
+| Q021 | Should aipcs_service_list be enriched with entity names and record counts, or should a dedicated aipcs_bootstrap tool be introduced? | 022 | ✅ 2026-05-18 | D014 |
 | Q022 | Should session identity be a first-class concept — a session_id field on records set at write time? | 022 | — | — |
 | Q023 | What is the exact skill instruction wording for session-start orientation? | 022 | — | — |
+| Q024 | How should hosted ChatGPT/Claude public MCP transport and auth differ from local `stdio` and homelab/private deployment? | 023 | — | — |
+| Q025 | How should AIPCS prevent or detect direct persistence bypass when an agent has local filesystem access? | 023 | — | — |
+| Q026 | What bounded session-start retrieval policy should agents follow after bootstrap for memory-like entities? | 026 | — | — |
+| Q027 | What should the first portable AIPCS skill/instruction artifact look like for Claude CLI, Codex, and later hosted clients? | 027 | — | — |
+| Q028 | What common domain classes are useful enough to define first without creating a closed taxonomy? | 027 | — | — |
+| Q029 | What criteria decide whether an AIPCS operation is an atomic tool, a persisted record, or a skill? | 027 | — | — |
+| Q030 | Should `memhub` be experimentally evaluated, or is related-work comparison sufficient for the first paper? | 028 | — | — |
 
 ---
 
@@ -1043,7 +1382,7 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M002 | Pattern spec v0.1 published | 2026-05-04 | ✅ 2026-05-04 | |
 | M003 | Public GitHub repo live | 2026-05-04 | ✅ 2026-05-04 | |
 | M004 | v1 technical design complete | 2026-05-04 | ✅ 2026-05-04 | `docs/AIPCS_v1_Technical_Design.md` |
-| M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server with seed/list/inspect/design tools |
+| M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server; now includes bootstrap, exact search, provenance conventions, and retrieval metadata |
 | M006 | OAuth/DCR foundation implemented | — | — | |
 | M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; domain-specific dynamic tools deferred |
 | M008 | End-to-end flow validated in App Tracker | — | — | |
@@ -1106,6 +1445,13 @@ Key points from design iteration:
 - V1 local trust model; v2 OAuth/DCR target
 
 *Populate with implementation details as build progresses (M005–M008)*
+
+Current implementation evidence:
+- `aipcs-server` exposes the local MCP primitive loop through service lifecycle and generic record operations.
+- Current tool surface includes service seed/list/bootstrap/inspect/design/materialise and record create/list/get/search/update/delete/history.
+- Bootstrap is a data-dictionary map; record content is retrieved via list/get/search.
+- Retrieval `_meta` computes updated age and carries provenance convention fields when available.
+- Static instruction artifact exists for agent harnesses.
 
 ### 5. Evaluation
 

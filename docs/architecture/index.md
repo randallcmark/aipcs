@@ -29,6 +29,22 @@ A seed is a first-class object. It is immediately queryable (`aipcs_service_list
 
 ---
 
+## Bootstrap Model
+
+Bootstrap is not only a server response. It has three layers:
+
+| Layer | Purpose |
+|---|---|
+| Static agent instruction | Teaches the agent that AIPCS exists, when to seed, when to persist, and how to use the primitive tools |
+| Dynamic discovery map | Gives a lightweight data-dictionary view of current services, domain classes, entity names, descriptions, counts, and recent activity |
+| Procedural skills (deferred) | Captures multi-step workflows that are better expressed as agent procedure than atomic tools |
+
+The dynamic map should be descriptive enough that the agent can decide where to probe next and whether new information fits the current schema. It should not return record content by default.
+
+Common top-level domain classes are reference guidance, not a closed taxonomy in v1. They support interoperability and discovery while preserving the agent's ability to propose new categories.
+
+---
+
 ## v1 Design Decisions
 
 Three questions define the v1 architecture. All resolved.

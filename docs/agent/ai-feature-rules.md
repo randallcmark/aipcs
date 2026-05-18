@@ -32,6 +32,22 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 - Live-model tests only when credentials are available in the environment
 - Record evaluation results in the BUILD_JOURNAL evaluation section — this material goes directly into the paper
 
+## AIPCS session-start orientation
+
+- Example thin instruction artifact: [examples/aipcs-persistent-memory-instruction.md](examples/aipcs-persistent-memory-instruction.md). Treat it as a starting point for Claude/Codex/hosted-agent variants, not a final spec.
+- AIPCS bootstrap has two mandatory layers:
+  - Static agent instructions: what AIPCS is, when to seed, when to persist, and how to use the tools.
+  - Dynamic service map: the current data-dictionary view of persisted domains, entities, counts, and descriptions.
+- Bootstrap is orientation, not recall. It tells an agent which services and entities exist; it does not load working memory.
+- The bootstrap map should help the agent know what information is likely to be found down each domain branch, including the seed intent and schematic approach where available.
+- After bootstrap, agents must explicitly retrieve the records needed for the task or session role.
+- For memory-like services, agents should prioritise low-cardinality identity, preference, feedback, behavioral rule, and project-state entities before answering questions about the user or project.
+- Do not fetch every record from every service by default. Use bootstrap counts, entity names, and exact search/list operations to choose a bounded retrieval set.
+- Treat invalid filters as hard failures. Do not silently strip invalid fields, because that can broaden recall and hide tool-contract mistakes.
+- Agents should seed and persist when they judge information is likely to be useful in a future session, not only when the user explicitly requests memory.
+- Prefer common top-level domain categories with stable definitions when they fit, but do not force all services into a closed taxonomy. Propose a new `domain_class` when the common categories do not describe the domain.
+- Multi-step procedures may later live as portable skills when they are better expressed as agent workflow than as atomic MCP tools. This is deferred and should not be confused with record content.
+
 ## Paper implications
 
 Every significant prompt design choice, failure mode discovered, or evaluation result is potential paper material. Capture it in the BUILD_JOURNAL with a "Paper notes" field pointing to the Evaluation or Implementation section.

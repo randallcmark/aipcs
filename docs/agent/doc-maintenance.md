@@ -7,6 +7,7 @@
 | `CLAUDE.md` | Project overview and orientation |
 | `AGENTS.md` | Routing map — stays short |
 | `docs/agent/` | Repeated task rules |
+| `docs/agent/examples/` | Portable prompt/skill instruction examples to evolve over time |
 | `docs/architecture/` | Pattern and system design constraints |
 | `docs/product/` | Research context and development journeys |
 | `docs/exec-plans/` | Temporary working plans (active and completed) |

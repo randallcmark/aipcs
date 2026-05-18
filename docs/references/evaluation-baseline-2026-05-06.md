@@ -67,4 +67,19 @@ make scenario-run ARGS="--scenario semantic_location_candidate"
 
 This baseline establishes that `agent-memory-v2` is a credible fixed-memory control: it passes existing deterministic and live evals and handles at least two important qualitative scenarios. It should not be treated as evidence that AIPCS works, because the schema/taxonomy is still developer-defined and the live behavior is driven by `llama3:8b` rather than an agent-class API model.
 
+## Adjacent Fixed-Taxonomy Baseline: memhub
+
+Repository: [`kninetimmy/memhub`](https://github.com/kninetimmy/memhub)
+
+`memhub` is a modern local-first coding-agent memory system with strong overlap in implementation substrate: per-repo SQLite, MCP support for Claude/Codex, agent skills/slash-command workflows, FTS5 plus optional hybrid semantic recall, source attribution, staged writes, auditability, and local dashboards.
+
+The important overlap is architectural, not just "SQLite plus MCP". `memhub` follows the same broad family as `agent-memory-v2`: a developer-defined memory model with predefined classes and pipeline behavior. Its classes include facts, decisions, tasks, commands, session notes, state/architecture narratives, pending writes, and reference docs. Retrieval is implemented through fixed indexing and recall surfaces over those predefined tables.
+
+This makes `memhub` a useful related-work comparator and a likely stronger engineering baseline than many generic memory projects. It does not remove the AIPCS distinction: AIPCS claims agent-instantiated, domain-adaptive services where the agent seeds, designs, materialises, and evolves the schema for each domain. In `memhub`, the domain and schema are coding-project memory and are defined by the tool.
+
+Paper framing:
+- Do not claim novelty for local SQLite memory, MCP memory bridges, staged agent writes, provenance/source attribution, or hybrid recall.
+- Claim novelty around agent-owned service/schema instantiation and evolution across arbitrary domains.
+- Use `memhub` and `agent-memory-v2` as examples of the fixed-taxonomy/pipeline family AIPCS is designed to go beyond.
+
 The next experimental step is to implement the provider-neutral mini agent harness and run the same scenario family with OpenAI as the first agent-class reference.

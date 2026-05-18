@@ -41,6 +41,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 | PISA (2024) | Task-oriented memory via Piaget's schema theory | Academic architecture; not MCP-native or deployable |
 | Nemori (2025) | Self-organising experience memory (MAG paradigm) | Organises experience, not schema design |
 | MemGPT / Letta | OS-inspired context paging; agent manages storage tiers | Pre-defined storage structure; agent manages paging, not schema |
+| memhub (kninetimmy, 2026) | Local per-repo coding memory with SQLite, MCP, predefined facts/decisions/tasks/docs, staged writes, and FTS/hybrid recall | Strong fixed-domain pipeline baseline; classifier/index/retrieval architecture is developer-defined, not agent-instantiated domain services |
 | mcp-memory-service | Knowledge graph via MCP | Fixed developer-defined schema |
 | Hindsight (Vectorize, 2026) | Semantic memory retrieval via MCP | Semantic search; developer-defined structure |
 | SchemaAgent (2025) | LLM-driven schema generation for existing data | Schema generation for existing problems, not persistent memory primitive |
@@ -117,6 +118,13 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - V2 target: OAuth 2.0 + DCR per pattern specification and Application Tracker's MCP_OAUTH_DCR_PLAN.md
 
 *Populate with implementation detail as build progresses (M005–M008)*
+
+Current implementation evidence to promote:
+- Standalone `aipcs-server` repo now proves local MCP `stdio` operation with seed/list/bootstrap/inspect/design/materialise and generic record create/list/get/search/update/delete/history.
+- `aipcs_bootstrap` is a lightweight data-dictionary map, not a content dump.
+- Exact structured `aipcs_record_search` is intentionally narrow to preserve schema-quality pressure.
+- Retrieval `_meta` computes updated-age dynamically and echoes provenance convention fields when records carry them.
+- First portable static instruction artifact exists at `docs/agent/examples/aipcs-persistent-memory-instruction.md`.
 
 ---
 

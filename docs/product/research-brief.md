@@ -55,6 +55,7 @@ AIPCS sits at a gap in the landscape. See `docs/AIPCS_Invention_Disclosure_v2.do
 | PISA | Academic cognitive architecture, not a deployable MCP-native pattern |
 | Nemori | Self-organising experience memory, not agent-designed schema |
 | MemGPT / Letta | Pre-defined storage structure; agent manages paging, not schema design |
+| memhub | Local per-repo coding memory with predefined facts/decisions/tasks/docs, classifier/retrieval pipeline, SQLite, MCP, and FTS/hybrid recall |
 | mcp-memory-service | Fixed knowledge graph schema; developer-defined |
 | Hindsight | Semantic retrieval; developer-defined schema |
 | SchemaAgent | LLM-driven schema generation for existing data, not persistent memory primitive |

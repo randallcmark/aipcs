@@ -28,9 +28,24 @@ Milestones are tracked in the BUILD_JOURNAL. For quick reference:
 | M002 | Pattern spec v0.1 published | ✅ 2026-05-04 |
 | M003 | Public GitHub repo live | ✅ 2026-05-04 |
 | M004 | v1 technical design complete | ✅ 2026-05-04 |
-| M005 | AIPCS Server prototype running | Pending |
+| M005 | AIPCS Server prototype running | ✅ 2026-05-17 |
 | M006 | OAuth/DCR foundation implemented | Pending |
-| M007 | First MCP tool registered by agent | Pending |
+| M007 | First MCP tool registered by agent | Partial 2026-05-17 |
 | M008 | End-to-end flow validated in App Tracker | Pending |
 | M009 | Framework extracted from app-specific code | Pending |
 | M010 | arXiv preprint submitted | Pending |
+
+## Current Implementation Priorities
+
+The active prototype is `/Users/markrandall/GitHub/aipcs-server`.
+
+| Priority | Why it matters | Planning source |
+|---|---|---|
+| Bootstrap/discovery surface | Agents need a map of seeded/materialised domains before probing. This supplements existing context rather than replacing it. | BUILD_JOURNAL Entries 018, 021, 022, 024 |
+| Bootstrap instruction layer | The agent must know AIPCS exists and should call bootstrap without the user prompting it each session. | BUILD_JOURNAL Entries 026, 027 |
+| Common domain-class guidance | Common categories need stable definitions for interoperability, but should not become a closed taxonomy. | BUILD_JOURNAL Entries 007, 027 |
+| Search/retrieval | The prototype can write and mutate records; the next value test is whether agents can recall with exact structure before broader retrieval is added. | BUILD_JOURNAL Entries 018, 020, 024 |
+| Retrieval enrichment | Provenance and relative time affect how an agent weights old memories. Provenance belongs in schema; relative time is computed at retrieval. | BUILD_JOURNAL Entries 020, 025 |
+| Session-start retrieval policy | Bootstrap gives shape, not working memory; agents must retrieve bounded content from memory-like entities before claiming what they know. | BUILD_JOURNAL Entry 026 |
+| Schema evolution | Needed to improve early agent-designed schemas, especially after observing taxonomy drift and prose-blob schemas. | BUILD_JOURNAL Entries 018, 020 |
+| Deployment boundary | Local `stdio` is the development path; hosted Claude/ChatGPT require public MCP or a bridge later. Direct SQLite access is not the agent contract. | BUILD_JOURNAL Entries 018, 022 |
