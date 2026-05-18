@@ -120,10 +120,12 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 *Populate with implementation detail as build progresses (M005–M008)*
 
 Current implementation evidence to promote:
-- Standalone `aipcs-server` repo now proves local MCP `stdio` operation with seed/list/bootstrap/inspect/design/materialise and generic record create/list/get/search/update/delete/history.
-- `aipcs_bootstrap` is a lightweight data-dictionary map, not a content dump.
+- Standalone `aipcs-server` repo now proves local MCP `stdio` operation with seed/list/bootstrap/inspect/design/materialise/evolve and generic record create/list/get/search/update/delete/history.
+- `aipcs_bootstrap` is a lightweight data-dictionary map, not a content dump; Bootstrap V2 adds schema summaries, attribute metadata, retrieval hints, and non-binding domain-class guidance.
 - Exact structured `aipcs_record_search` is intentionally narrow to preserve schema-quality pressure.
 - Retrieval `_meta` computes updated-age dynamically and echoes provenance convention fields when records carry them.
+- `aipcs_service_evolve` implements additive schema evolution with version increments, migration history, safe SQLite DDL, and existing-record preservation.
+- Live Claude trace showed Bootstrap V2 driving cold-start orientation, bounded retrieval, stale-memory detection, and autonomous memory repair.
 - First portable static instruction artifact exists at `docs/agent/examples/aipcs-persistent-memory-instruction.md`.
 
 ---
@@ -136,6 +138,7 @@ Current implementation evidence to promote:
 - Token cost of the schema design step
 - **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
 - **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
+- **Stale-memory repair**: can an agent compare recalled records against current tool/schema state, identify stale facts, and correct them through AIPCS tools? (from Entry 033)
 - Schema quality: human assessment, coverage of domain use cases
 - Which trigger phrasings worked best for Model A recognition?
 - How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?

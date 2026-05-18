@@ -47,5 +47,7 @@ The active prototype is `/Users/markrandall/GitHub/aipcs-server`.
 | Search/retrieval | The prototype can write and mutate records; the next value test is whether agents can recall with exact structure before broader retrieval is added. | BUILD_JOURNAL Entries 018, 020, 024 |
 | Retrieval enrichment | Provenance and relative time affect how an agent weights old memories. Provenance belongs in schema; relative time is computed at retrieval. | BUILD_JOURNAL Entries 020, 025 |
 | Session-start retrieval policy | Bootstrap gives shape, not working memory; agents must retrieve bounded content from memory-like entities before claiming what they know. | BUILD_JOURNAL Entry 026 |
-| Schema evolution | Needed to improve early agent-designed schemas, especially after observing taxonomy drift and prose-blob schemas. | BUILD_JOURNAL Entries 018, 020 |
+| Schema evolution | Additive V1 is implemented. Destructive migrations, renames, and backfills remain deferred. | BUILD_JOURNAL Entries 018, 020, 030, 031 |
+| Bootstrap V2 data dictionary | Implemented locally. Bootstrap now includes schema summaries, attribute metadata, schema-fit hints, retrieval hints, and non-binding domain-class guidance without exposing record content. | BUILD_JOURNAL Entries 027, 030, 032 |
+| Stale-memory repair evaluation | Live Claude trace showed the agent can detect stale persisted facts and update/delete memory through AIPCS. This should become an explicit evaluation scenario. | BUILD_JOURNAL Entry 033 |
 | Deployment boundary | Local `stdio` is the development path; hosted Claude/ChatGPT require public MCP or a bridge later. Direct SQLite access is not the agent contract. | BUILD_JOURNAL Entries 018, 022 |

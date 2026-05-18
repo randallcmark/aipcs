@@ -1263,6 +1263,190 @@ Section 4 (Reference Implementation) — the instruction artifact is part of the
 
 ---
 
+### Entry 030 — 2026-05-18
+
+**Type:** Decision
+
+**Summary:** Plan schema evolution first, with Bootstrap V2 data-dictionary enrichment queued after it.
+
+**Context:**
+After confirming that Bootstrap V1 was implemented, Mark asked whether the next execution plan should still be schema evolution or whether richer bootstrap discovery needed to come first. The conclusion was that both should be planned, but schema evolution does not depend on Bootstrap V2 and should remain the active next implementation slice.
+
+**Detail:**
+Two `aipcs-server` execution plans were created:
+
+- `schema-evolution-additive-v1.md` — active plan for `aipcs_service_evolve`, additive migrations, migration history, and server-owned field boundaries.
+- `bootstrap-v2-data-dictionary.md` — queued plan for richer discovery metadata, common domain-class guidance, and schema-fit hints while preserving the no-record-content bootstrap boundary.
+
+The sequencing matters. Bootstrap V2 will help agents decide what to retrieve or evolve, but the evolution primitive itself is needed to prove that agents can improve their own persistence schemas rather than merely discover weak ones. There is no dependency that requires Bootstrap V2 before additive evolution; the current schema manifest, materialisation, generic record tools, and Bootstrap V1 are sufficient.
+
+**Decision made / Problem encountered / Observation:**
+Proceed with additive schema evolution first. Treat Bootstrap V2 as a follow-on enhancement to discovery and orientation, not as a prerequisite.
+
+**Alternatives considered:**
+- Do Bootstrap V2 first. Rejected because richer discovery does not unblock schema migration mechanics.
+- Combine Bootstrap V2 and schema evolution into one slice. Rejected because it would mix retrieval/orientation semantics with database/schema migration risk.
+- Delay schema evolution until after more live agent tests. Rejected because the last live tests already showed schema weaknesses and stale shapes that need a repair path.
+
+**Implications:**
+- The next implementation slice should define `aipcs_service_evolve` with additive-only operations.
+- Server-owned field semantics need to be clarified as part of evolution because migrations must know which fields are agent-owned.
+- Bootstrap V2 should later expose enough schema intent to help agents choose between retrieval and evolution.
+
+**Paper notes:**
+Section 3 (Pattern) — reinforces schema evolution as an agent act, not only a developer migration. Section 4 (Reference Implementation) — additive evolution is the next concrete primitive after seed/design/materialise/record operations. Section 5 (Evaluation) — future tests should check whether an agent can detect poor schema fit, evolve the schema, and then persist without flattening meaning.
+
+**Open questions:**
+- Which additive operations are sufficient for the first evolution test: add entity, add attribute, add enum value, and description update?
+- Should `aipcs_service_evolve` support changing service intent text, or should identity-level changes be separate?
+- How should Bootstrap V2 phrase schema-fit hints without turning into prescriptive taxonomy or retrieval shortcuts?
+
+---
+
+### Entry 031 — 2026-05-18
+
+**Type:** Milestone
+
+**Summary:** Additive schema evolution V1 implemented in `aipcs-server`.
+
+**Context:**
+After planning schema evolution and Bootstrap V2 together, implementation began with schema evolution because it does not depend on richer discovery and is the next primitive needed to repair weak agent-designed schemas.
+
+**Detail:**
+`aipcs-server` now exposes `aipcs_service_evolve` through the MCP server. The V1 evolution surface is deliberately additive:
+
+- `add_entity`
+- `add_attribute`
+- `add_enum_value`
+- `update_entity_description`
+- `update_service_intent`
+
+Accepted evolutions increment `schema_version`, append a migration-history entry with operation details and rationale, update the stored schema manifest, and apply safe SQLite changes for new entity tables and optional attributes. Record validation now honours `allowed_values` lists, so `add_enum_value` has observable behaviour: a previously rejected value can become valid after schema evolution.
+
+Server-managed fields were centralised and guarded. Record create/update still reject server-controlled fields, and schema evolution rejects attempts to add `id`, `owner_id`, `created_at`, `updated_at`, or `created_via` as normal additive fields. First-design manifests still list these fields, so the design-time representation question remains open.
+
+The MCP smoke script now exercises schema evolution before creating a record with the newly added field. The tool surface is now 14 tools.
+
+**Decision made / Problem encountered / Observation:**
+The first implemented evolution primitive should remain additive-only and materialised-service-only. Agents should use first design before materialisation, and `aipcs_service_evolve` after materialisation.
+
+**Alternatives considered:**
+- Allow required attribute additions. Rejected because existing rows cannot satisfy the new constraint without a backfill step.
+- Implement destructive changes now. Rejected because renames, type changes, and deletes need explicit confirmation and stronger migration semantics.
+- Treat enum additions as SQLite migrations. Rejected because current enum enforcement is manifest-level validation over text storage.
+
+**Implications:**
+- AIPCS can now support the core loop: seed → design → materialise → use records → evolve schema → continue using records.
+- Bootstrap can reflect evolved entity/attribute shape immediately after migration.
+- Bootstrap V2 is now the next natural implementation slice because schema evolution no longer blocks richer discovery hints.
+- Destructive migration policy, first-design handling of server-owned fields, and schema conflict resolution remain future work.
+
+**Paper notes:**
+Section 3 (Pattern) — this is the first concrete implementation of schema evolution as an agent-facing act. Section 4 (Reference Implementation) — tool surface now includes `aipcs_service_evolve` and migration history. Section 5 (Evaluation) — future tests can ask an agent to identify schema mismatch, evolve the schema additively, and persist without flattening meaning.
+
+**Open questions:**
+- Should initial schema manifests continue listing server-managed fields as attributes, or should server fields move into a separate metadata contract?
+- What confirmation model is required for destructive schema evolution?
+- Should migration history include before/after schema summaries, not only operations?
+
+---
+
+### Entry 032 — 2026-05-18
+
+**Type:** Milestone
+
+**Summary:** Bootstrap V2 data-dictionary enrichment implemented without exposing record content.
+
+**Context:**
+After additive schema evolution landed, the queued Bootstrap V2 slice became the next implementation step. The goal was to make bootstrap more useful for cold-start orientation while preserving the boundary that bootstrap is a map, not recall.
+
+**Detail:**
+`aipcs_bootstrap` now returns richer schema-derived metadata:
+
+- service-level `schema_version`, `last_evolved_at`, `schema_summary`, and `domain_class_definition`
+- entity-level `schema_summary`
+- attribute metadata including name, type, required flag, primary-key flag, description, and allowed values
+- `schema_hints` for provenance support, temporal attributes, status-like attributes, enum attributes, empty entities, and high-count entities
+- `retrieval_hint` with suggested next action and bounded limit
+- bootstrap conventions describing the no-record-content boundary and next-step retrieval behavior
+- non-binding common domain-class definitions for project, user, career, research, system, and operations
+
+The implementation remains shape-only. Tests assert that bootstrap does not include a `records` key and does not leak values from an inserted record. The MCP smoke output shows Bootstrap V2 after schema evolution, including schema version, field summaries, hints, and domain-class guidance.
+
+**Decision made / Problem encountered / Observation:**
+Bootstrap V2 should expose schema and count-derived planning hints, not content previews. Retrieval still happens through bounded list/get/search calls after bootstrap.
+
+**Alternatives considered:**
+- Include sample values or aggregate previews. Rejected because that would turn bootstrap into content retrieval and could leak memory content.
+- Add fuzzy search or LIKE as part of discovery. Rejected because it would reduce pressure on schema quality and conflict with the exact-retrieval stance.
+- Enforce a fixed domain taxonomy. Rejected because common classes are useful as guidance but should not block agent-defined domain classes.
+
+**Implications:**
+- Cold-start agents get a better map of what each branch contains and what retrieval action is likely appropriate.
+- Domain-class guidance now exists as reference data without becoming validation.
+- Bootstrap V2 can support better live-agent tests around "retrieve before claiming knowledge" and "evolve when schema shape does not fit."
+
+**Paper notes:**
+Section 3 (Pattern) — illustrates bootstrap as a two-layer mechanism: static instruction plus dynamic schema-derived map. Section 4 (Reference Implementation) — Bootstrap V2 is an implemented discovery primitive. Section 5 (Evaluation) — future cold-start tests should measure whether agents use retrieval hints and avoid false "I don't know" claims when records exist.
+
+**Open questions:**
+- Are the retrieval hints strong enough to improve agent behavior without making it lazy about schema design?
+- Should common domain-class guidance move into a versioned registry artifact later?
+- Should high-count thresholds and memory-like terms be configurable per deployment?
+
+---
+
+### Entry 033 — 2026-05-18
+
+**Type:** Observation
+
+**Summary:** Claude used Bootstrap V2 to orient, retrieve bounded memory, detect stale records, and autonomously repair its persisted state.
+
+**Context:**
+Mark ran a fresh Claude Code session after Bootstrap V2 and additive schema evolution were implemented. The only prompt was to tell Claude that an AIPCS MCP service existed, that bootstrap could familiarise it with the persisted memory, and that it should check its available tools.
+
+**Detail:**
+Claude called `aipcs_bootstrap` and inferred the shape of two services:
+
+- `aipcs_development`, schema v3, with records across decisions, deferred items, and implementation slices plus empty `open_question` and `session` entities.
+- `claude_memory`, schema v2, with user, feedback, project, and reference memory entities.
+
+It correctly identified the `source` field on `claude_memory` records as a provenance signal for weighting recalled facts. It then asked whether to load records from `claude_memory`; after Mark said it was Claude's memory service, it fetched all four memory entities and summarised user identity, behavioural rules, and project state.
+
+The important behavior was not just recall. Claude compared recalled project memory against the live tool surface and detected stale records:
+
+- a record saying `claude_memory` still needed schema evolution was stale because the `source` field already existed;
+- a project-state record said the server had 13 MCP tools, but live bootstrap/tool discovery showed 14 including `aipcs_service_evolve`;
+- deferred-items memory still treated schema evolution as deferred, although additive evolution was now implemented.
+
+Claude then used AIPCS update/delete tools to repair its persisted memory: deleting the stale schema-evolution-needed record and updating project/deferred state records. It did this as autonomous memory maintenance, not because the user dictated individual edits.
+
+One mischaracterisation appeared: Claude called the service "cloud-backed". That is not correct for the current implementation, which is local `stdio`/SQLite and homelab-capable later. The instruction/memory layer should avoid phrasing that leads agents to infer cloud backing.
+
+**Decision made / Problem encountered / Observation:**
+Bootstrap V2 plus static awareness produced the target cold-start loop: orient from shape, retrieve relevant records, use memory to inform context, detect stale persisted facts, and repair the memory store through tools.
+
+**Alternatives considered:**
+- Treat this as another simple smoke test. Rejected because it validates agent behavior, not only tool mechanics.
+- Ignore the "cloud-backed" wording. Rejected because it shows the static instruction/provenance wording can create incorrect deployment assumptions.
+- Require explicit user approval before memory repair. Rejected for this experiment because the agent had been granted autonomy over its own memory service, and autonomous repair is part of the target pattern.
+
+**Implications:**
+- AIPCS now has live evidence for session-start discovery and bounded retrieval behavior.
+- Stale-memory correction should become an explicit evaluation scenario.
+- The portable instruction artifact should clarify that AIPCS may be local, homelab-hosted, or remote, but is not inherently cloud-backed.
+- Session-start retrieval policy is still important, but the behavior now has a concrete positive trace.
+
+**Paper notes:**
+Section 3 (Pattern) — supports the claim that bootstrap is a cognitive orientation primitive, not just a registry list. Section 4 (Reference Implementation) — Bootstrap V2 and evolution enable self-maintenance of persisted context. Section 5 (Evaluation) — this is an agent-in-the-loop qualitative trace showing cold-start orientation, grounded recall, stale-memory detection, and autonomous correction. Section 6 (Discussion) — deployment language matters; agents may infer cloud semantics from persistence unless transport/storage boundaries are explicit.
+
+**Open questions:**
+- How should the evaluation harness score stale-memory detection and repair?
+- Should AIPCS expose an explicit "memory maintenance" bootstrap hint or keep that in static instruction?
+- What wording prevents agents from inferring "cloud-backed" when the current deployment is local or homelab-hosted?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -1322,6 +1506,10 @@ Use this for quick orientation when resuming work after a break.
 | D017 | 2026-05-18 | Define bootstrap as static instructions plus dynamic data-dictionary map plus deferred procedural skills | The tool cannot trigger itself; agents need portable AIPCS awareness before discovery can happen | 027 |
 | D018 | 2026-05-18 | Treat `memhub` as fixed-taxonomy/pipeline related work | It overlaps in SQLite/MCP/retrieval mechanics but keeps schema/classes developer-defined, unlike AIPCS agent-instantiated services | 028 |
 | D019 | 2026-05-18 | Add the first portable AIPCS persistent-memory instruction artifact | Thin static instruction is needed to trigger bootstrap, bounded retrieval, proactive persistence, and schema challenge behaviour | 029 |
+| D020 | 2026-05-18 | Implement additive schema evolution before Bootstrap V2 enrichment | Evolution is not blocked by richer discovery; it is the next primitive needed to repair weak agent-designed schemas | 030 |
+| D021 | 2026-05-18 | Keep first schema evolution primitive additive-only and materialised-service-only | Required/destructive changes need backfill, confirmation, and stronger conflict semantics; agents should use design before materialisation and evolve after | 031 |
+| D022 | 2026-05-18 | Keep Bootstrap V2 schema-derived and content-free | Discovery should guide bounded retrieval/evolution without becoming a hidden record recall surface | 032 |
+| D023 | 2026-05-18 | Treat stale-memory repair as a first-class evaluation behavior | Live Claude trace showed an agent can compare recalled records with current tools and update/delete stale memory through AIPCS | 033 |
 
 ---
 
@@ -1371,6 +1559,8 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q028 | What common domain classes are useful enough to define first without creating a closed taxonomy? | 027 | — | — |
 | Q029 | What criteria decide whether an AIPCS operation is an atomic tool, a persisted record, or a skill? | 027 | — | — |
 | Q030 | Should `memhub` be experimentally evaluated, or is related-work comparison sufficient for the first paper? | 028 | — | — |
+| Q031 | How should AIPCS prevent agents from mischaracterising local/homelab memory as cloud-backed? | 033 | — | — |
+| Q032 | Should memory maintenance be an explicit bootstrap/instruction behavior with its own evaluation criteria? | 033 | — | — |
 
 ---
 
@@ -1382,9 +1572,9 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | M002 | Pattern spec v0.1 published | 2026-05-04 | ✅ 2026-05-04 | |
 | M003 | Public GitHub repo live | 2026-05-04 | ✅ 2026-05-04 | |
 | M004 | v1 technical design complete | 2026-05-04 | ✅ 2026-05-04 | `docs/AIPCS_v1_Technical_Design.md` |
-| M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server; now includes bootstrap, exact search, provenance conventions, and retrieval metadata |
+| M005 | AIPCS Server prototype running | — | ✅ 2026-05-17 | Local MCP primitive server; now includes Bootstrap V2, exact search, provenance conventions, retrieval metadata, and additive schema evolution |
 | M006 | OAuth/DCR foundation implemented | — | — | |
-| M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; domain-specific dynamic tools deferred |
+| M007 | First MCP tool registered by agent | — | Partial 2026-05-17 | Agent used generic record tools via live MCP connection; later Claude trace used bootstrap, retrieval, update/delete, and schema-evolved memory. Domain-specific dynamic tools deferred |
 | M008 | End-to-end flow validated in App Tracker | — | — | |
 | M009 | Framework extracted from app-specific code | — | — | |
 | M010 | arXiv preprint submitted | — | — | |
@@ -1448,10 +1638,12 @@ Key points from design iteration:
 
 Current implementation evidence:
 - `aipcs-server` exposes the local MCP primitive loop through service lifecycle and generic record operations.
-- Current tool surface includes service seed/list/bootstrap/inspect/design/materialise and record create/list/get/search/update/delete/history.
-- Bootstrap is a data-dictionary map; record content is retrieved via list/get/search.
+- Current tool surface includes service seed/list/bootstrap/inspect/design/materialise/evolve and record create/list/get/search/update/delete/history.
+- Bootstrap is a data-dictionary map with schema summaries, attribute metadata, retrieval hints, and common domain-class guidance; record content is retrieved via list/get/search.
 - Retrieval `_meta` computes updated age and carries provenance convention fields when available.
 - Static instruction artifact exists for agent harnesses.
+- Additive schema evolution increments schema version, appends migration history, applies safe SQLite DDL, and preserves existing records.
+- Live Claude trace showed cold-start bootstrap, bounded memory retrieval, stale-memory detection, and autonomous persisted-memory repair.
 
 ### 5. Evaluation
 
@@ -1465,6 +1657,7 @@ Evaluation questions seeded from design:
 - What failed or surprised you?
 - **Two-layer evidence model**: report memory mechanics separately from agent behavior. Layer 1 evaluates capture, extraction, recall, conflict handling, prompt cleanliness, storage growth, and maintenance independently of model quality. Layer 2 evaluates tool-use validity, judgment, answer correctness, grounding, latency, and call count through a mini agent harness. (Entry 009)
 - **Agent-class reference**: OpenAI-backed harness results become the first reference configuration for AIPCS-like agent behavior. Local models remain a ladder, but `llama3:8b` must not be the sole basis for AIPCS claims. (Entry 009)
+- **Live-agent stale memory repair**: Claude compared recalled records to current AIPCS tool/schema state, detected stale facts, and used AIPCS update/delete tools to repair memory. This should become an evaluation scenario. (Entry 033)
 
 *Populate during build (M007–M008)*
 

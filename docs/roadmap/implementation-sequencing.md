@@ -34,12 +34,13 @@ Key outputs:
 Implemented locally:
 - `aipcs_service_seed`, `list`, `inspect`, `design`, `materialise`
 - generic record operations: `create`, `update`, `list`, `get`, `history`, `delete`
+- additive schema evolution: `aipcs_service_evolve`
 - structured validation errors with field path, code, message, remediation
 - server-controlled owner/audit fields
 - per-service SQLite materialisation and mutation history
 
 Not yet complete:
-- schema evolution
+- destructive schema evolution
 - suspend/export
 - generated FastAPI domain services
 - dynamic domain-specific MCP tool registration
@@ -103,8 +104,10 @@ Not yet complete:
    - Do not store relative time.
 
 3. Add schema evolution.
-   - Additive migrations first.
+   - Additive migrations first. ✅ implemented in `aipcs-server` 2026-05-18
+   - Supports add entity, add optional attribute, add enum value, entity description update, and service intent update.
    - Use this to evolve `claude_memory` toward provenance-aware records.
+   - Bootstrap V2 can follow without forcing rework because evolution depends on the current schema/materialisation contract, not on richer discovery hints.
 
 4. Define interpretation policy in skill/prompt layer.
    - How to weight user-stated facts vs agent inferences.
@@ -114,6 +117,36 @@ Not yet complete:
 5. Decide whether session identity is a v1 field.
    - Useful for "last session" surfaces and debugging.
    - Requires a clean way for local and hosted agents to set or receive `session_id`.
+
+**Completed plan:** `/Users/markrandall/GitHub/aipcs-server/docs/exec-plans/completed/schema-evolution-additive-v1.md`
+
+---
+
+## Phase 4b: Bootstrap V2 Data Dictionary
+
+**Goal:** Improve the discovery map after schema evolution is underway, without making bootstrap a content retrieval surface.
+
+1. Preserve the Bootstrap V1 boundary.
+   - Bootstrap remains shape-only.
+   - No record content.
+   - No fuzzy/LIKE/vector search.
+
+2. Add data-dictionary enrichment.
+   - Include stronger service/entity descriptions and schema summaries. ✅ implemented in `aipcs-server` 2026-05-18
+   - Surface schema convention support such as provenance fields. ✅ implemented in `aipcs-server` 2026-05-18
+   - Include attribute metadata, schema-fit hints, and retrieval hints derived from schema/count metadata. ✅ implemented in `aipcs-server` 2026-05-18
+   - Help agents decide whether to retrieve records or propose schema evolution.
+
+3. Add common domain-class guidance.
+   - Provide stable definitions for recurring use cases. ✅ implemented in `aipcs-server` 2026-05-18
+   - Keep unknown domain classes valid.
+   - Treat guidance as alignment support, not a closed taxonomy.
+
+4. Keep session-start behavior split across two layers.
+   - Static AIPCS instruction tells the agent to bootstrap and persist.
+   - Dynamic bootstrap map tells the agent what currently exists.
+
+**Completed plan:** `/Users/markrandall/GitHub/aipcs-server/docs/exec-plans/completed/bootstrap-v2-data-dictionary.md`
 
 ---
 
@@ -154,8 +187,10 @@ Not yet complete:
 1. Use `agent-memory-v2` as the fixed-schema/pipeline baseline.
 2. Use AIPCS as the agent-instantiated schema candidate.
 3. Include write and retrieval scenarios.
-4. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, and duplicate-domain avoidance.
-5. Keep memory mechanics separate from model/tool-use capability.
+4. Include stale-memory detection and repair scenarios.
+5. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, and duplicate-domain avoidance.
+6. Check that agents do not mischaracterise local/homelab memory as inherently cloud-backed.
+7. Keep memory mechanics separate from model/tool-use capability.
 
 **Acceptance:** BUILD_JOURNAL and paper §5 contain agent-led traces that compare AIPCS with `agent-memory-v2` on both persistence and retrieval behavior.
 
