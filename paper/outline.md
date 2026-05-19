@@ -13,7 +13,7 @@
 
 *Draft when all other sections are complete.*
 
-AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in which an AI agent designs its own domain-specific data schema, scaffolds a persistent queryable service around it, and registers that service as an MCP tool. Unlike prior work — which either pre-defines memory schemas or organises existing data — AIPCS makes the agent the schema architect. We present the pattern, a reference implementation in a career management platform, and an evaluation of the approach.
+AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in which an AI agent defines and evolves its own persistent memory architecture through a small set of primitive tools. Unlike prior work — which either pre-defines memory schemas, provides generic semantic stores, or organises existing data — AIPCS makes the agent responsible for deciding the object model, schema, persistence boundaries, and later schema adaptation. We present the pattern, a local MCP-native reference implementation, and early evaluation evidence showing bootstrap, retrieval, stale-memory repair, schema self-audit, and schema-rationale recall.
 
 ---
 
@@ -45,6 +45,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 | mcp-memory-service | Knowledge graph via MCP | Fixed developer-defined schema |
 | Hindsight (Vectorize, 2026) | Semantic memory retrieval via MCP | Semantic search; developer-defined structure |
 | SchemaAgent (2025) | LLM-driven schema generation for existing data | Schema generation for existing problems, not persistent memory primitive |
+| Graph/vector database memory systems | Rich storage/retrieval substrates over facts, relationships, or embeddings | Storage substrate differs, but the core architecture is still usually externally chosen; AIPCS asks who decides and evolves the memory architecture |
 
 **Standards to cite:**
 - MCP specification (Anthropic, 2024)
@@ -70,9 +71,10 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - Worth a dedicated paragraph
 
 **Self-referential MCP-native mechanism (from Entry 004 / D007):**
-- Option 3: AIPCS is an MCP server. MCP tools that create MCP tools.
+- Option 3: AIPCS is an MCP server. Primitive MCP tools create, materialise, operate, and evolve persistent context services.
 - Architecturally distinctive — worth emphasising
 - Options rejected: Option 1 (too weak), Option 2 (CLI friction), Option 4 (sidecar HTTP — environment-dependent)
+- Later dynamic domain-specific tool generation is an optional interface layer, not the conceptual minimum. Current evidence suggests the stable primitive tool surface is sufficient to test the research hypothesis.
 
 **Schema evolution as agent act (from Entry 005 / D008):**
 - Additive migrations by default; destructive require explicit confirmation
@@ -81,6 +83,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 - Every migration recorded in history — the schema's audit trail
 
 **Tool taxonomy:**
+- Stable primitive tools first; generated domain-specific tools later only if they improve usability without undermining portability
 - Workflow-oriented tools, not database-oriented
 - Naming convention: `domain_object_action` (e.g. `job_application_status_update` not `job_application_update`)
 - Tool names maximum 60 characters; descriptions maximum 250
@@ -90,14 +93,16 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 ## 4. Reference Implementation
 
 **Key points:**
-- Application Tracker as the proving ground (career management for job seekers)
-- Why this domain: multi-entity tracking, relational dependencies, cross-session persistence — all strong AIPCS trigger conditions
+- Standalone `aipcs-server` as the current proving ground for the pattern mechanics.
+- Application Tracker and career management remain the motivating origin, but product integration is not required for the core research proof.
+- The reference implementation is intentionally local-first so memory architecture, schema evolution, and retrieval behavior can be studied without hosting/auth/productisation confounds.
 
 **Architecture (from technical design):**
 - AIPCS Server (MCP-native) + Registry DB + Domain Services
-- 8 management primitives: seed, design, materialise, evolve, list, inspect, suspend, export
+- Primitive surface: seed/list/bootstrap/inspect/design/materialise/evolve plus generic record create/list/get/search/update/delete/history
+- 8 original management primitives remain the broader design target; suspend/export are deferred
 - Three-tier access: Tier 1 (agent MCP tools), Tier 2 (user via agent), Tier 3 (consent-gated read-only export)
-- Docker Compose: aipcs service alongside app + mcp
+- Docker/homelab/public MCP are productisation and deployment paths, not minimum evidence for the paper
 
 **Impediments and resolutions (from Entry 004 — valuable "lessons learned" material):**
 
@@ -107,6 +112,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 | Agent must know AIPCS exists | Always-on in the stack |
 | Schema quality model-dependent | Validation layer — propose, validate, revise cycle |
 | No domain tools before first seed | Skill: first action is always seed |
+| Dynamic generated tools require client restart | Treat generated domain tools as optional UX; prove the concept through stable primitive tools first |
 
 **Schema manifest format:**
 - Versioned JSON, travels with the service
@@ -147,6 +153,7 @@ Current implementation evidence to promote:
 - Which trigger phrasings worked best for Model A recognition?
 - How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?
 - What failed or surprised you?
+- **Minimum research package**: local reference implementation, deterministic mechanics runner, live-agent traces, fixed-schema comparison, and clear limitations. Homelab, OAuth/DCR, public MCP, generated domain tools, and hardening are future/productisation work unless directly needed for the evaluation.
 
 *Populate during build (M007–M008)*
 
@@ -176,6 +183,9 @@ Current implementation evidence to promote:
 - How general is the pattern? Where does it break down?
 - Security: schema as injection vector — how does the validation layer hold up in practice?
 - Does AIPCS improve as models improve? Schema design quality is model-dependent.
+- Do larger volumes of persisted data create enough retrieval pressure for agents to improve schemas, or do agents fall back to broad listing/prose summaries unless prompted to self-audit?
+- How should results be reported under opaque and changing hosted-agent harnesses? Record date/model label/tool surface/transcript and keep deterministic mechanics separate from live-agent behavior.
+- Are richer stores such as graph databases useful later as substrates, or do they distract from the central question of agent-owned architecture?
 - How should services avoid duplicate authority when one memory domain wants a convenience summary of facts owned by another domain?
 - How should durable rationale be distributed across static instructions, bootstrap, migration history, session records, and behavioral memory?
 - How much of memory quality is shaped by the agent harness's prose-writing defaults rather than by the storage system alone?

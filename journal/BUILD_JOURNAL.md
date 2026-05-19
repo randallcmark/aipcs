@@ -1669,6 +1669,110 @@ Section 4 (Reference Implementation) — `aipcs-server` now includes an evaluati
 
 ---
 
+### Entry 038 — 2026-05-19
+
+**Type:** Decision
+
+**Summary:** Re-centre the paper on agent-owned memory architecture and treat productisation, richer storage substrates, and generated domain-specific tools as future layers unless required for evaluation.
+
+**Context:**
+After reviewing the journal, decisions, and paper notes, Mark identified a risk of continuing to build infrastructure beyond what is needed to prove the research hypothesis. The current prototype already exceeds the older `agent-memory-v2` direction anecdotally and now has deterministic evaluation fixtures. This prompted a deliberate re-evaluation against the initiating question: who decides the memory architecture, and can that architecture adapt over time to maintain utility?
+
+**Detail:**
+The build has produced evidence that stable primitive MCP tools are enough to test the core AIPCS idea:
+
+- agents can seed, design, materialise, inspect, and evolve services;
+- agents can use generic record create/list/get/search/update/delete/history tools;
+- bootstrap can orient the agent without returning content;
+- agents can retrieve bounded records, detect stale memory, repair memory, audit schemas, and explain schema rationale;
+- deterministic evaluation fixtures now cover the mechanics layer.
+
+This shifts the paper framing. Dynamic generated domain-specific MCP tools are still interesting, but they are not required for the first proof. In Claude and Codex, dynamic tool registration also implies reconnect/restart friction, which makes generated tools a usability and productisation question rather than the conceptual minimum.
+
+The same applies to graph databases or richer storage substrates. A graph store may later be useful, especially for relationships and richer traversal, but it does not answer the central research question by itself. If the architecture is developer-chosen, a graph database can still reproduce the conventional pattern: external memory architecture with agent as consumer. AIPCS is about agent ownership and adaptation of the memory architecture. SQLite/structured local storage is sufficient to evaluate that claim now.
+
+The minimum credible paper package should therefore be:
+
+- a clear pattern/specification;
+- a local MCP-native reference implementation;
+- primitive service/schema/record/evolution tools;
+- deterministic mechanics evaluation;
+- closely timed live-agent traces from Claude/Codex-style harnesses;
+- comparison against fixed-schema/pipeline memory such as `agent-memory-v2`;
+- explicit limitations around vendor opacity, productisation, security hardening, hosting, OAuth/DCR, and richer storage substrates.
+
+Scientific rigour remains achievable if claims are bounded. Hosted agents are opaque and can change behind the scenes, so results should record date, visible model label, tool surface, prompts, fixture state, and transcript. Deterministic mechanics should be reported separately from live-agent behavior.
+
+The open longitudinal question is whether increasing persisted data volume creates retrieval pressure that naturally moves agents toward better memory architecture. Volume alone may not be enough: the agent must experience retrieval pain and have schema self-audit/evolution tools available. This should become a later study rather than a prerequisite for the first paper.
+
+**Decision made / Problem encountered / Observation:**
+The first paper should not wait for homelab deployment, production security hardening, OAuth/DCR, public MCP transport, graph storage, or generated domain-specific tool registration. Those are future/productisation layers unless they directly support evaluation. The core proof is agent-owned memory architecture plus adaptation over time.
+
+**Alternatives considered:**
+- Continue toward homelab/public MCP/product hardening before paper evidence. Rejected because it expands scope without changing the conceptual proof.
+- Open a graph database to the agent next. Deferred because it changes the substrate but not the core question of who owns the memory architecture.
+- Treat generated domain-specific tools as required. Rejected for the first proof because stable primitive tools already exercise schema ownership and evolution, while dynamic registration creates client restart friction.
+
+**Implications:**
+- The paper outline should be pulled closer to the implemented primitive-tool evidence.
+- The roadmap should distinguish paper-minimum research work from productisation work.
+- Dynamic generated tools should be reframed as an optional interface layer, not the core AIPCS mechanism.
+- Evaluation should prioritise data showing schema ownership, retrieval utility, self-audit, stale repair, and adaptation over time.
+
+**Paper notes:**
+Section 1 (Introduction) — state the core question as agent ownership of memory architecture. Section 3 (Pattern) — generated tools are optional; schema/service ownership and evolution are central. Section 4 (Reference Implementation) — local Python/SQLite/MCP is enough for the first reference implementation. Section 5 (Evaluation) — distinguish deterministic mechanics from opaque hosted-agent behavior and include vendor-drift limitations. Section 6 (Discussion) — graph/vector stores are future substrates, not the core novelty.
+
+**Open questions:**
+- Does larger persisted data volume improve retrieval-oriented persistence through pressure and self-audit, or does it amplify prose leakage?
+- What is the minimum live-agent trace format needed for scientific comparability under opaque vendor model routing?
+- When, if ever, should graph/vector storage be introduced as an experimental substrate?
+
+---
+
+### Entry 039 — 2026-05-19
+
+**Type:** Decision
+
+**Summary:** Adopt an autonomy-first memory governance stance: give agents tools and visibility, not fixed policy, while preserving productisation and compliance concerns as separate layers.
+
+**Context:**
+After the paper-minimum reframing, Mark reviewed the open questions and clarified which items are research-critical, which are productisation/compliance requirements, and which should be resolved by preserving agent autonomy. The repeated theme was that AIPCS should not over-prescribe memory policy when the core claim is that the agent owns and adapts its memory architecture.
+
+**Detail:**
+Several open questions converge on the same design stance:
+
+- **Pruning and seed ageing:** do not auto-expire seeds or records by default. Instead, provide lightweight discovery and maintenance tools so the agent can decide whether to prune, archive, merge, or evolve memory over time. If administrative or compliance expunge is required, that should be an external administrative capability rather than a normal agent tool. The agent should still be able to observe that something was removed through a journal/history/log where legally and operationally appropriate.
+- **Taxonomy:** seed stable, non-binding properties and common domain classes so memory has useful initial anchors, but allow the agent to update or reclassify where the memory architecture benefits. Immutable seeds may exist for external application/vendor/IT/compliance registrations, but those are a distinct productisation/control-plane case.
+- **Destructive changes:** the current primitive set already permits destructive-equivalent memory repair through create/delete/update/history. Claude demonstrated this by deleting and recreating records during self-audit. The system does not need to prevent the agent from managing its own memory by default. Bulk helpers may be useful later, and compliance/productisation layers may require additional controls.
+- **Provenance and staleness weighting:** do not hard-code a universal weighting policy. Provide conventions, metadata, recency, provenance, and instruction hints; let the agent and user decide how to weigh old, inferred, observed, imported, or user-stated records in context.
+- **Session identity:** session is useful for evaluation and trace analysis, but it is not clearly a first-class AIPCS concept. Agents may choose to persist conversation themes, session rationale, or interaction summaries when useful, but AIPCS should not force a session model into every memory architecture.
+- **Prose leakage:** prose should not be banned. It is the agent's memory. The research concern is whether prose is used where retrieval-shaped facts would serve better, and whether the agent can detect and repair that over time.
+
+This does not discard productisation objectives. IT personas, hosted applications, administrative controls, immutable externally registered seeds, compliance deletion, auditability, auth, consent/export, and multi-client operation remain valid roadmap layers. They are not required for the first paper proof unless a specific evaluation question depends on them.
+
+**Decision made / Problem encountered / Observation:**
+For the research/paper phase, AIPCS should maximise agent autonomy and evaluate whether the agent can maintain utility through schema and record evolution. Productisation controls should be modelled separately from the normal agent memory surface, and when they affect memory they should be visible through audit/history where possible.
+
+**Alternatives considered:**
+- Enforce seed TTLs, fixed taxonomies, fixed provenance weighting, and destructive-change restrictions in the core agent surface. Rejected because it weakens the agent-ownership claim and bakes in policy before there is scale evidence.
+- Treat all administrative controls as out of scope permanently. Rejected because hosted/productised AIPCS will need IT, compliance, auth, export, deletion, and immutable external-registration semantics.
+- Ban prose persistence. Rejected because rationale, notes, and agent-owned memory may legitimately be prose; the better target is retrieval-aware self-audit.
+
+**Implications:**
+- Several open questions can now be closed, merged, or marked productisation/deferred.
+- Evaluation should measure whether agents use autonomy well: pruning, reclassification, schema self-audit, duplicate-authority cleanup, and bounded retrieval.
+- Future productisation must distinguish the agent memory plane from the administrative/compliance control plane.
+
+**Paper notes:**
+Section 3 (Pattern) — agent autonomy is not only schema creation but ongoing memory governance. Section 5 (Evaluation) — test whether agents maintain retrieval utility without fixed human-designed policy. Section 6 (Discussion) — productisation layers may constrain or override memory, but should be separated from the research mechanism and made visible through audit semantics where possible.
+
+**Open questions:**
+- What maintenance tools should exist first: list-by-age, low-activity discovery, duplicate candidate discovery, archive, or prune?
+- What audit signal should remain visible to the agent after administrative expunge?
+- How should immutable externally registered seeds coexist with agent-owned reclassification?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -1734,6 +1838,8 @@ Use this for quick orientation when resuming work after a break.
 | D023 | 2026-05-18 | Treat stale-memory repair as a first-class evaluation behavior | Live Claude trace showed an agent can compare recalled records with current tools and update/delete stale memory through AIPCS | 033 |
 | D024 | 2026-05-18 | Treat agent-led schema self-audit as a first-class evaluation behavior | Live Claude trace showed an agent can critique its own memory shape, evolve schemas, remove duplicate authorities, and split prose blobs through AIPCS tools | 034 |
 | D025 | 2026-05-18 | Keep static agent instructions thin and persist evolving memory rationale inside AIPCS | Static files should trigger discovery; migration history records what changed, session records explain why, and behavioral memory carries reusable persistence rules | 035 |
+| D026 | 2026-05-19 | Re-centre the first paper on agent-owned memory architecture rather than productisation layers | Stable primitive tools already prove the core loop; generated domain tools, graph DBs, hosting, OAuth/DCR, and hardening are future layers unless needed for evaluation | 038 |
+| D027 | 2026-05-19 | Adopt autonomy-first memory governance for the research phase | Give agents tools, hints, provenance, history, and visibility rather than fixed policy; keep IT/compliance controls as separate productisation layers | 039 |
 
 ---
 
@@ -1756,33 +1862,33 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q001 | Trigger model — Model A/B: how does the agent proactively recognise a persistence need? (Mechanism resolved as Option 3 / D007; compaction trigger defined / D006. Remaining: full skill prompt design for Model B proactive recognition.) | 001 | Partial | D006, D007 |
 | Q002 | Schema versioning format — resolved by schema manifest design in v1 technical design. Schema manifest travels with every service; format defined in `docs/AIPCS_v1_Technical_Design.md`. | 001 | ✅ 2026-05-04 | See technical design §Schema Manifest Format |
 | Q003 | Service registry — resolved by `aipcs_service_list` primitive tool and Registry DB in AIPCS Server. | 001 | ✅ 2026-05-04 | D007, technical design §Service Lifecycle |
-| Q004 | Multi-agent access — locking model when multiple clients hit same service? | 001 | — | — |
-| Q005 | Schema conflict resolution — what if agent proposes conflicting evolution? | 001 | — | — |
+| Q004 | Multi-agent access — locking model when multiple clients hit same service? Deferred from paper-minimum work; retained for productised multi-agent/hosted operation. | 001 | Deferred 2026-05-19 | D026, D027 |
+| Q005 | Schema conflict resolution — what if agent proposes conflicting evolution? Additive evolution and destructive-equivalent repair through create/update/delete/history are sufficient for the research phase; bulk/destructive helpers and compliance controls are productisation topics. | 001 | Partial 2026-05-19 | D027 |
 | Q006 | Portability — resolved in part by `aipcs_service_export` primitive tool (json / sqlite / schema_only / data_only / full). Full portability format still TBD. | 001 | Partial | D007, technical design §Management Tools |
-| Q007 | Minimum viable seed payload — what fields are required for `aipcs_service_seed`? | 002 | — | — |
-| Q008 | Should seeds have a TTL — auto-expire if never materialised after N sessions? | 002 | — | — |
-| Q009 | Should domain taxonomy be open registry or curated set? | 007 | — | — |
-| Q010 | How to handle domain overlap in taxonomy (e.g. job application vs career)? | 007 | — | — |
-| Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? | 006 | — | — |
+| Q007 | Minimum viable seed payload — resolved as `domain_name`, `domain_class`, and `intent_description`; server owns timestamps/state/owner metadata. | 002 | ✅ 2026-05-19 | D027 |
+| Q008 | Should seeds have a TTL — resolved as no automatic TTL in the normal agent memory plane. Prefer agent-facing maintenance/pruning tools; administrative expiry/expunge belongs to a separate productisation/compliance control plane with visible audit where possible. | 002 | ✅ 2026-05-19 | D027 |
+| Q009 | Should domain taxonomy be open registry or curated set? Current direction: seed stable non-binding properties and common classes, allow agent reclassification, and reserve immutable externally registered seeds for application/vendor/IT/compliance productisation cases. | 007 | Partial 2026-05-19 | D027 |
+| Q010 | How to handle domain overlap in taxonomy — resolved for research phase as broad `domain_class` plus precise `domain_name`, with non-binding guidance and agent-managed reclassification. | 007 | ✅ 2026-05-19 | D027 |
+| Q011 | Should Tier 3 access be part of v1 spec or explicitly deferred to v2? Deferred from paper-minimum build; retained as productisation/access-control work. | 006 | Deferred 2026-05-19 | D026, D027 |
 | Q012 | Should the schema validator reject server-controlled fields (id, owner_id, created_at, updated_at, created_via) at design time, before materialisation? | 018 | — | — |
-| Q013 | Should `aipcs_service_list` be called automatically at session start, and how is this communicated to the agent? (Extends Q001 bootstrapping gap.) | 018 | — | — |
+| Q013 | Should `aipcs_service_list` be called automatically at session start — superseded by static AIPCS instructions plus dedicated `aipcs_bootstrap`. | 018 | ✅ 2026-05-19 | D016, D017 |
 | Q014 | What is the right retrieval scenario for the first evaluation? Exact field filter, or richer text retrieval? | 018 | ✅ 2026-05-18 | D014 |
 | Q015 | Should the schema design step elicit query patterns before entities, rather than after? | 018 | — | — |
 | Q016 | Should aipcs_record_get / aipcs_record_list return a _meta block with computed fields (age_days, etc.) at retrieval time? | 020 | ✅ 2026-05-18 | D015 |
 | Q017 | What is the right provenance vocabulary? user_stated / agent_inferred / agent_observed is a first proposal. | 020 | ✅ 2026-05-18 | D015 |
-| Q018 | Should interpretation policy (staleness thresholds, provenance weighting) be standardised in an AIPCS skill, or is it per-deployment? | 020 | — | — |
-| Q019 | What is the minimum viable bootstrap state for a session that starts without AIPCS connected? | 021 | — | — |
-| Q020 | Should AIPCS define a standard bootstrap export format — a minimal snapshot an agent can carry without duplicating full content? | 021 | — | — |
+| Q018 | Should interpretation policy (staleness thresholds, provenance weighting) be standardised — resolved for research phase as conventions and hints, not fixed weighting. Agent and user decide how to weigh provenance/staleness in context. | 020 | ✅ 2026-05-19 | D027 |
+| Q019 | What is the minimum viable bootstrap state for a session that starts without AIPCS connected? Superseded into portable instruction/bootstrap export questions. | 021 | Superseded 2026-05-19 | D017, D027 |
+| Q020 | Should AIPCS define a standard bootstrap export format — a minimal snapshot an agent can carry without duplicating full content? | 021 | Deferred 2026-05-19 | D027 |
 | Q021 | Should aipcs_service_list be enriched with entity names and record counts, or should a dedicated aipcs_bootstrap tool be introduced? | 022 | ✅ 2026-05-18 | D014 |
-| Q022 | Should session identity be a first-class concept — a session_id field on records set at write time? | 022 | — | — |
-| Q023 | What is the exact skill instruction wording for session-start orientation? | 022 | — | — |
-| Q024 | How should hosted ChatGPT/Claude public MCP transport and auth differ from local `stdio` and homelab/private deployment? | 023 | — | — |
-| Q025 | How should AIPCS prevent or detect direct persistence bypass when an agent has local filesystem access? | 023 | — | — |
+| Q022 | Should session identity be a first-class concept — unresolved as core AIPCS semantics. Session/rationale remains useful for evaluation and agent-chosen memory, but should not be forced into every architecture yet. | 022 | Partial 2026-05-19 | D027 |
+| Q023 | What is the exact skill instruction wording for session-start orientation? Merged into authority-layer instruction work. | 022 | Superseded 2026-05-19 | D025, D027 |
+| Q024 | How should hosted ChatGPT/Claude public MCP transport and auth differ from local `stdio` and homelab/private deployment? Deferred from paper-minimum build; retained as productisation transport/auth work. | 023 | Deferred 2026-05-19 | D026 |
+| Q025 | How should AIPCS prevent or detect direct persistence bypass when an agent has local filesystem access? Deferred from paper-minimum build; retained as productisation/deployment guardrail with deterministic eval marking bypass as out-of-contract. | 023 | Deferred 2026-05-19 | D027 |
 | Q026 | What bounded session-start retrieval policy should agents follow after bootstrap for memory-like entities? | 026 | — | — |
 | Q027 | What should the first portable AIPCS skill/instruction artifact look like for Claude CLI, Codex, and later hosted clients? | 027 | — | — |
 | Q028 | What common domain classes are useful enough to define first without creating a closed taxonomy? | 027 | — | — |
 | Q029 | What criteria decide whether an AIPCS operation is an atomic tool, a persisted record, or a skill? | 027 | — | — |
-| Q030 | Should `memhub` be experimentally evaluated, or is related-work comparison sufficient for the first paper? | 028 | — | — |
+| Q030 | Should `memhub` be experimentally evaluated, or is related-work comparison sufficient for the first paper? Resolved for now as related work/citation only; `agent-memory-v2` remains the owned comparator candidate. | 028 | ✅ 2026-05-19 | D026 |
 | Q031 | How should AIPCS prevent agents from mischaracterising local/homelab memory as cloud-backed? | 033 | — | — |
 | Q032 | Should memory maintenance be an explicit bootstrap/instruction behavior with its own evaluation criteria? | 033 | — | — |
 | Q033 | What objective rubric should score agent-led schema self-audit and distinguish retrieval-oriented repair from arbitrary churn? | 034 | — | — |
@@ -1791,12 +1897,18 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q036 | What minimum fields should a standard `session` entity include for memory rationale without becoming a transcript store? | 035 | — | — |
 | Q037 | Should bootstrap highlight recently active session/rationale entities more explicitly while staying content-free? | 035 | — | — |
 | Q038 | Should the portable AIPCS instruction artifact explicitly describe the authority split between static instructions, bootstrap, migration history, session records, and behavioral memory? | 035 | — | — |
-| Q039 | How should an evaluation detect prose leakage objectively without banning useful rationale text? | 036 | — | — |
+| Q039 | How should an evaluation detect prose leakage objectively without banning useful rationale text? Keep in mind prose is allowed because it is the agent's memory; evaluation should detect misuse where retrieval-shaped facts would serve better. | 036 | — | — |
 | Q040 | Should schema design prompts require an explicit retrieval query for each open-text field? | 036 | — | — |
 | Q041 | What is the right balance between constrained fields and agent flexibility during early schema formation? | 036 | — | — |
 | Q042 | What trace format should live-agent runs use so Claude and Codex sessions can be compared cleanly? | 037 | — | — |
 | Q043 | Should the deterministic runner become a packaged command or remain a script for the prototype phase? | 037 | — | — |
 | Q044 | How much of the live-agent rubric should be automated versus scored from transcript review? | 037 | — | — |
+| Q045 | Does larger persisted data volume improve retrieval-oriented persistence through pressure and self-audit, or does it amplify prose leakage? | 038 | — | — |
+| Q046 | What is the minimum live-agent trace format needed for scientific comparability under opaque vendor model routing? Merged into Q042. | 038 | Superseded 2026-05-19 | D026, D027 |
+| Q047 | When, if ever, should graph/vector storage be introduced as an experimental substrate? Deferred; current SQLite/structured local store works for the first proof, revisit only if complexity/value tradeoff changes. | 038 | Deferred 2026-05-19 | D026 |
+| Q048 | What maintenance tools should exist first: list-by-age, low-activity discovery, duplicate candidate discovery, archive, or prune? | 039 | — | — |
+| Q049 | What audit signal should remain visible to the agent after administrative expunge? | 039 | — | — |
+| Q050 | How should immutable externally registered seeds coexist with agent-owned reclassification? | 039 | — | — |
 
 ---
 
@@ -1898,6 +2010,8 @@ Evaluation questions seeded from design:
 - **Memory-rationale authority layers**: Claude rejected putting evolving schema rationale into `AGENTS.md`, instead identifying migration history for what changed, session records for why, feedback memory for reusable behavior, and bootstrap for shape-only orientation. (Entry 035)
 - **Prose leakage into memory**: Claude observed that human-facing agent harnesses bias writes toward readable explanations; constrained schema fields act as counter-pressure that can make retrieval-shaped memory durable. (Entry 036)
 - **Deterministic Agent-Led Evaluation V1**: `aipcs-server/scripts/eval-v1.py` now seeds representative services and verifies the first six memory-behavior scenarios before live-agent scoring. (Entry 037)
+- **Paper-minimum reframing**: The first paper should prove agent-owned memory architecture and adaptation with local primitive tools and evaluation evidence; generated domain tools, graph DBs, hosting, OAuth/DCR, and hardening are future/productisation layers unless needed for evaluation. (Entry 038)
+- **Autonomy-first memory governance**: For the research phase, avoid fixed TTL, taxonomy, provenance weighting, destructive-change prohibition, or prose bans. Provide tools, metadata, history, and hints; evaluate whether agents can maintain retrieval utility through their own schema and record evolution. (Entry 039)
 
 *Populate during build (M007–M008)*
 

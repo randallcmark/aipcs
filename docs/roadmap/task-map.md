@@ -41,6 +41,8 @@ The active prototype is `/Users/markrandall/GitHub/aipcs-server`.
 
 | Priority | Why it matters | Planning source |
 |---|---|---|
+| Paper convergence | The build now proves enough locally to support bounded research claims; avoid drifting into productisation before the hypothesis is demonstrated with data. | BUILD_JOURNAL Entry 038 |
+| Agent-Led Evaluation V1 | Deterministic mechanics exist; next work is live-agent trace capture/scoring against the same six scenarios. | BUILD_JOURNAL Entry 037 |
 | Bootstrap/discovery surface | Agents need a map of seeded/materialised domains before probing. This supplements existing context rather than replacing it. | BUILD_JOURNAL Entries 018, 021, 022, 024 |
 | Bootstrap instruction layer | The agent must know AIPCS exists and should call bootstrap without the user prompting it each session. | BUILD_JOURNAL Entries 026, 027 |
 | Common domain-class guidance | Common categories need stable definitions for interoperability, but should not become a closed taxonomy. | BUILD_JOURNAL Entries 007, 027 |
@@ -52,4 +54,5 @@ The active prototype is `/Users/markrandall/GitHub/aipcs-server`.
 | Stale-memory repair evaluation | Live Claude trace showed the agent can detect stale persisted facts and update/delete memory through AIPCS. This should become an explicit evaluation scenario. | BUILD_JOURNAL Entry 033 |
 | Schema self-audit evaluation | Live Claude trace showed the agent can critique its own memory schema, evolve it, split prose blobs, and remove duplicate authorities through AIPCS tools. This should become a distinct evaluation scenario. | BUILD_JOURNAL Entry 034 |
 | Memory-rationale authority layers | Static files should trigger AIPCS; bootstrap should orient; migration history should record what changed; session records should explain why; behavioral memory should carry reusable rules. | BUILD_JOURNAL Entry 035 |
+| Optional generated tools | Dynamic generated domain-specific MCP tools are not required for the first paper proof; stable primitive tools are sufficient for schema ownership/evolution evaluation. | BUILD_JOURNAL Entry 038 |
 | Deployment boundary | Local `stdio` is the development path; hosted Claude/ChatGPT require public MCP or a bridge later. Direct SQLite access is not the agent contract. | BUILD_JOURNAL Entries 018, 022 |

@@ -1,11 +1,14 @@
 # Implementation Sequencing
 
-## Current Phase: Retrieval And Bootstrap Hardening
+## Current Phase: Paper Convergence And Agent-Led Evaluation
 
 The pattern is documented, the harness is in place, and the standalone `aipcs-server`
-prototype now proves the local MCP loop through service lifecycle and generic data operations.
-The Claude CLI experiment on 2026-05-17 confirmed the concept has practical signal, but also
-showed that discovery/bootstrap and retrieval quality are now the important next design surfaces.
+prototype now proves the local MCP loop through service lifecycle, generic data operations,
+bootstrap, exact retrieval, additive schema evolution, and deterministic evaluation fixtures.
+The immediate priority is to tighten the research/paper framing around the core hypothesis:
+the agent decides and evolves the memory architecture. Hosting, hardening, OAuth/DCR, graph
+stores, and generated domain-specific tools are productisation or future-substrate work unless
+they directly support the evaluation.
 
 ---
 
@@ -45,6 +48,11 @@ Not yet complete:
 - generated FastAPI domain services
 - dynamic domain-specific MCP tool registration
 - remote/public MCP transport and auth
+
+Research note: generated domain-specific MCP tools are no longer considered necessary for
+the first paper proof. The current primitive tool surface is sufficient to test agent-owned
+schema design, persistence, retrieval, and evolution. Generated tools remain a possible UX
+layer once client restart/dynamic registration constraints are better understood.
 
 **Evidence:** Claude CLI test with `claude-sonnet-4-6` created `claude_memory`, designed a schema, materialised it, and persisted records. See BUILD_JOURNAL Entries 018-022.
 
@@ -152,7 +160,23 @@ Not yet complete:
 
 ---
 
-## Phase 5: Local-To-Hosted Deployment Path
+## Phase 5: Paper-Minimum Evaluation Package
+
+**Goal:** Complete the research evidence package without drifting into productisation.
+
+1. Keep the local Python/SQLite/MCP stack as the primary reference implementation.
+2. Use deterministic `aipcs-server` evaluation fixtures to establish memory mechanics.
+3. Run closely timed live-agent traces against Claude/Codex-style harnesses.
+4. Compare against fixed-schema/pipeline memory (`agent-memory-v2`) at the level of architecture and behavior.
+5. Record vendor/model dates, visible model labels, prompts, tool surfaces, and transcripts.
+6. Explicitly separate deterministic memory mechanics from live-agent behavior.
+7. Treat graph databases, vector databases, homelab hosting, OAuth/DCR, public MCP, and generated domain tools as future work unless a specific evaluation question requires them.
+
+**Acceptance:** The paper can make a bounded claim about agent-owned memory architecture and schema evolution using local evidence, without implying production readiness.
+
+---
+
+## Phase 6: Local-To-Hosted Deployment Path
 
 **Goal:** Move from local `stdio` proof to durable service deployment without confusing prototype mechanics with hosted MCP constraints.
 
@@ -167,7 +191,7 @@ Not yet complete:
 
 ---
 
-## Phase 6: OAuth / DCR Foundation (→ M006)
+## Phase 7: OAuth / DCR Foundation (→ M006)
 
 **Goal:** Consumer AI clients (Claude, ChatGPT) can authenticate via their user subscription — no separate API key required.
 
@@ -182,7 +206,7 @@ Not yet complete:
 
 ---
 
-## Phase 7: Agent-Led Evaluation (→ M007/M008)
+## Phase 8: Agent-Led Evaluation (→ M007/M008)
 
 **Goal:** Evaluate whether agents can use AIPCS memory effectively, not just whether tools function.
 
@@ -200,7 +224,7 @@ Not yet complete:
 
 ---
 
-## Phase 8: Framework Extraction (→ M009)
+## Phase 9: Framework Extraction (→ M009)
 
 **Goal:** AIPCS extracted as a general framework, independent of Application Tracker.
 
@@ -211,7 +235,7 @@ Not yet complete:
 
 ---
 
-## Phase 9: arXiv Submission (→ M010)
+## Phase 10: arXiv Submission (→ M010)
 
 **Goal:** Paper submitted to arXiv.
 

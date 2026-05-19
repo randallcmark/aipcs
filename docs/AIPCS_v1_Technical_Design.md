@@ -7,6 +7,14 @@
 
 ---
 
+> **2026-05-19 implementation note:** The first local reference implementation has
+> proven the core loop with stable primitive MCP tools and generic record operations.
+> Dynamic generated domain-specific tools and FastAPI service generation remain useful
+> future interface/productisation layers, but they are not required for the first
+> research proof.
+
+---
+
 ## Purpose
 
 This document defines the v1 technical architecture for the AIPCS reference implementation. It translates the pattern specification into concrete design decisions ready for implementation within Application Tracker.
@@ -24,8 +32,8 @@ V1 explicitly defers: Tier 3 elevated access implementation, multi-agent locking
 V1 must be sufficient to:
 - Receive a user hint and plant a tool seed
 - Design a schema from accumulated domain knowledge
-- Materialise a service (SQLite + FastAPI + MCP tools)
-- Register tools dynamically
+- Materialise a persistent queryable service
+- Operate records through stable primitive/generic MCP tools
 - Evolve the schema additively
 - Support user-mediated Tier 2 access
 
@@ -155,12 +163,12 @@ Submit a full schema design for a seeded domain. The AIPCS server validates it b
 
 ### `aipcs_service_materialise`
 
-Deploy a validated schema as a live service with active MCP tools.
+Deploy a validated schema as a live queryable service.
 
 ```json
 {
   "name": "aipcs_service_materialise",
-  "description": "Deploy a validated schema as a live queryable service. Registers domain-specific MCP tools. May require session reconnect for tools to appear in some clients.",
+  "description": "Deploy a validated schema as a live queryable service. In the first reference implementation, records are operated through stable generic MCP tools. Generated domain-specific MCP tools are optional and may require session reconnect in some clients.",
   "parameters": {
     "service_id": "uuid — with validated schema"
   }
@@ -420,7 +428,7 @@ The agent should evaluate AIPCS when:
 6. Accumulate domain knowledge across interactions.
 7. When sufficient domain knowledge exists, call `aipcs_service_design` with full schema.
 8. Call `aipcs_service_materialise` to deploy.
-9. Use domain-specific tools for all subsequent reads and writes in this domain.
+9. Use stable generic record tools for reads and writes in this domain. Generated domain-specific tools may be added later as a convenience layer.
 
 ### Domain classes and common use cases
 `domain_class` is not a closed taxonomy in v1. Agents should prefer common categories with stable definitions when they fit, and propose new classes when they do not.
@@ -540,8 +548,8 @@ Following Application Tracker's existing task map pattern:
 1. **AIPCS registry DB** — the internal database tracking services, seeds, manifests, migrations, audit log
 2. **AIPCS management tools** — the eight primitive MCP tools
 3. **Schema validator** — validation rules for `aipcs_service_design`
-4. **Service materialisation** — SQLite init + FastAPI generation + tool registration
-5. **Dynamic tool registration** — MCP tool list update on materialisation
+4. **Service materialisation** — SQLite init and manifest-backed queryable service state
+5. **Generic record operations** — create/list/get/search/update/delete/history over materialised schemas
 6. **Migration engine** — additive and destructive migration support
 7. **AIPCS skill definition** — portable skill document
 8. **End-to-end validation** — seed → design → materialise → use → evolve flow within Application Tracker

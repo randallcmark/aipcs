@@ -47,6 +47,11 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 - Treat invalid filters as hard failures. Do not silently strip invalid fields, because that can broaden recall and hide tool-contract mistakes.
 - Agents should seed and persist when they judge information is likely to be useful in a future session, not only when the user explicitly requests memory.
 - Prefer common top-level domain categories with stable definitions when they fit, but do not force all services into a closed taxonomy. Propose a new `domain_class` when the common categories do not describe the domain.
+- Treat common domain classes as anchors, not constraints. Immutable externally registered seeds may exist later for application, vendor, IT, or compliance integrations, but that is a productisation control-plane case rather than the normal agent-owned memory pattern.
+- Treat provenance, recency, and staleness as decision signals, not fixed scoring rules. The agent should weigh them in context with the user's goals and any explicit user correction.
+- The agent may restructure, delete, split, merge, or reclassify its own memory through AIPCS tools when doing so preserves or improves future utility. Prefer bounded, explainable changes and preserve history where the tools provide it.
+- Prefer agent-facing maintenance and discovery tools over automatic expiry. Administrative or compliance deletion belongs outside the ordinary agent tool surface, but should leave an audit/history signal visible to the agent where legally and operationally appropriate.
+- Do not ban prose records. Prose is valid for rationale, notes, and emerging structure; avoid prose blobs when narrower fields would better support future retrieval.
 - Multi-step procedures may later live as portable skills when they are better expressed as agent workflow than as atomic MCP tools. This is deferred and should not be confused with record content.
 
 ## AIPCS memory authority layers

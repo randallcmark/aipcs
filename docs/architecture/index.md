@@ -7,10 +7,10 @@ AIPCS (Agent-Instantiated Persistent Context Services) is a pattern in which an 
 1. **Recognises** the need for structured persistent memory (via user hint or compaction trigger)
 2. **Seeds** a domain marker immediately — a first-class primitive, queryable before schema exists
 3. **Designs** an appropriate data schema as domain knowledge accumulates
-4. **Materialises** a live service (SQLite + FastAPI + MCP tools) around the validated schema
+4. **Materialises** a persistent queryable service around the validated schema
 5. **Evolves** the schema additively as the agent's understanding grows
 
-The agent is the schema architect — not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as MCP tools, composable and portable.
+The agent is the schema architect — not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The current reference implementation proves the pattern through stable primitive MCP tools plus generic record operations. Dynamically generated domain-specific tools remain an optional interface layer, not the conceptual minimum.
 
 **Authoritative v1 design document:** [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
 
@@ -65,22 +65,24 @@ The AIPCS skill definition documents both triggers. Full proactive recognition b
 
 **Option 3 — AIPCS as MCP-native primitive server**
 
-AIPCS is itself an MCP server. All management operations are MCP tool calls. Self-referential: MCP tools that create MCP tools. No CLI, no sidecar HTTP management API.
+AIPCS is itself an MCP server. All management and record operations are MCP tool calls. Self-referential in the current evidence means MCP tools that create, operate, and evolve persistent context services; generated domain-specific MCP tools are a later UX layer. No CLI, no sidecar HTTP management API is required for the first proof.
 
 Impediments resolved during design (Entry 004):
 
 | Impediment | Resolution |
 |---|---|
-| Dynamic tool registration not universal in MCP clients | Session reconnect acceptable for v1 |
+| Dynamic tool registration not universal in MCP clients | Generated domain-specific tools are optional for the first proof; stable primitive tools avoid reconnect friction |
 | Agent must know AIPCS exists | Always-on in the Docker Compose stack |
 | Schema quality depends on model capability | AIPCS validation layer — agent proposes, system validates, agent revises |
 | No domain tools before first seed | AIPCS skill: first action is always `aipcs_service_seed` |
 
 Options rejected: Option 1 (pure prompt — too weak), Option 2 (CLI — friction), Option 4 (sidecar HTTP — environment-dependent, complexity).
 
-### Registration (resolved)
+### Registration (reframed by D026)
 
-**Dynamic MCP tool discovery** — new domain services register their tools dynamically. Session reconnect acceptable for v1 clients that don't support live discovery.
+**Stable primitive MCP tools first** — the server exposes primitive tools for service lifecycle, bootstrap/discovery, generic records, and schema evolution. These are sufficient to evaluate agent-owned schema design and memory evolution.
+
+**Dynamic MCP tool discovery** remains a future optional interface layer. Generated domain-specific tools may improve ergonomics, but Claude/Codex restart/reconnect requirements make them a productisation concern rather than the core research mechanism.
 
 ---
 
@@ -109,8 +111,8 @@ The AIPCS Server exposes 8 management tools available from the moment AIPCS is c
 | Registry DB | Internal SQLite tracking services, seeds, manifests, migrations, audit log | Technical design §Architecture |
 | Schema Validator | Validates agent-submitted schemas before materialisation | Technical design §Schema Design Requirements |
 | Schema Designer (skill) | Prompt/skill teaching the agent to recognise triggers and use AIPCS correctly | [../agent/ai-feature-rules.md](../agent/ai-feature-rules.md) |
-| Domain Services | Dynamically created per-domain SQLite + FastAPI + MCP tools | Technical design §Service Lifecycle |
-| Reference Implementation | Application Tracker — the proving ground | `randallcmark/application_tracker` |
+| Domain Services | Per-domain persisted SQLite stores operated through primitive/generic MCP tools; generated FastAPI/domain tools deferred | Technical design §Service Lifecycle |
+| Reference Implementation | Standalone `aipcs-server`; Application Tracker remains the motivating origin | `/Users/markrandall/GitHub/aipcs-server` |
 
 ---
 
@@ -124,6 +126,6 @@ The AIPCS Server exposes 8 management tools available from the moment AIPCS is c
 
 ## Change Rules
 
-- No change to trigger/mechanism/registration decisions without a BUILD_JOURNAL entry and an ADR
+- No change to trigger/mechanism/registration decisions without a BUILD_JOURNAL entry and, when it becomes durable architecture policy, an ADR
 - No new dependency without checking [boundaries.md](boundaries.md)
 - Agent-generated outputs (schemas, API code) are always treated as untrusted input — validate before executing
