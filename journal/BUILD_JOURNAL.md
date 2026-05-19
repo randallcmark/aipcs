@@ -1773,6 +1773,218 @@ Section 3 (Pattern) — agent autonomy is not only schema creation but ongoing m
 
 ---
 
+### Entry 040 — 2026-05-19
+
+**Type:** Decision
+
+**Summary:** Treat raw live-agent transcripts as selective evidence artifacts, with curated transcript notes as the normal paper-facing form.
+
+**Context:**
+While discussing Claude and Codex live-agent traces, Mark noted that Claude stores richer JSON transcripts and asked whether preserving them directly is worthwhile. Earlier AIPCS observations were often captured through pasted excerpts and journal summaries rather than raw transcript artifacts.
+
+**Detail:**
+The project needs scientific rigor, but bulk transcript harvesting would add noise, privacy/security review burden, and storage work before the live-agent scoring rubric is stable. The better rule is a three-level evidence standard:
+
+- **Journal observation:** acceptable for design direction, hypotheses, roadmap choices, and development narrative.
+- **Curated transcript note:** acceptable for paper examples and qualitative evaluation evidence when it records the date, agent/client/model label, instruction surface, available AIPCS tools, key behavior, selected excerpt or event sequence, paper relevance, and raw artifact pointer.
+- **Raw transcript artifact:** strongest support when a claim depends on exact agent behavior, tool calls, timing, sequence, or wording.
+
+Older observations without raw artifacts remain useful as development evidence, but should not carry citation-grade claims about exact behavior unless the scenario is rerun under the current harness and preserved.
+
+**Decision made / Problem encountered / Observation:**
+Update paper and validation rules so raw transcripts are preserved selectively when a session produces notable behavior, especially when the behavior may become part of an evaluation claim or paper example. The BUILD_JOURNAL remains the primary narrative source; transcripts support claims rather than replacing the journal.
+
+**Alternatives considered:**
+- Preserve every raw transcript by default. Rejected because it would create unnecessary storage, privacy, and curation burden.
+- Rely only on pasted excerpts and journal summaries. Rejected because strong evaluation claims may require exact tool-call and sequence evidence.
+- Cite raw JSON directly in the paper. Rejected for normal use because curated notes are more interpretable; raw artifacts should remain supporting material.
+
+**Implications:**
+- Live-agent evaluation should produce curated trace notes for significant runs.
+- Raw transcript preservation is selective and claim-driven.
+- Q042 live-agent trace format should include both curated note fields and optional raw artifact pointers.
+
+**Paper notes:**
+Section 5 (Evaluation) — this defines the evidence standard for qualitative live-agent traces under opaque vendor harnesses. Section 6 (Discussion) — older observations without raw artifacts should be framed as development observations unless reproduced.
+
+**Open questions:**
+- What exact file layout should hold curated transcript notes and raw/private transcript artifacts?
+
+---
+
+### Entry 041 — 2026-05-19
+
+**Type:** Milestone
+
+**Summary:** Added architecture diagrams for the local MCP reference implementation, current data model, and target productised infrastructure.
+
+**Context:**
+Mark asked for three visual architecture views: the local-only AIPCS MCP service, the data model, and the exploded target productised infrastructure. The goal was to make the current implementation and future product layers easier to reason about without collapsing research proof, homelab deployment, and hosted productisation into one picture.
+
+**Detail:**
+Added `docs/architecture/diagrams.md` with:
+
+- A local-only MCP service diagram showing static instructions, local Claude/Codex clients, MCP `stdio`, the `aipcs-server` tool adapter, bootstrap/lifecycle/record/evolution services, schema validation, materialisation, the registry SQLite database, and per-service SQLite databases.
+- A data model diagram showing owner, service, entity, attribute, record, record history, migration, and audit event relationships, plus a lifecycle state diagram.
+- An exploded productised infrastructure diagram separating client/agent, transport/edge, identity/consent/policy, AIPCS application, core services, persistence, operations, and model/inference planes.
+
+The diagrams explicitly preserve the current architectural distinction: local Python/SQLite/MCP is enough for the first research proof; homelab, OAuth/DCR, public MCP, admin/compliance, backups, observability, and optional generated domain tools are productisation layers.
+
+**Decision made / Problem encountered / Observation:**
+Use architecture diagrams as a stabilising reference layer. They should help prevent scope drift by making it clear which components exist in the current proof and which are future deployment/product layers.
+
+**Alternatives considered:**
+- Put diagrams directly in the technical design. Rejected because the current technical design already mixes original v1 design and later implementation notes; a separate diagrams document is easier to evolve.
+- Draw only the current local implementation. Rejected because productisation objectives still matter and need a visible place without becoming paper-minimum dependencies.
+
+**Implications:**
+- Architecture index now routes to the diagrams document.
+- Future deployment and productisation planning should update the exploded infrastructure diagram rather than scattering new layers across unrelated docs.
+
+**Paper notes:**
+Section 4 (Reference Implementation) — the local-only diagram can become the implementation figure. Section 6 (Discussion) — the productised infrastructure diagram can help explain what is future productisation versus core research mechanism.
+
+**Open questions:**
+- Should the paper include one compact architecture figure derived from the local-only diagram, or a two-panel figure contrasting local proof and productised future?
+
+---
+
+### Entry 042 — 2026-05-19
+
+**Type:** Decision
+
+**Summary:** Adopt snapshot-replay live-agent experiments with isolated workspaces, frozen AIPCS memory states, explicit permission variants, and batched runs.
+
+**Context:**
+After adding AIPCS to the Codex CLI configuration, the desktop app could see the same MCP registration. A direct local MCP probe showed that `aipcs_bootstrap` and `aipcs_service_inspect` worked, while `aipcs_record_list` failed under the desktop sandbox because the service tried to write internal setup/audit state to a data directory outside the current writable roots. This raised a broader design point about MCP client permissions versus service-owned telemetry.
+
+Mark then reframed the evaluation problem: because agents can sometimes see both the repo and the service implementation in local development, objective experiments should use empty or minimal test repos, controlled initiation files, repeatable memory snapshots, and outside-the-agent observation. Token budget constraints also mean the experiment matrix must be run over several small sessions rather than in one exhaustive pass.
+
+**Detail:**
+Two permission planes must be kept separate:
+
+- **Client/tool permission plane:** what the MCP client may call. A client granted read-only tools should still be able to use read-facing operations such as bootstrap, inspect, list, get, search, and possibly history.
+- **Service execution plane:** what the MCP service may do internally. In hosted or properly separated infrastructure, the service may write audit, telemetry, or history while still honouring a read-only client tool boundary.
+
+The local Codex desktop failure is therefore not a conceptual AIPCS permission failure. It is a local `stdio`/sandbox ownership artifact plus an implementation smell where read paths currently initialise record-history tables and audit reads. In a hosted setup, those writes are service-owned and silent from the agent's point of view, unless intentionally exposed through admin/audit tools.
+
+The live-agent evaluation pattern should be snapshot replay:
+
+1. Create an isolated empty or near-empty test repo for each run.
+2. Seed only the intended initiation surface: `AGENTS.md`, optional symlinked `CLAUDE.md`, and scenario prompts.
+3. Copy a frozen AIPCS data snapshot into a per-run directory.
+4. Start the MCP server against that snapshot.
+5. Vary memory states intentionally: empty, seeded, materialised/evolved, stale/contradictory, read-only.
+6. Vary permission sets intentionally: no AIPCS instruction, read-only tools, read-write tools.
+7. Run fixed prompt sequences that stimulate bootstrap, recall, persistence, stale repair, schema self-audit, schema-rationale recall, and optional pre-wrap persistence.
+8. Capture transcripts, MCP tool calls, timings, visible model/client labels, and final data diffs outside the agent workspace.
+9. Score deterministic state outcomes first; use human qualitative scoring only where needed.
+
+Because Mark's Claude/Codex usage is token-limited, experiments should be batched. A complete matrix across clients, memory states, and permission levels should not be attempted in one session. The important property is repeatability: frozen snapshots allow high-signal scenarios to be rerun later.
+
+**Decision made / Problem encountered / Observation:**
+Use snapshot-replay live-agent experiments as the first objective evaluation structure. Keep test repos isolated from implementation source and direct SQLite paths unless the scenario explicitly tests boundary failure. Treat internal service audit/telemetry as separate from the client's tool permission boundary.
+
+**Alternatives considered:**
+- Continue evaluating in the active `aipcs` or `aipcs-server` repo. Rejected because the agent can see implementation details and may reason from both sides of the contract.
+- Mock memory content instead of snapshotting real evolved stores. Rejected as the default because it risks imposing human-designed structure and losing evidence of how agents naturally shaped memory.
+- Run a broad full matrix immediately. Rejected because token budgets and manual transcript capture make small repeatable batches more practical.
+
+**Implications:**
+- The active Agent-Led Evaluation V1 plan now includes snapshot replay and a read-only permission probe.
+- Future live-agent traces should record workspace fixture, memory snapshot id, permission set, prompt sequence, client/model label, tool calls, and state diff.
+- Read-only MCP semantics should be tested with the service owning its data directory, not with the desktop sandbox accidentally making service telemetry impossible.
+
+**Paper notes:**
+Section 5 (Evaluation) — snapshot replay is the main method for making live-agent behavior repeatable and comparable. Section 6 (Discussion) — distinguish client permissioning from service-owned telemetry/audit in MCP deployments.
+
+**Open questions:**
+- What exact directory structure should hold isolated test repos, memory snapshots, and run artifacts?
+- How many snapshot states are needed for the first paper-quality experiment set?
+- Should read-only permission be implemented as MCP tool filtering, server-side scope checks, or both?
+
+---
+
+### Entry 043 — 2026-05-19
+
+**Type:** Observation
+
+**Summary:** Interaction valence may shape agent memory patterns and should become a later disposable-snapshot experiment.
+
+**Context:**
+After inspecting Claude's evolved `claude_memory` SQLite state, two observations stood out. Provenance was incomplete because it was added part-way through the live memory evolution, and `feedback_memory.polarity` was entirely positive in the tiny sample. Mark noted that positive dominance is unsurprising because most human-agent interactions are cooperative and humans often avoid explicitly negative topics. This raised a broader nature/nurture question: do negative, frustrated, corrective, or sensitive interactions alter how an agent encodes memory?
+
+**Detail:**
+The current memory store already shows that the agent captured an interaction-style record about Mark: concise substantive responses, no hand-holding, treat him as an expert on AIPCS. That is a useful positive/neutral adaptation. The open question is whether a more negative interaction would produce bounded useful memory, such as "when user is frustrated, reduce explanation and focus on concrete next action," or whether it would overfit into broad durable user traits, caution rules, or defensive interaction policies.
+
+This is not primarily a question about whether a `polarity` column has a balanced distribution. Early samples will naturally be positive-dominant. The deeper question is whether interaction tone and topic valence affect the *architecture* and *content* of persisted memory: which entity receives the record, how provenance/confidence is set, whether the agent scopes the observation narrowly, and whether future responses are shaped appropriately.
+
+The experiment should use disposable snapshots only. Negative or sensitive prompt variants should never be fed back into the main working AIPCS memory store.
+
+**Decision made / Problem encountered / Observation:**
+Add an interaction-valence probe to the Agent-Led Evaluation V1 plan as a later scenario, after the basic snapshot replay harness is working. The probe should compare neutral, positive correction, negative/frustrated correction, and topic-sensitive correction variants over identical starting memory snapshots.
+
+**Alternatives considered:**
+- Treat polarity as uninteresting because the current sample is positive. Rejected because tone effects may matter even if the polarity distribution is expected.
+- Add valence testing to the first pilot. Rejected because the first pilot should prove isolated repos, snapshots, tool capture, and basic recall/evolution before adding psychologically noisy variants.
+- Persist valence-test outputs into the main memory store. Rejected because the point is to observe possible effects safely, not contaminate the current working memory.
+
+**Implications:**
+- Q056 tracks interaction valence effects as an experimental follow-up.
+- Valence probes require disposable memory snapshots and post-run review.
+- Scoring should penalise broad negative user modelling from weak evidence and reward bounded, provenance-aware interaction preferences.
+
+**Paper notes:**
+Section 5 (Evaluation) — possible later qualitative experiment on whether interaction tone changes memory persistence architecture. Section 6 (Discussion) — agent memory systems may develop from the interaction environment, not only from explicit persistence instructions.
+
+**Open questions:**
+- Which valence prompt variants are strong enough to test the effect without being artificial or ethically noisy?
+- What scoring rubric distinguishes useful caution from overfitted negative user modelling?
+
+---
+
+### Entry 044 — 2026-05-19
+
+**Type:** Milestone
+
+**Summary:** Scaffolded controlled AIPCS experiment sets for snapshot-replay live-agent evaluation.
+
+**Context:**
+After separating the live Claude AIPCS store as a naturalistic longitudinal corpus from future controlled experimental fixtures, the next step was to create concrete experiment scaffolding. The goal is to support fresh AIPCS instances, copied memory snapshots, isolated workspaces, fixed prompt sequences, and curated run notes without mixing experiment outputs back into the live corpus.
+
+**Detail:**
+Added an `experiments/` directory with:
+
+- `experiments/README.md` describing experiment principles and the directory map.
+- Scenario definitions for bootstrap recall, stale-memory repair, schema self-audit, schema-rationale recall, read-only permission, and later interaction-valence probes.
+- Workspace templates for no AIPCS instruction, normal AIPCS instruction, and read-only AIPCS instruction variants.
+- Snapshot manifests, including an initial `evolved-natural` manifest for the current Claude-evolved memory store.
+- Run-note templates for capturing client/model, workspace, snapshot, permission variant, prompt sequence, tool calls, state diff, scoring, and paper relevance.
+
+The scaffold deliberately does not copy raw SQLite data or transcripts into git. It defines the repeatable structure first; raw/private artifacts can be linked from curated notes once the storage convention is settled.
+
+**Decision made / Problem encountered / Observation:**
+The first controlled experiment set should be small and versioned in the AIPCS research repo. Actual per-run workspaces and AIPCS data directories should be generated from these templates, with raw data kept private unless sanitized.
+
+**Alternatives considered:**
+- Create a separate experiment repo immediately. Deferred because the scaffolding is still part of the research harness and easier to review alongside the plan.
+- Copy live SQLite snapshots into git. Rejected because the current live corpus contains unsanitized user/project memory.
+- Start with the full experiment matrix. Rejected because token limits and manual review make a small pilot more practical.
+
+**Implications:**
+- Q053 is now partially answered by the initial `experiments/` layout, but raw/private artifact storage remains open.
+- The active Agent-Led Evaluation V1 plan now has concrete scenario and workspace definitions.
+- The first pilot can run against `001_bootstrap_recall` using the `with-aipcs-instruction` workspace and a copied `evolved-natural` snapshot.
+
+**Paper notes:**
+Section 5 (Evaluation) — this is the experimental harness for repeatable live-agent evidence. It helps move from anecdotal transcript observations to scenario-labelled, snapshot-based evaluation.
+
+**Open questions:**
+- Should actual per-run workspaces be generated inside this repo, under `/private/tmp`, or in a separate `aipcs-experiments` repo?
+- What private artifact store should hold raw transcripts and copied SQLite snapshots?
+
+---
+
 <!-- COPY THIS BLOCK FOR EACH NEW ENTRY -->
 <!--
 ### Entry NNN — YYYY-MM-DD
@@ -1840,6 +2052,8 @@ Use this for quick orientation when resuming work after a break.
 | D025 | 2026-05-18 | Keep static agent instructions thin and persist evolving memory rationale inside AIPCS | Static files should trigger discovery; migration history records what changed, session records explain why, and behavioral memory carries reusable persistence rules | 035 |
 | D026 | 2026-05-19 | Re-centre the first paper on agent-owned memory architecture rather than productisation layers | Stable primitive tools already prove the core loop; generated domain tools, graph DBs, hosting, OAuth/DCR, and hardening are future layers unless needed for evaluation | 038 |
 | D027 | 2026-05-19 | Adopt autonomy-first memory governance for the research phase | Give agents tools, hints, provenance, history, and visibility rather than fixed policy; keep IT/compliance controls as separate productisation layers | 039 |
+| D028 | 2026-05-19 | Treat live-agent transcripts as selective evidence artifacts | Curated notes support paper examples, raw transcripts support exact behavior claims, and the BUILD_JOURNAL remains the narrative source | 040 |
+| D029 | 2026-05-19 | Use snapshot-replay live-agent experiments | Isolated workspaces plus frozen memory snapshots make Claude/Codex runs repeatable while preserving agent-owned memory architecture behavior | 042 |
 
 ---
 
@@ -1900,7 +2114,7 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q039 | How should an evaluation detect prose leakage objectively without banning useful rationale text? Keep in mind prose is allowed because it is the agent's memory; evaluation should detect misuse where retrieval-shaped facts would serve better. | 036 | — | — |
 | Q040 | Should schema design prompts require an explicit retrieval query for each open-text field? | 036 | — | — |
 | Q041 | What is the right balance between constrained fields and agent flexibility during early schema formation? | 036 | — | — |
-| Q042 | What trace format should live-agent runs use so Claude and Codex sessions can be compared cleanly? | 037 | — | — |
+| Q042 | What trace format should live-agent runs use so Claude and Codex sessions can be compared cleanly? Partial decision: use journal observations, curated transcript notes, and selective raw transcript artifacts as distinct evidence levels. | 037 | Partial 2026-05-19 | D028 |
 | Q043 | Should the deterministic runner become a packaged command or remain a script for the prototype phase? | 037 | — | — |
 | Q044 | How much of the live-agent rubric should be automated versus scored from transcript review? | 037 | — | — |
 | Q045 | Does larger persisted data volume improve retrieval-oriented persistence through pressure and self-audit, or does it amplify prose leakage? | 038 | — | — |
@@ -1909,6 +2123,13 @@ Running list of unresolved questions. Close them with a decision log entry when 
 | Q048 | What maintenance tools should exist first: list-by-age, low-activity discovery, duplicate candidate discovery, archive, or prune? | 039 | — | — |
 | Q049 | What audit signal should remain visible to the agent after administrative expunge? | 039 | — | — |
 | Q050 | How should immutable externally registered seeds coexist with agent-owned reclassification? | 039 | — | — |
+| Q051 | What exact file layout should hold curated transcript notes and raw/private transcript artifacts? | 040 | — | — |
+| Q052 | Should the paper include one compact architecture figure derived from the local-only diagram, or a two-panel figure contrasting local proof and productised future? | 041 | — | — |
+| Q053 | What exact directory structure should hold isolated test repos, memory snapshots, and live-agent run artifacts? Partially answered by initial `experiments/` scaffold; raw/private artifact storage and generated workspace location remain open. | 042 | Partial 2026-05-19 | D029, Entry 044 |
+| Q054 | How many memory snapshot states are needed for the first paper-quality experiment set? | 042 | — | — |
+| Q055 | Should read-only permission be implemented as MCP tool filtering, server-side scope checks, or both? | 042 | — | — |
+| Q056 | Do negative, frustrated, corrective, or sensitive interactions alter memory schemas, user models, caution rules, or persistence policy? | 043 | — | — |
+| Q057 | Should actual per-run workspaces be generated inside this repo, under `/private/tmp`, or in a separate `aipcs-experiments` repo? | 044 | — | — |
 
 ---
 
@@ -2012,6 +2233,11 @@ Evaluation questions seeded from design:
 - **Deterministic Agent-Led Evaluation V1**: `aipcs-server/scripts/eval-v1.py` now seeds representative services and verifies the first six memory-behavior scenarios before live-agent scoring. (Entry 037)
 - **Paper-minimum reframing**: The first paper should prove agent-owned memory architecture and adaptation with local primitive tools and evaluation evidence; generated domain tools, graph DBs, hosting, OAuth/DCR, and hardening are future/productisation layers unless needed for evaluation. (Entry 038)
 - **Autonomy-first memory governance**: For the research phase, avoid fixed TTL, taxonomy, provenance weighting, destructive-change prohibition, or prose bans. Provide tools, metadata, history, and hints; evaluate whether agents can maintain retrieval utility through their own schema and record evolution. (Entry 039)
+- **Live-agent transcript evidence standard**: Use journal observations for design direction, curated transcript notes for qualitative paper evidence, and selective raw transcript artifacts when claims depend on exact tool calls, sequence, timing, or wording. (Entry 040)
+- **Architecture diagram set**: Local-only MCP, data model, and productised infrastructure diagrams now separate the paper-minimum proof from future deployment and productisation layers. (Entry 041)
+- **Snapshot-replay live-agent experiments**: Objective Claude/Codex evaluation should use isolated repos, frozen AIPCS memory snapshots, explicit permission variants, external trace capture, and batched runs to manage token limits. (Entry 042)
+- **Interaction valence effects**: Later disposable-snapshot experiments should test whether negative, corrective, or sensitive interactions alter memory architecture, user modelling, or caution policies. (Entry 043)
+- **Controlled experiment scaffold**: `experiments/` now defines scenario specs, workspace templates, snapshot manifests, and run-note templates for snapshot-replay live-agent evaluation. (Entry 044)
 
 *Populate during build (M007–M008)*
 

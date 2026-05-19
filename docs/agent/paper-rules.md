@@ -8,6 +8,22 @@ Every BUILD_JOURNAL entry must include a **Paper notes** field. The question to 
 
 Raw journal notes accumulate per-section in the BUILD_JOURNAL under "Paper Sections — Running Notes." When a section is substantive enough, promote it to `paper/outline.md`.
 
+## Evidence artifacts
+
+The BUILD_JOURNAL remains the primary narrative record. Raw agent transcripts are supporting evidence artifacts, not the main working memory of the project.
+
+Use three evidence levels:
+
+| Level | Use |
+|---|---|
+| Journal observation | Design direction, hypotheses, roadmap choices, and development narrative |
+| Curated transcript note | Paper examples and qualitative evaluation evidence |
+| Raw transcript artifact | Citation-grade support for exact agent behavior, tool calls, timing, sequencing, and reproducibility |
+
+When a live-agent session produces a notable behavior, preserve the raw transcript if available and create a curated note that records the date, agent/client/model label, instruction surface, available AIPCS tools, key behavior, selected excerpt or event sequence, paper relevance, and raw artifact pointer.
+
+Do not bulk-ingest every transcript by default. Preserve raw transcripts selectively when the behavior may become part of an evaluation claim or paper example. For older observations without raw artifacts, treat the journal summary as valid design evidence but avoid overclaiming exact behavior unless the scenario is rerun under the current harness.
+
 ## Paper sections and what feeds them
 
 | Section | Source material |

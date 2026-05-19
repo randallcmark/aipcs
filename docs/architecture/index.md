@@ -119,6 +119,7 @@ The AIPCS Server exposes 8 management tools available from the moment AIPCS is c
 ## Architecture Routes
 
 - Full v1 design → [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
+- Architecture diagrams → [diagrams.md](diagrams.md)
 - Boundary definitions → [boundaries.md](boundaries.md)
 - Formal decisions (ADRs) → [decisions/](decisions/)
 - Pattern principles (P1–P10) → `docs/AIPCS_Pattern_Specification_v0.1.docx`

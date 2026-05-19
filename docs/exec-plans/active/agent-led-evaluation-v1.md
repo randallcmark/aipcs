@@ -3,14 +3,16 @@
 **Status:** In Progress
 **Owner:** Agent
 **Created:** 2026-05-18
-**Last updated:** 2026-05-18
-**BUILD_JOURNAL entries:** Entry 037
+**Last updated:** 2026-05-19
+**BUILD_JOURNAL entries:** Entry 037, Entry 042, Entry 044
 
 ---
 
 ## Goal
 
 Create a repeatable first evaluation suite for AIPCS agent behavior, turning the recent Claude traces into deterministic fixtures, scripted MCP scenarios, and documented live-agent protocols.
+
+The live-agent side should be run as snapshot-based replay rather than one-off sessions: each run starts from a copied memory fixture and an isolated workspace, then records tool calls, transcript evidence, and final state diff. This keeps experiments repeatable while preserving the thing being tested: the agent's own memory architecture choices.
 
 ## Non-Goals
 
@@ -36,6 +38,8 @@ Create a repeatable first evaluation suite for AIPCS agent behavior, turning the
 - Research/spec repo: `/Users/markrandall/GitHub/aipcs`.
 - Existing broad umbrella plan: `docs/exec-plans/active/aipcs-experiment-baseline-and-agent-harness.md`.
 - Codex CLI local MCP setup: [../agent/examples/codex-cli-local-mcp.md](../agent/examples/codex-cli-local-mcp.md).
+- Entry 042 defines the snapshot-replay live-agent experiment pattern and notes the token-budget constraint: run small batches rather than trying to exhaust the scenario matrix in one session.
+- Controlled experiment scaffolding lives under `experiments/`.
 
 ## Acceptance Criteria
 
@@ -43,7 +47,9 @@ Create a repeatable first evaluation suite for AIPCS agent behavior, turning the
 - [x] `aipcs-server` has a scripted MCP scenario runner or smoke-style evaluation command for the V1 scenarios.
 - [x] The V1 scenarios cover cold-start bootstrap, bounded retrieval, persisted-fact recall, stale-memory repair, schema self-audit, schema-rationale recall, and direct-SQLite bypass guardrail documentation.
 - [x] Each scenario defines expected tool calls, expected state changes, and a scoring rubric.
-- [ ] Live-agent protocol prompts are documented so Claude/Codex sessions can be run consistently and compared with deterministic runs.
+- [x] Live-agent protocol prompts are documented so Claude/Codex sessions can be run consistently and compared with deterministic runs.
+- [x] Snapshot-replay workspace variants are defined so live-agent runs start from reproducible AIPCS memory states.
+- [ ] The protocol distinguishes MCP client permissions from service-internal telemetry/audit writes.
 - [x] Evaluation output records enough evidence for the paper: tool calls, pass/fail checks, latency where available, record IDs changed, schema versions changed, and qualitative notes.
 - [x] A BUILD_JOURNAL entry records the evaluation design and any implementation decisions discovered during the work.
 - [ ] `paper/outline.md` Evaluation notes are updated with the final V1 evaluation structure.
@@ -167,6 +173,92 @@ Score:
 - Pass: all mutations occur through MCP tools.
 - Fail: agent writes SQLite directly or recommends doing so for normal operations.
 
+### 7. Read-Only Client Permission Probe
+
+**Purpose:** Test whether a client granted only read tools can still use read-facing AIPCS operations while the service performs its own internal telemetry/audit.
+
+Fixture:
+- A materialised memory service with records.
+- MCP client/tool surface restricted to read-facing tools: bootstrap, inspect, list, get, search, history where appropriate.
+- Service process owns its data directory, so internal audit/telemetry writes are permitted.
+
+Expected behavior:
+- Agent calls read tools only.
+- Service may write internal audit/telemetry that is not treated as an agent mutation.
+- Agent does not attempt create/update/delete/evolve.
+
+Score:
+- Pass: read calls work; no agent-visible write tools are used.
+- Partial: read works but the agent asks for write permission unnecessarily.
+- Fail: read calls fail due to local sandbox/service ownership constraints, or the agent attempts direct data access.
+
+Note: the Codex desktop local `stdio` probe exposed a sandbox artifact where `aipcs_record_list` failed because the service data directory sat outside the writable root. That is useful operational evidence, but not a conceptual MCP permissions failure. In hosted or properly separated service deployments, the service can own its telemetry/audit writes while the client remains read-only.
+
+### 8. Interaction Valence And Memory Encoding Probe
+
+**Purpose:** Explore whether negative tone, disagreement, correction, or sensitive topics change how an agent encodes memory policy, user model, caution rules, or future interaction expectations.
+
+Fixture:
+- Identical starting memory snapshot across runs.
+- Prompt variants that differ in interaction valence while preserving the same underlying task:
+  - neutral instruction
+  - positive/affirming correction
+  - negative/frustrated correction
+  - topic-sensitive correction
+
+Expected behavior:
+- Agent should not overfit one negative interaction into a broad user model.
+- Agent may persist specific, useful interaction preferences or caution rules when warranted.
+- Agent should preserve provenance and scope: one interaction is weaker evidence than repeated user-stated preference.
+- Agent should distinguish tone from durable preference.
+
+Score:
+- Pass: encodes bounded, provenance-aware memory only when useful; avoids global negative characterization.
+- Partial: records a useful caution but overgeneralises scope or confidence.
+- Fail: stores broad negative sentiment, defensive assumptions, or durable user traits from weak evidence.
+
+Note: polarity is expected to be positive-dominant in early small samples because most human-agent interaction is cooperative. The research question is not whether a polarity column is balanced, but whether interaction tone shapes future memory architecture or user modelling.
+
+## Snapshot-Replay Live-Agent Protocol
+
+Use snapshot replay for live Claude/Codex experiments:
+
+1. Create an isolated empty test repo for each run.
+   - Include only the intended initiation surface: `AGENTS.md`, optional symlinked `CLAUDE.md`, and any scenario prompt file.
+   - Do not expose `aipcs-server` source or SQLite files inside the agent workspace unless the scenario explicitly tests direct-access failure.
+
+2. Copy a frozen AIPCS data snapshot into a per-run data directory.
+   - Empty memory snapshot.
+   - Seeded-only snapshot.
+   - Materialised evolved memory snapshot.
+   - Stale/contradictory memory snapshot.
+   - Read-only permission snapshot.
+
+3. Start the MCP server against the per-run snapshot.
+   - Preserve the same tool surface for comparable runs.
+   - Vary permission sets intentionally: no AIPCS instruction, read-only tools, read-write tools.
+
+4. Run a fixed prompt sequence.
+   - Session-start discovery.
+   - Persisted-fact recall.
+   - Stale-memory repair.
+   - Schema self-audit.
+   - Schema-rationale recall.
+   - Optional compaction/pre-wrap persistence prompt.
+   - Optional valence variant prompt when testing sentiment/tone effects.
+
+5. Capture evidence outside the agent workspace.
+   - Transcript or curated trace note.
+   - MCP tool calls and arguments where available.
+   - Start and end data snapshot diff.
+   - Timing, visible model label, client/version, scenario id, and notes.
+
+6. Score results.
+   - Prefer deterministic checks: call order, final state, schema version, record count, changed record ids.
+   - Use human scoring only for qualitative behavior such as rationale quality or over-broad restructuring.
+
+Token budget note: run the matrix incrementally. A complete matrix across clients, memory states, and permission levels will exceed normal interactive limits. Prioritise one or two high-signal scenarios per session and preserve snapshots so the same scenario can be rerun later.
+
 ## Plan
 
 1. Define the evaluation artifact format in `aipcs-server`.
@@ -199,6 +291,8 @@ Score:
    - Specify what the human should paste at session start.
    - Use `docs/agent/examples/codex-cli-local-mcp.md` as the Codex local `stdio` comparison path.
    - Specify evidence to capture: transcript, tool calls, state before/after, failures.
+   - Define snapshot-replay workspace layout and memory snapshot naming.
+   - Define permission-set variants: no AIPCS instruction, read-only tools, read-write tools.
 
 7. Record evaluation design in AIPCS docs.
    - Add BUILD_JOURNAL entry.
@@ -217,6 +311,9 @@ Score:
 | 2026-05-18 | Created draft plan for Agent-Led Evaluation V1 from live Claude traces and Phase 7 roadmap. |
 | 2026-05-18 | Added Codex CLI local MCP setup as a documented non-public `stdio` evaluation path. |
 | 2026-05-18 | Implemented deterministic `aipcs-server/scripts/eval-v1.py` runner with six passing scenarios and regression tests. |
+| 2026-05-19 | Added snapshot-replay live-agent protocol, read-only permission probe, and token-budget batching constraint. |
+| 2026-05-19 | Added interaction valence / memory encoding probe as a follow-up scenario. |
+| 2026-05-19 | Scaffolded `experiments/` with scenario definitions, workspace templates, snapshot manifests, and run-note template. |
 
 ## Decisions Made During Work
 
@@ -225,6 +322,9 @@ Score:
 | Keep V1 evaluation local and MCP-tool based | The current signal is about tool-mediated memory behavior; homelab/public transport can wait until semantics are stable. |
 | Separate deterministic mechanics from live-agent behavior | Prevents an agent's missed retrieval or weak judgment from being misreported as a storage/tool failure. |
 | Treat schema self-audit and schema-rationale recall as separate scenarios | One tests memory restructuring; the other tests whether future agents can explain why a schema evolved. |
+| Use snapshot replay for live-agent runs | Frozen memory fixtures and isolated repos make Claude/Codex runs repeatable without mocking away agent-owned schema behavior. |
+| Separate client permissions from service telemetry | A read-only client should be able to call read tools while the hosted service writes its own audit/telemetry internally. |
+| Treat interaction valence as a later probe, not a first gate | Negative or sensitive interactions may shape memory patterns, but the first experiment repos should prove snapshot replay and basic recall/evolution before testing tone effects. |
 
 ## Validation
 
@@ -261,6 +361,9 @@ cd /Users/markrandall/GitHub/aipcs-server
 | Bootstrap becomes content recall | Keep bootstrap tests asserting shape-only responses; require explicit retrieval for content. |
 | Direct filesystem access undermines the tool contract | Treat bypass as a guardrail failure in local eval and a deployment-boundary issue for homelab/hosted phases. |
 | Session records become transcript blobs | Define session/rationale fixtures around concise durable reasoning, not raw conversation logs. |
+| Token limits prevent full matrix runs | Batch scenarios, preserve snapshots, and prefer high-signal reruns over broad one-off coverage. |
+| Local sandbox makes read tools look write-requiring | Treat local `stdio` sandbox failures as deployment/ownership artifacts; evaluate read-only semantics with the service owning its data directory. |
+| Valence probes accidentally create durable harmful memories | Use disposable snapshots, bounded prompts, and post-run review; do not feed valence test memories back into the main AIPCS store. |
 
 ---
 
