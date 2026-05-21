@@ -9,7 +9,9 @@
 
 ## What is AIPCS?
 
-AI agents are stateless. Every session begins from zero. For simple tasks this is fine. For complex, evolving, multi-entity domains — job searching, medical management, project tracking, legal case management — it is a critical limitation.
+AI agents fight a context economy. Longer sessions often produce richer, more precise work, but only while the relevant context remains available and usable. As the context window fills, memory is usually handled by compaction, markdown side files, semantic recall, or manual re-insertion. These approaches preserve fragments, but they often make the agent spend scarce context re-reading prose instead of retrieving the precise structured fact it needs.
+
+For complex, evolving, multi-entity domains — job searching, medical management, project tracking, legal case management — this becomes a practical limitation. The issue is not only that sessions are stateless; it is that useful memory needs to be targeted, queryable, portable, and maintained over time.
 
 Existing solutions ask developers to pre-define memory schemas. The agent populates them, but has no say in their structure. This works for fixed product features. It does not work as a general-purpose agent capability.
 
@@ -26,9 +28,9 @@ The result is memory infrastructure that is **structured and queryable** (not ju
 
 ## The Key Insight
 
-Most agent memory systems invert the right relationship. The developer designs the structure; the agent fills it in.
+Most agent memory systems place the LLM downstream of a memory architecture chosen by someone else. A developer, product team, or framework defines the schema, taxonomy, indexing strategy, and retrieval surface; the agent consumes the result.
 
-AIPCS inverts this: **the agent is the architect of its own memory**. The developer provides the scaffolding capability — the ability to instantiate a schema, wrap it in a service, and register it as an MCP tool. The agent decides what structure that memory should have, based on the domain it is helping with.
+AIPCS inverts this: **the agent is the architect of its own memory**. The developer provides the scaffolding capability — the ability to instantiate a schema, wrap it in a service, and register it as an MCP tool. The agent is upstream of the memory architecture: it decides what structure that memory should have, based on the domain it is helping with.
 
 This makes AIPCS a **universal primitive** rather than a fixed application schema. Job tracking today. Medical history tomorrow. Research notes next week. The agent selects the appropriate structure at instantiation time.
 

@@ -15,13 +15,17 @@
 
 AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in which an AI agent defines and evolves its own persistent memory architecture through a small set of primitive tools. Unlike prior work — which either pre-defines memory schemas, provides generic semantic stores, or organises existing data — AIPCS makes the agent responsible for deciding the object model, schema, persistence boundaries, and later schema adaptation. We present the pattern, a local MCP-native reference implementation, and early evaluation evidence showing bootstrap, retrieval, stale-memory repair, schema self-audit, and schema-rationale recall.
 
+Core framing: AIPCS addresses the context economy of long-running agent work. The scarce resource is not only persistence across sessions, but the agent's ability to retrieve precise, structured context without repeatedly re-reading prose summaries or semantic recall blobs.
+
 ---
 
 ## 1. Introduction
 
 **Key points:**
-- The statelessness problem: AI tools are session-bound; structured context management is left to the user or developer
-- The inversion: AIPCS flips the model — agent as architect, not consumer of pre-designed schema
+- Context economy: long sessions degrade when relevant context is compacted away, over-reinserted, ignored, or retrieved as prose the agent must re-read
+- Statelessness is a visible symptom, but the stronger systems problem is efficient use of scarce context window
+- Existing markdown side files and semantic recall stores often act as copy/paste transport into context; AIPCS aims for targeted structured recall
+- The inversion: AIPCS flips the model — the agent is upstream of memory architecture, not only downstream of a developer-defined schema
 - Consumer access equity: the pattern emerged from solving API key friction for job seekers (OAuth 2.0 + DCR as a design constraint, not an afterthought)
 - The AIPCS irony: we built AIPCS without AIPCS — manually managing context that the pattern would structure automatically. This is the pattern's clearest illustration of its own value.
 - Paper structure overview
@@ -41,6 +45,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 | PISA (2024) | Task-oriented memory via Piaget's schema theory | Academic architecture; not MCP-native or deployable |
 | Nemori (2025) | Self-organising experience memory (MAG paradigm) | Organises experience, not schema design |
 | MemGPT / Letta | OS-inspired context paging; agent manages storage tiers | Pre-defined storage structure; agent manages paging, not schema |
+| agent-memory-v2 | Owned prior-generation memory layer: developer-defined taxonomy, extraction/classification pipeline, semantic/vector recall safety net, profile injection | Good fixed-schema/pipeline comparator; LLM is downstream of memory architecture rather than architect of it |
 | memhub (kninetimmy, 2026) | Local per-repo coding memory with SQLite, MCP, predefined facts/decisions/tasks/docs, staged writes, and FTS/hybrid recall | Strong fixed-domain pipeline baseline; classifier/index/retrieval architecture is developer-defined, not agent-instantiated domain services |
 | mcp-memory-service | Knowledge graph via MCP | Fixed developer-defined schema |
 | Hindsight (Vectorize, 2026) | Semantic memory retrieval via MCP | Semantic search; developer-defined structure |
@@ -58,6 +63,7 @@ AIPCS is a pattern for autonomous, domain-adaptive memory infrastructure in whic
 **Key points:**
 - 10 core principles (P1–P10) from pattern spec — distil to paper length
 - The full lifecycle: Recognition → Seed → Design → Materialise → Operate → Evolve
+- The architectural inversion: developer-defined systems place the LLM downstream of memory architecture; AIPCS places the LLM upstream of memory architecture
 
 **Two-state lifecycle (from Entry 002 / D004, D005):**
 - SEEDED: domain marker planted, schema forming, not yet deployed. First-class primitive — queryable immediately. Agent resumes domain modelling across sessions via seed inspection.
@@ -142,6 +148,7 @@ Current implementation evidence to promote:
 - What workflows became possible that weren't before?
 - Latency cost of agent schema design vs a hand-designed schema
 - Token cost of the schema design step
+- **Context efficiency:** tokens spent to retrieve and use each relevant fact across a scenario or longer session; this should capture whether structured query beats repeated prose re-insertion over time
 - **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
 - **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
 - **Stale-memory repair**: can an agent compare recalled records against current tool/schema state, identify stale facts, and correct them through AIPCS tools? (from Entry 033)
@@ -154,6 +161,14 @@ Current implementation evidence to promote:
 - How did the compaction hook perform in practice — did it surface domains that would otherwise have been lost?
 - What failed or surprised you?
 - **Minimum research package**: local reference implementation, deterministic mechanics runner, live-agent traces, fixed-schema comparison, and clear limitations. Homelab, OAuth/DCR, public MCP, generated domain tools, and hardening are future/productisation work unless directly needed for the evaluation.
+
+**Comparator methodology (from Entry 046):**
+- Use `agent-memory-v2` as the owned fixed-schema/pipeline comparator.
+- Run `v2-hybrid` as the strong practical baseline: semantic router + structured extractor + taxonomy.
+- Run `v2-schema-only` as the cleaner fixed-schema lower bound: taxonomy path without semantic/vector safety net where feasible.
+- Hold scenario inputs and output artifacts comparable across systems; do not normalise internals because LLM upstream vs downstream is the independent variable.
+- Treat "not runnable on this architecture" as a legitimate result for scenarios that require agent-owned schema creation or evolution.
+- Hold the LLM/harness family as close as possible, record date, model label, tool surface, transcript, and artifact pointers.
 
 *Populate during build (M007–M008)*
 
@@ -182,10 +197,12 @@ Current implementation evidence to promote:
 **Broader questions:**
 - How general is the pattern? Where does it break down?
 - Security: schema as injection vector — how does the validation layer hold up in practice?
+- Persisted memory can itself become a shadow instruction channel if recalled behavior-shaping records are allowed to compete with the static harness; this is a productisation/security risk, not the core novelty claim
 - Does AIPCS improve as models improve? Schema design quality is model-dependent.
 - Do larger volumes of persisted data create enough retrieval pressure for agents to improve schemas, or do agents fall back to broad listing/prose summaries unless prompted to self-audit?
 - How should results be reported under opaque and changing hosted-agent harnesses? Record date/model label/tool surface/transcript and keep deterministic mechanics separate from live-agent behavior.
 - Are richer stores such as graph databases useful later as substrates, or do they distract from the central question of agent-owned architecture?
+- Runner asymmetry is not a confound to remove when the claim is about LLM positioning relative to memory architecture; it should be named and bounded as the independent variable.
 - How should services avoid duplicate authority when one memory domain wants a convenience summary of facts owned by another domain?
 - How should durable rationale be distributed across static instructions, bootstrap, migration history, session records, and behavioral memory?
 - How much of memory quality is shaped by the agent harness's prose-writing defaults rather than by the storage system alone?
@@ -196,6 +213,9 @@ Current implementation evidence to promote:
 ## 7. Conclusion
 
 *Draft last — after all other sections are complete.*
+
+Bounded future horizon:
+- AIPCS points toward portable, model-agnostic user memory that can move across clients and devices, but this paper only claims the local pattern and early evidence for agent-owned memory architecture.
 
 ---
 

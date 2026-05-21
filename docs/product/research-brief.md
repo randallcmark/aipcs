@@ -2,9 +2,11 @@
 
 ## What is AIPCS?
 
-Agent-Instantiated Persistent Context Services (AIPCS) is a pattern for autonomous, domain-adaptive memory infrastructure. An AI agent, upon encountering a sufficiently complex stateful tracking problem, designs an appropriate data schema, scaffolds a lightweight persistent service around it, and registers that service as an MCP tool — making structured, queryable memory available across all future sessions and any MCP-compatible client.
+Agent-Instantiated Persistent Context Services (AIPCS) is a pattern for autonomous, domain-adaptive memory infrastructure. It addresses the context economy problem: long-running agents need durable memory, but markdown side files, summaries, and semantic recall often reinsert prose into the context window instead of returning the precise structured fact needed for the current task.
 
-The key distinction from all prior work: the agent is the schema architect, not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as an MCP tool, composable and portable.
+In AIPCS, an AI agent encountering a sufficiently complex stateful tracking problem designs an appropriate data schema, scaffolds a lightweight persistent service around it, and registers that service as an MCP tool — making structured, queryable memory available across all future sessions and any MCP-compatible client.
+
+The key distinction from prior work: the agent is upstream of the memory architecture. It is the schema architect, not only a consumer of a developer-defined schema, taxonomy, or retrieval pipeline. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as an MCP tool, composable and portable.
 
 ## Who is this for?
 
@@ -19,7 +21,7 @@ The key distinction from all prior work: the agent is the schema architect, not 
 
 1. **Attribution** — publish an arXiv preprint establishing authorship. Open contribution: CC BY 4.0 for documents, MIT for code.
 2. **Reference implementation** — prove the pattern in Application Tracker (career management platform), then extract as a general open framework.
-3. **Paper** — a 6–10 page systems paper suitable for arXiv and optionally HotOS / SOSP / AI systems workshop.
+3. **Paper** — a 6–10 page systems paper suitable for arXiv and optionally HotOS / SOSP / AI systems workshop, grounded in data rather than only prototype anecdotes.
 
 ## Origin
 
@@ -55,6 +57,7 @@ AIPCS sits at a gap in the landscape. See `docs/AIPCS_Invention_Disclosure_v2.do
 | PISA | Academic cognitive architecture, not a deployable MCP-native pattern |
 | Nemori | Self-organising experience memory, not agent-designed schema |
 | MemGPT / Letta | Pre-defined storage structure; agent manages paging, not schema design |
+| agent-memory-v2 | Owned prior-generation comparator: developer-defined taxonomy, extraction/classification pipeline, semantic recall safety net |
 | memhub | Local per-repo coding memory with predefined facts/decisions/tasks/docs, classifier/retrieval pipeline, SQLite, MCP, and FTS/hybrid recall |
 | mcp-memory-service | Fixed knowledge graph schema; developer-defined |
 | Hindsight | Semantic retrieval; developer-defined schema |

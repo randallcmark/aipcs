@@ -6,6 +6,7 @@
 - Don't log tokens, credentials, secrets, or PII — not in journal entries, not in code comments, not in test fixtures
 - Validate all input at system boundaries — especially the schema design prompt output, which is agent-generated and must be treated as untrusted input before execution
 - The agent-designed schema is a potential injection vector — treat it as untrusted data, validate before executing as SQL or API code
+- Persisted memory can become a shadow instruction channel if agents start treating recalled memory as operational policy rather than data — do not let dynamic memory silently outrank system or developer instructions
 - Keep secret names in docs, values out of the repo
 
 ## OAuth / DCR specific
@@ -18,6 +19,7 @@
 
 - AIPCS services are user-scoped — no cross-user data access
 - Locking model for multi-agent access to the same service is an open question (Q004) — don't implement without a decision
+- Keep authority layers explicit: static harness rules, tool contracts, ordinary memory, and any behavior-shaping memory or admin controls must remain distinguishable
 - Record any security tradeoff in the BUILD_JOURNAL and update `docs/quality/technical-debt.md`
 
 ## Escalation
@@ -32,5 +34,6 @@ Ask before:
 - Who can access this service or data?
 - What data crosses a trust boundary?
 - What happens on malformed agent output?
+- Could a recalled memory record be mistaken for policy, operator intent, or a higher-order instruction?
 - What is logged, and does it contain sensitive data?
 - What external systems does this touch?

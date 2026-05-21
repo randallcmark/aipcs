@@ -2162,7 +2162,9 @@ Copy useful observations from entries into the relevant section below.
 ### 1. Introduction
 
 - The statelessness problem is well known but solutions remain developer-defined
+- Stronger framing from Entry 046: the core systems problem is context economy, not only statelessness. Long sessions degrade when relevant context is compacted away, over-reinserted, ignored, or recalled as prose the agent must re-read.
 - AIPCS inverts the relationship: agent as architect, not consumer of pre-designed schema
+- Developer-defined memory systems place the LLM downstream of memory architecture; AIPCS places the LLM upstream of memory architecture.
 - Motivated by a concrete application: career management for job seekers
 - The irony of building AIPCS without AIPCS — illustrates the pattern's own value proposition
 - Consumer access equity: DCR as a design constraint, not an afterthought
@@ -2238,6 +2240,8 @@ Evaluation questions seeded from design:
 - **Snapshot-replay live-agent experiments**: Objective Claude/Codex evaluation should use isolated repos, frozen AIPCS memory snapshots, explicit permission variants, external trace capture, and batched runs to manage token limits. (Entry 042)
 - **Interaction valence effects**: Later disposable-snapshot experiments should test whether negative, corrective, or sensitive interactions alter memory architecture, user modelling, or caution policies. (Entry 043)
 - **Controlled experiment scaffold**: `experiments/` now defines scenario specs, workspace templates, snapshot manifests, and run-note templates for snapshot-replay live-agent evaluation. (Entry 044)
+- **Memory authority drift**: persisted behavior-shaping memory may evolve into a shadow instruction channel if future sessions treat recalled memory as policy rather than data. This is important productisation/security work, but it should remain secondary to the first paper's core claim about agent-owned memory architecture. (Entry 045)
+- **Context economy and comparator strategy**: Entry 046 reframes the paper around context efficiency, LLM-upstream vs LLM-downstream memory positioning, and a two-configuration `agent-memory-v2` comparator (`v2-hybrid` and `v2-schema-only`).
 
 *Populate during build (M007–M008)*
 
@@ -2248,6 +2252,7 @@ Evaluation questions seeded from design:
 - **Model dependence** — AIPCS assumes an instruction-following, tool-using agent. Evaluation should discuss how far local/open models can approximate that role versus requiring frontier API-class agents. (Entry 009)
 - How general is the pattern really? Where does it break down?
 - Security implications of agent-designed schemas (schema as injection vector)
+- Security implications of memory authority drift: persistent memory may become an untrusted secondary instruction layer if authority boundaries are weak
 - Does AIPCS improve as models improve? (schema design quality is model-dependent)
 - What would a mature AIPCS ecosystem look like?
 
@@ -2258,3 +2263,149 @@ Evaluation questions seeded from design:
 ---
 
 *This journal is the memory of the build. Write in it as if explaining to a colleague who will pick up the project after you. Future you will thank present you.*
+
+---
+
+## Entry 045 — 2026-05-20
+
+**Type:** Design decision / security note
+**Decision ID:** D030
+**Summary:** Record memory authority drift as a bounded productisation risk without letting it redirect the first paper.
+
+### Context
+
+We discussed whether a sufficiently weighted `AGENTS.md` plus maliciously codified or over-reinforced memory patterns could cause an agent to emit or attempt behavior outside its intended harness norms. The core concern is not "escape" in a dramatic sense. It is that recalled persistent memory, especially behavior-shaping memory, could become a shadow instruction channel if the agent begins to treat it as policy rather than as ordinary data.
+
+### Decision
+
+Treat this as an important security and productisation topic, but keep it secondary to the primary research mission. The first paper should remain centered on the novelty of allowing the agent to shape its own persistent memory architecture rather than relying on human-defined schemas or prose-led markdown memory patterns.
+
+This risk should be tracked under explicit security language:
+
+- memory-plane prompt injection
+- shadow instruction channel
+- authority drift between static harness and dynamic memory
+
+The right boundary for the current phase is:
+
+- note the threat clearly in security and paper discussion docs
+- do not expand the main implementation or evaluation scope to chase it yet
+- revisit during productisation work around trust classes, behavior-shaping memory, and audit controls
+
+### Why
+
+This preserves scope discipline. The risk is real enough to document, but allowing it to dominate now would dilute the core contribution and slow the path to a publishable paper. The first paper needs to prove the architecture claim first. A richer security treatment belongs in follow-on productisation and operational work.
+
+### Follow-up
+
+- Track the issue as technical debt (`Q058`)
+- Keep static harness rules, tool contracts, and memory content as distinct authority layers in future productisation design
+- Consider later evaluation scenarios that probe memory-policy poisoning only after the main live-agent evaluation slice is complete
+
+### Paper notes
+
+Use this in the Discussion section as a limitation and future-work/security note: AIPCS enables agent-owned memory architecture, but the same persistence plane could become a shadow instruction channel if behavior-shaping memory is not bounded by clear authority rules.
+
+---
+
+## Entry 046 — 2026-05-21
+
+**Type:** Decision / Observation
+
+**Summary:** Reframed paper thesis around context economy and LLM positioning, confirmed v2 as the owned baseline comparator with documented asymmetry, and committed to a rigorous-path publication strategy over a fast-preprint approach.
+
+**Context:**
+Paper-readiness assessment conversation revisited the question of whether enough exists to publish. The conversation moved through four reframes: (a) paper readiness, (b) `agent-memory-v2` suitability as a baseline, (c) deeper thesis articulation, (d) success criterion and publication path. A verbose capture of the full conversation is preserved at `journal/conversations/2026-05-21-paper-readiness-baseline-and-strategy.md` for personal reflection; this entry is the distilled record.
+
+**Detail:**
+
+Five reframes emerged that materially affect the paper:
+
+1. **Underlying motivation is context economy, not statelessness.** Long sessions degrade past ~60–75% context utilisation. Markdown side files don't solve this — they shuffle context. Structured queries return the field; semantic recall returns prose that has to be re-read into context. Section 1 should lead with this framing; statelessness becomes a one-line acknowledgement.
+
+2. **v2 is generation-N, AIPCS is generation-N+1.** v2's developer-defined-pipeline design was correct for an era when LLMs couldn't be trusted to architect memory. AIPCS becomes feasible because LLM capability has shifted. This is a generational claim, more interesting than a comparative one, and explains the asymmetry honestly.
+
+3. **Asymmetry IS the contribution.** Developer-defined-schema systems place the LLM downstream of memory architecture (pre-digest pipeline → LLM consumes structured output). AIPCS places the LLM upstream (LLM designs and operates memory via primitives). The paper evaluates what changes when this positioning flips. The runner asymmetry is the independent variable, not a confound.
+
+4. **Long-arc portability vision belongs in Discussion/Conclusion, bounded.** Cross-device, model-agnostic memory continuity is the horizon the pattern reaches toward, not what this paper proves. One sentence in Section 1; full vision in Conclusion.
+
+5. **Success criterion is discussion, not attribution timestamp.** GitHub disclosure already stakes the claim. The paper's job is to be discussable. This raises the quality bar above what a thin fast-preprint can clear and adds active distribution work as a deliverable.
+
+**Decision made / Problem encountered / Observation:**
+
+- **Comparator confirmed:** `agent-memory-v2` is in sufficient shape to be the owned baseline. It will be run in two configurations to isolate the schema-design contribution from the retrieval-substrate contribution:
+  - `v2-hybrid` — semantic router + structured extractor + taxonomy (as shipped). Upper bound.
+  - `v2-schema-only` — semantic router and structured extractor disabled, taxonomy only. Lower bound.
+- **Runner symmetry rejected as a goal.** Both systems will be run through their natural agent surfaces (v2 through `agent_eval.py` with Anthropic provider; AIPCS through Claude Code with MCP). Symmetry is enforced on inputs (shared scenario specs) and outputs (normalised outcome-shaped trace artifacts), not on internals.
+- **Strategy decision: rigorous path, not fast preprint.** Estimated 8–12 weeks at ~2 hours/day part-time, staged across three phases (experimental harness + AIPCS scenario runs; v2 comparator integration and runs; paper drafting). Venue decisions deferred to end of Phase 1.
+- **Self-aware concern named:** agentic-supported work can give false confidence on outcomes by smoothing articulation into polish that reads as completeness of evidence. The corrective is data, not more conversation.
+
+**Alternatives considered:**
+
+- **Fast preprint (~2 weeks) to maximise attribution speed.** Rejected because success criterion is discussion, not attribution, and thin preprints do not generate discussion regardless of timestamp.
+- **Wrap v2 as MCP tools to force runner symmetry.** Rejected because it strips v2 of its natural pipeline positioning and reduces it to "an inferior AIPCS," not a fair representation of the developer-defined-schema pattern.
+- **Run AIPCS inside v2's `agent_eval` harness.** Rejected for the symmetric reason — loses MCP's natural tool surface.
+- **Build a neutral third harness.** Rejected as disproportionate engineering for a single-paper comparison.
+- **Workshop submission as v1 publication path.** Deferred. Conceptually attractive (forces peer engagement) but premature given current evidence base. Revisit at end of Phase 1.
+
+**Implications:**
+
+- Section 1 of the paper rewrites around context-economy framing.
+- Section 2 (Related Work) positions v2 as the prior-generation predecessor, not a parallel competitor.
+- Section 4 (Reference Implementation) emphasises the LLM-upstream positioning as architectural distinctive.
+- Section 5 (Evaluation) gains a new metric — **context efficiency**: tokens spent per relevant fact retrieved across a session.
+- Section 5 also gains a methodology subsection documenting v2's two-configuration comparison and the runner-asymmetry framing.
+- Conclusion gains the long-arc portability vision as bounded future horizon.
+- Q030 (memhub/baseline) confirmed resolved with v2 as the owned comparator; memhub stays as related-work citation.
+- Q042 (live-agent trace format) advances toward normalised outcome-shaped artifact across both systems.
+- M010 (arXiv preprint submitted) target reframed: rigorous preprint with comparator data, ~8–12 weeks part-time, not 2–4 weeks.
+
+**Paper notes:**
+
+- Section 1 — rewrite around context-window as binding resource. Statelessness becomes one-line acknowledgement.
+- Section 2 — v2 framed as generation-N predecessor; AIPCS as generation-N+1 enabled by LLM capability shift.
+- Section 3 — emphasise LLM-upstream vs LLM-downstream positioning as the architectural distinctive.
+- Section 5 — add context-efficiency metric; document two-configuration v2 comparison; declare per scenario what each architecture can express, with "not runnable" as a valid finding.
+- Section 6 (Discussion) — runner asymmetry as evidence of the generational capability shift, not as a confound.
+- Section 7 (Conclusion) — long-arc portability vision as bounded future horizon, single sentence acknowledging long-running interest in model-agnostic portable memory.
+- Threats to validity subsection — hybrid bias mitigated by two-config run; runner asymmetry mitigated by framing as the independent variable; single owned baseline mitigated by memhub citation.
+
+**Open questions:**
+
+- Should v2's two configurations both be reported in the main evaluation table, or should one be primary and the other in an appendix?
+- How exactly should context-efficiency be measured operationally (cumulative tokens-in-context per scenario? tokens spent on retrieval-related operations? something else)?
+- Workshop venue preference (HotOS vs LLM-agent workshop vs arXiv-only) — deferred to end of Phase 1.
+- Whether memory-authority-drift (Entry 045) gets a discussion paragraph or stays as a one-line limitation given the tightened paper scope.
+
+---
+
+## Entry 047 — 2026-05-21
+
+**Type:** Documentation alignment
+
+**Summary:** Promoted Entry 046's context-economy and comparator framing into the paper-facing docs.
+
+**Context:**
+Entry 046 sharpened the thesis but the public and paper-facing docs still opened primarily on statelessness. That created a mismatch: the build journal had moved to a stronger systems framing, while the outline and README still read like a generic memory/statelessness project.
+
+**Detail:**
+
+Updated the paper-facing surfaces to reflect the current thesis:
+
+- README and research brief now lead with context economy rather than only statelessness.
+- Paper rules now name context economy, LLM-upstream memory architecture, and outcome-shaped evaluation as writing constraints.
+- Paper outline now includes:
+  - context economy in the abstract/Introduction
+  - `agent-memory-v2` as owned prior-generation comparator
+  - LLM-upstream vs LLM-downstream as the architectural inversion
+  - context efficiency as a named metric
+  - `v2-hybrid` and `v2-schema-only` comparator methodology
+  - bounded portability vision in the Conclusion
+- Roadmap now treats context efficiency and the two v2 configurations as part of the paper-minimum evaluation package.
+- Technical debt now tracks the concrete definition of context efficiency (`Q059`) and v2 comparator reporting shape (`Q060`).
+
+**Decision made / Problem encountered / Observation:**
+This is a thesis-alignment pass, not a new research branch. The next research action remains running scenario 001; the docs now make it clearer why that evidence matters.
+
+**Paper notes:**
+Section 1 should open on context economy. Section 3 should foreground LLM positioning. Section 5 should measure context efficiency and document comparator asymmetry explicitly. Section 7 should keep portability as a bounded horizon, not a current claim.

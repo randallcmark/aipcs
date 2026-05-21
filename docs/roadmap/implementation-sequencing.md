@@ -5,8 +5,8 @@
 The pattern is documented, the harness is in place, and the standalone `aipcs-server`
 prototype now proves the local MCP loop through service lifecycle, generic data operations,
 bootstrap, exact retrieval, additive schema evolution, and deterministic evaluation fixtures.
-The immediate priority is to tighten the research/paper framing around the core hypothesis:
-the agent decides and evolves the memory architecture. Hosting, hardening, OAuth/DCR, graph
+The immediate priority is to collect evidence for the core hypothesis: context economy improves
+when the agent can decide and evolve its own memory architecture. Hosting, hardening, OAuth/DCR, graph
 stores, and generated domain-specific tools are productisation or future-substrate work unless
 they directly support the evaluation.
 
@@ -168,11 +168,13 @@ layer once client restart/dynamic registration constraints are better understood
 2. Use deterministic `aipcs-server` evaluation fixtures to establish memory mechanics.
 3. Run closely timed live-agent traces against Claude/Codex-style harnesses.
 4. Compare against fixed-schema/pipeline memory (`agent-memory-v2`) at the level of architecture and behavior.
-5. Record vendor/model dates, visible model labels, prompts, tool surfaces, and transcripts.
-6. Explicitly separate deterministic memory mechanics from live-agent behavior.
-7. Treat graph databases, vector databases, homelab hosting, OAuth/DCR, public MCP, and generated domain tools as future work unless a specific evaluation question requires them.
+5. Run `agent-memory-v2` in two configurations where feasible: `v2-hybrid` as shipped, and `v2-schema-only` to isolate fixed-taxonomy behavior from semantic safety nets.
+6. Add context-efficiency measurement: tokens spent to retrieve and apply relevant facts across a scenario or longer session.
+7. Record vendor/model dates, visible model labels, prompts, tool surfaces, and transcripts.
+8. Explicitly separate deterministic memory mechanics from live-agent behavior.
+9. Treat graph databases, vector databases, homelab hosting, OAuth/DCR, public MCP, and generated domain tools as future work unless a specific evaluation question requires them.
 
-**Acceptance:** The paper can make a bounded claim about agent-owned memory architecture and schema evolution using local evidence, without implying production readiness.
+**Acceptance:** The paper can make a bounded claim about context-efficient, agent-owned memory architecture and schema evolution using local evidence, without implying production readiness.
 
 ---
 
@@ -212,13 +214,14 @@ layer once client restart/dynamic registration constraints are better understood
 
 1. Use `agent-memory-v2` as the fixed-schema/pipeline baseline.
 2. Use AIPCS as the agent-instantiated schema candidate.
-3. Include write and retrieval scenarios.
-4. Include stale-memory detection and repair scenarios.
-5. Include schema self-audit scenarios where the agent reviews whether existing memory is granular, queryable, non-duplicative, and lifecycle-aware.
-6. Include schema-rationale recall scenarios where the agent must explain why a schema changed by using migration history plus session records.
-7. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, duplicate-domain avoidance, and authority-boundary handling.
-8. Check that agents do not mischaracterise local/homelab memory as inherently cloud-backed.
-9. Keep memory mechanics separate from model/tool-use capability.
+3. Compare on shared scenario inputs and outcome-shaped artifacts, not identical internal pipelines.
+4. Include write and retrieval scenarios.
+5. Include stale-memory detection and repair scenarios.
+6. Include schema self-audit scenarios where the agent reviews whether existing memory is granular, queryable, non-duplicative, and lifecycle-aware.
+7. Include schema-rationale recall scenarios where the agent must explain why a schema changed by using migration history plus session records.
+8. Measure schema design effort, adaptation latency, retrieval quality, correction behavior, duplicate-domain avoidance, context efficiency, and authority-boundary handling.
+9. Check that agents do not mischaracterise local/homelab memory as inherently cloud-backed.
+10. Keep memory mechanics separate from model/tool-use capability.
 
 **Acceptance:** BUILD_JOURNAL and paper §5 contain agent-led traces that compare AIPCS with `agent-memory-v2` on both persistence and retrieval behavior.
 

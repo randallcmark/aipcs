@@ -28,11 +28,11 @@ Do not bulk-ingest every transcript by default. Preserve raw transcripts selecti
 
 | Section | Source material |
 |---|---|
-| 1. Introduction | Journal milestones, motivation, the AIPCS irony (building without AIPCS) |
+| 1. Introduction | Context economy framing, journal milestones, motivation, the AIPCS irony (building without AIPCS) |
 | 2. Background / Prior Art | Invention disclosure, BUILD_JOURNAL §2 running notes |
 | 3. The AIPCS Pattern | Pattern spec (distilled), `docs/architecture/index.md` |
 | 4. Reference Implementation | BUILD_JOURNAL §4 running notes, ADRs in `docs/architecture/decisions/` |
-| 5. Evaluation | BUILD_JOURNAL §5 running notes — token cost, latency, failure modes, schema evolution |
+| 5. Evaluation | BUILD_JOURNAL §5 running notes — context efficiency, token cost, latency, failure modes, schema evolution, comparator behavior |
 | 6. Discussion | BUILD_JOURNAL §6 running notes — generalisability, security implications, future work |
 | 7. Conclusion | Draft last |
 
@@ -41,8 +41,11 @@ Do not bulk-ingest every transcript by default. Preserve raw transcripts selecti
 - Target: **6–10 pages**, systems paper style
 - Venue: arXiv first (free, immediate timestamp and DOI), then optionally HotOS / SOSP / AI systems workshop
 - Tone: clear and precise, not breathless. The pattern stands on its own — don't oversell
+- Primary framing: context economy first, statelessness second. Statelessness is a symptom; context-window pressure is the stronger systems problem.
+- Primary contribution: LLM-upstream memory architecture. Developer-defined systems place the LLM downstream of memory; AIPCS places the LLM upstream as schema architect.
 - Prior art: cite all works in the invention disclosure; show clearly how each differs from AIPCS
 - Claims: anchor every novelty claim to observable behaviour in the reference implementation
+- Evaluation framing: compare systems on shared scenario inputs and outcome-shaped artifacts; do not force identical internals when the upstream/downstream distinction is the independent variable.
 
 ## When to write
 
