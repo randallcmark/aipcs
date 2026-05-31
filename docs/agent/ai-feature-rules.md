@@ -54,6 +54,23 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 - Do not ban prose records. Prose is valid for rationale, notes, and emerging structure; avoid prose blobs when narrower fields would better support future retrieval.
 - Multi-step procedures may later live as portable skills when they are better expressed as agent workflow than as atomic MCP tools. This is deferred and should not be confused with record content.
 
+## AIPCS orchestration hooks
+
+- Treat hooks as an optional orchestration layer around AIPCS, not as the core pattern.
+- Hooked discovery can make AIPCS more reliable without changing the important agent-owned decisions: what to persist, how to schema it, what to retrieve, and when to evolve it.
+- Evaluate hook variants explicitly:
+  - No enforcement: static instructions only.
+  - Soft orientation: inject a reminder or bootstrap summary at session/turn start.
+  - Hard enforcement: block non-bootstrap tool use until AIPCS orientation has happened.
+- Prefer soft orientation for research if static instructions prove too weak. It keeps discovery reliable while preserving persistence and schema agency.
+- Use hard enforcement only as an operational or productisation experiment. Do not present hard-enforced runs as evidence that the agent naturally chose to use AIPCS.
+- Any hook loop must be token-efficient. A hook that adds broad context every turn can defeat the context-economy motivation for AIPCS.
+- Candidate hook loops to evaluate later:
+  - session-start or first-turn bootstrap reminder
+  - post-compaction retrieval reminder
+  - lightweight between-turn persistence prompt
+  - periodic memory maintenance prompt for ageing, duplicates, stale records, or schema drift
+
 ## AIPCS memory authority layers
 
 - Keep static instruction files thin. They should make the agent aware of AIPCS, trigger bootstrap, and define broad persistence responsibilities; they should not become an evolving memory store.
@@ -62,6 +79,15 @@ This project IS an AI pattern. These rules apply to the design of AIPCS itself, 
 - Use session records to preserve why important memory or schema changes were made. Session records should capture durable rationale, not full transcripts.
 - Use feedback or memory-policy records for reusable behavioral rules about how to persist, retrieve, and maintain memory.
 - When explaining or evaluating a schema change, combine migration history with relevant session records rather than relying on static instructions alone.
+
+## Software work memory
+
+- Treat git as authoritative for what changed, not for the full process that produced the change.
+- AIPCS should capture process knowledge that git commonly loses: rationale, rejected approaches, implementation discoveries, known limitations, environmental constraints, and non-obvious patterns.
+- Do not duplicate git mechanically. The agent may duplicate or summarise git-derived facts in AIPCS when it can explain the future retrieval utility, such as area-level orientation, cross-commit synthesis, or a compact pointer from process memory to outcome history.
+- Store pointers such as `commit_ref` when they help connect process knowledge to the outcome record, but do not treat AIPCS as a second changelog by default.
+- Shape implementation memory around retrieval during future work. Fields such as `area`, `kind`, `summary`, `detail`, `commit_ref`, and `status` are useful because they map naturally to how an agent plans edits.
+- Retrieval agency is a design problem. Prefer bootstrap/entity descriptions and schema fields that make relevant implementation memory visible at the moment an agent is about to edit an area, rather than hardcoding broad "always search memory before coding" rules.
 
 ## Paper implications
 

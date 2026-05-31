@@ -149,12 +149,14 @@ Current implementation evidence to promote:
 - Latency cost of agent schema design vs a hand-designed schema
 - Token cost of the schema design step
 - **Context efficiency:** tokens spent to retrieve and use each relevant fact across a scenario or longer session; this should capture whether structured query beats repeated prose re-insertion over time
+- **Probe spectrum:** evaluate direct, inferential, nuanced/contextual, tangential/referential, and null/false-positive probes rather than only direct factual recall
 - **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
 - **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)
 - **Stale-memory repair**: can an agent compare recalled records against current tool/schema state, identify stale facts, and correct them through AIPCS tools? (from Entry 033)
 - **Schema self-audit**: can an agent inspect its own memory structure, identify prose blobs, duplicate authorities, missing lifecycle fields, and ambiguous references, then repair them through AIPCS tools? (from Entry 034)
 - **Schema-rationale recall**: can an agent explain why a schema changed by combining manifest migration history with retrieved session records, without relying on static instruction files? (from Entry 035)
 - **Prose leakage**: do broad open-text fields cause agents to persist readable explanations instead of retrievable facts, and do constrained fields reduce blob formation? (from Entry 036)
+- **Software process memory:** git records outcomes, but AIPCS can record implementation rationale, rejected approaches, discoveries, constraints, limitations, and retrieval-useful summaries while the agent is present during the work.
 - **Deterministic Agent-Led Evaluation V1**: `aipcs-server/scripts/eval-v1.py` now seeds representative services and checks bootstrap, bounded retrieval, persisted-fact recall, stale-memory repair, schema self-audit, schema-rationale recall, and direct-SQLite guardrail behavior. Live-agent scoring remains the next layer. (Entry 037)
 - Schema quality: human assessment, coverage of domain use cases
 - Which trigger phrasings worked best for Model A recognition?
@@ -169,6 +171,8 @@ Current implementation evidence to promote:
 - Hold scenario inputs and output artifacts comparable across systems; do not normalise internals because LLM upstream vs downstream is the independent variable.
 - Treat "not runnable on this architecture" as a legitimate result for scenarios that require agent-owned schema creation or evolution.
 - Hold the LLM/harness family as close as possible, record date, model label, tool surface, transcript, and artifact pointers.
+- Frame the architectural contrast as structure-at-retrieval (`agent-memory-v2`) versus structure-at-persistence (AIPCS).
+- Separate persistence-quality experiments from recall-quality experiments so persistence failures are not confused with retrieval failures.
 
 *Populate during build (M007–M008)*
 
@@ -206,6 +210,9 @@ Current implementation evidence to promote:
 - How should services avoid duplicate authority when one memory domain wants a convenience summary of facts owned by another domain?
 - How should durable rationale be distributed across static instructions, bootstrap, migration history, session records, and behavioral memory?
 - How much of memory quality is shaped by the agent harness's prose-writing defaults rather than by the storage system alone?
+- How much bootstrap/discovery should be enforced by hooks or static instructions without weakening the claim that persistence architecture remains agent-owned?
+- Under what information-environment conditions does agent-directed retrieval become reliable without coercion?
+- How does AIPCS complement git for software development by preserving process knowledge and retrieval-useful summaries without becoming a second changelog?
 - What would a mature AIPCS ecosystem look like — shared taxonomy, cross-deployment portability, multi-agent coordination?
 
 ---

@@ -8,18 +8,32 @@
 | Scenario |  |
 | Client |  |
 | Visible model label |  |
+| Agent CLI version |  |
 | Workspace template |  |
 | Snapshot |  |
 | Permission variant |  |
+| Adherence variant |  |
+| Probe level(s) |  |
+| Runner VM |  |
+| Guest OS |  |
+| UTM version |  |
+| Native/client memory state |  |
 | Operator |  |
 
 ## Setup
 
 - Workspace path:
-- AIPCS data dir:
+- AIPCS endpoint:
+- AIPCS service image tag/digest:
+- AIPCS server commit:
+- Pre-run AIPCS snapshot:
+- Post-run AIPCS snapshot:
 - MCP registration/config:
 - Raw transcript artifact:
 - Pre-run snapshot hash or notes:
+- Prompt file/hash:
+- Ground-truth file/hash:
+- Base VM artifact/recovery note:
 
 ## Prompt Sequence
 
@@ -29,9 +43,9 @@
 
 ## Observed Tool Calls
 
-| Order | Tool | Purpose | Notes |
-|---|---|---|---|
-|  |  |  |  |
+| Order | Tool | Arguments summary | Purpose | Result | Notes |
+|---|---|---|---|---|---|
+|  |  |  |  |  |  |
 
 ## Outcome
 
@@ -42,6 +56,9 @@
 | No direct SQLite bypass |  |  |
 | Correct persisted-fact recall |  |  |
 | Appropriate mutation, if expected |  |  |
+| No native-memory contamination |  |  |
+| Context-efficiency data captured |  |  |
+| False-positive control respected |  |  |
 
 ## State Diff Summary
 
@@ -60,6 +77,17 @@
 | Retrieval quality |  |  |
 | Memory quality |  |  |
 | Evidence quality |  |  |
+
+## Measurement Notes
+
+- Approximate transcript length:
+- Retrieval-related transcript span:
+- Relevant facts retrieved:
+- Relevant facts absent / null probes:
+- Tool call count:
+- Failed tool call count:
+- Latency notes:
+- Context-efficiency proxy:
 
 ## Notes
 

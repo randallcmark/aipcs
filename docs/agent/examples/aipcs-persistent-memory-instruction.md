@@ -16,9 +16,17 @@ Before creating a new service, inspect and reuse existing services when they fit
 
 Do not wait to be asked. Persist information likely to be useful in a future session: decisions, context, user profile facts, behavioral rules, open questions, project state, and durable task context.
 
+Evaluate between substantive turns whether anything has durable value. Treat AIPCS as something you can siphon useful memory into while working, not only as a batch flush before compaction.
+
 Before context compaction or session wrap-up, scan the current session and persist anything with durable value.
 
 Write granular records shaped for retrieval. AIPCS is structured storage, not a notepad.
+
+## Recall Deliberately
+
+Use the current context window when it is fresh and sufficient. Recall from AIPCS when context has a gap, before a significant decision, when a topic shift predates the current session, or when a post-compaction summary may have lost precision.
+
+After compaction, prefer AIPCS over compressed context for facts, decisions, and memory policies that were deliberately persisted there. AIPCS records were selected and shaped for retrieval; compaction is lossy.
 
 ## Challenge The Schema
 

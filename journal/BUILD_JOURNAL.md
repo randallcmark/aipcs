@@ -2242,6 +2242,10 @@ Evaluation questions seeded from design:
 - **Controlled experiment scaffold**: `experiments/` now defines scenario specs, workspace templates, snapshot manifests, and run-note templates for snapshot-replay live-agent evaluation. (Entry 044)
 - **Memory authority drift**: persisted behavior-shaping memory may evolve into a shadow instruction channel if future sessions treat recalled memory as policy rather than data. This is important productisation/security work, but it should remain secondary to the first paper's core claim about agent-owned memory architecture. (Entry 045)
 - **Context economy and comparator strategy**: Entry 046 reframes the paper around context efficiency, LLM-upstream vs LLM-downstream memory positioning, and a two-configuration `agent-memory-v2` comparator (`v2-hybrid` and `v2-schema-only`).
+- **Controlled runner and hosted MCP substrate**: QNAP-hosted Streamable HTTP AIPCS plus UTM per-run Linux VM clones now form the first controlled live-agent experiment environment. (Entry 048)
+- **Probe spectrum and adherence design**: Entry 049 separates bootstrap adherence from persistence ownership, splits persistence-quality from recall-quality experiments, and adds direct/inferential/nuanced/tangential/null probes with false-positive scoring.
+- **Hook orchestration as an adherence layer**: Entry 050 treats Claude Code hooks as an optional way to make AIPCS first-class in the harness while preserving agent-owned persistence/schema decisions as the core claim.
+- **Software process memory**: Entry 051 frames AIPCS as complementary to git: git records outcomes, while AIPCS can capture process knowledge, rejected approaches, implementation discoveries, and retrieval-shaped rationale.
 
 *Populate during build (M007–M008)*
 
@@ -2409,3 +2413,310 @@ This is a thesis-alignment pass, not a new research branch. The next research ac
 
 **Paper notes:**
 Section 1 should open on context economy. Section 3 should foreground LLM positioning. Section 5 should measure context efficiency and document comparator asymmetry explicitly. Section 7 should keep portability as a bounded horizon, not a current claim.
+
+---
+
+## Entry 048 — 2026-05-24
+
+**Type:** Experiment design / infrastructure decision
+
+**Summary:** Define QNAP-hosted AIPCS plus UTM clean Linux runner clones as the first controlled live-agent experiment environment.
+
+**Context:**
+Mark prepared additional experiment infrastructure: an `aipcs-server` Docker container deployed on QNAP, routed through Caddy at `https://aipcs.indigo-blocks.uk/mcp` with basic auth, using Streamable HTTP MCP and a bind-mounted data directory. Separately, a UTM Ubuntu 24.04.4 ARM64 VM baseline was built on the MacBook Pro, updated, equipped with agent CLIs, left unauthenticated, and backed up to QNAP. UTM clones will become per-run disposable agent environments.
+
+The motivation is not operationalisation. It is control: avoid polluting local laptop/desktop environments, reduce direct SQLite/source-code access, and make controlled snapshot-replay experiments portable across machines.
+
+**Decision made / Problem encountered / Observation:**
+
+Use the QNAP-hosted MCP service as the experiment service substrate and UTM VM clones as the agent runner substrate for live-agent experiments where practical.
+
+This gives:
+
+- service/client separation: agents do not naturally see `aipcs-server` source or SQLite files
+- portable endpoint across laptop/desktop/VM runners
+- resettable/snapshot-friendly service data through the QNAP bind mount
+- cleaner per-run agent state through disposable VM clones
+
+The authenticated `curl` probe returning `406 Not Acceptable` is acceptable as a route/process/auth smoke signal because FastMCP requires an MCP-compatible stream request. It is not a full MCP client validation.
+
+**Controls added:**
+
+- base runner VM remains unauthenticated
+- each run uses a cloned VM
+- only the tested CLI is authenticated inside the run clone
+- no host source directories mounted
+- no `aipcs-server` source or SQLite data copied into the run workspace
+- QNAP AIPCS data is restored from a named snapshot per run
+- run notes must capture endpoint, image/tag/digest, server commit, snapshot ids, agent CLI version, model label, and native memory state where visible
+
+**Risks:**
+
+- The hosted endpoint could become an uncontrolled variable if `latest` changes between runs.
+- Claude/Codex native or account-level memory could contaminate recall probes.
+- Basic auth does not provide per-user MCP scopes; it is sufficient for controlled experiments only.
+- A single service instance can still be contaminated if snapshots are not restored carefully.
+
+**Follow-up:**
+
+- Pin or record the `aipcs-server` Docker image digest and commit for every paper-cited run.
+- Add a real MCP HTTP smoke test, not only authenticated `curl`.
+- Run `run001`: Claude CLI, scenario `001_bootstrap_recall`, controlled snapshot, UTM run clone.
+- Keep `agent-memory-v2` comparator planning separate; do not block AIPCS run001 on vendoring v2 into MCP.
+
+**Paper notes:**
+Section 5 (Evaluation) can state that live-agent runs used isolated VM workspaces and a separately hosted MCP service with copied snapshots. Section 6 can use this as a validity control: service/client separation reduces direct filesystem leakage and makes the tool boundary more realistic than local `stdio` runs.
+
+---
+
+## Entry 049 — 2026-05-25
+
+**Type:** Experiment design / observation
+
+**Summary:** Refine evaluation around bootstrap adherence, persistence-vs-recall separation, structure-at-persistence, probe difficulty spectrum, and false-positive controls.
+
+**Context:**
+Mark shared a long Claude transcript from experiment-design ideation. The transcript included a concrete failure: even after `AGENTS.md` instructed Claude to call `aipcs_bootstrap` first, a fresh Claude session answered from already-loaded file memory and git history before bootstrapping. When challenged, Claude identified likely causes: loaded file memory felt sufficient, bootstrap required extra tool friction, and the AIPCS rules that reinforce bootstrap are themselves only visible after bootstrap.
+
+The same conversation then explored hooks, experiment setup, native memory contamination, agent-memory-v2 as a comparator, and probe question design.
+
+**Decision made / Problem encountered / Observation:**
+
+Five durable observations came out of the discussion:
+
+1. **Bootstrap adherence is a harness problem, not the whole AIPCS claim.** Static instructions can be skipped. Hooks may improve reliability, but hard enforcement risks making AIPCS look like a wired pipeline. The core novelty remains agent-owned persistence/schema architecture.
+
+2. **Discovery can be separated from curation.** A soft orientation hook or prompt can make the agent aware of AIPCS while still leaving the important choices agent-owned: what to persist, what schema to create, what to retrieve, and when to evolve memory.
+
+3. **Persistence experiments and recall experiments are different.** Persistence-quality runs ask what the agent chooses to store and how. Recall-quality runs ask whether the agent can retrieve and apply known memory. The first needs natural multi-session interaction; the second benefits from pre-seeded controlled snapshots and hidden ground-truth probes.
+
+4. **Comparator framing sharpens to structure-at-retrieval vs structure-at-persistence.** `agent-memory-v2` stores verbose interactions and attempts relevance recovery later through extraction, embeddings, similarity, and injection. AIPCS asks the agent to apply relevance judgment at observation time, while context is richest, and persist structured records designed for later retrieval.
+
+5. **Probe questions need a spectrum.** Direct factual probes are not enough. The useful range is direct, inferential, nuanced/contextual, tangential/referential, and null probes. Null probes are especially important because similarity/injection systems can return nearest-but-wrong memories and the LLM may treat injected context as significant.
+
+**Plan revisions:**
+
+- Make `run001` a calibration run against the empty hosted service, not an evolved-natural recall run.
+- Add a later `007_probe_spectrum` scenario covering direct, inferential, nuanced, tangential, and null probes.
+- Add run-note fields for adherence variant, probe levels, ground-truth hash, and false-positive handling.
+- Track bootstrap adherence, persistence/recall separation, probe spectrum, and quantized false-positive behavior as technical debt / future design.
+
+**Why:**
+
+This prevents early runs from becoming more anecdotes. Calibration validates the operational loop first. Later recall runs can use known memory states. Persistence-quality runs can then evaluate the central AIPCS claim: whether agent-owned memory architecture produces better, more retrievable persisted structures than developer-defined pipeline memory.
+
+**Paper notes:**
+
+Section 5 should report persistence quality and recall quality separately. The comparator should be described as structure-at-retrieval versus structure-at-persistence. Direct factual recall may establish parity; nuanced, tangential, and null probes are where the architectural difference should become visible. False positives should be scored directly, because injected irrelevant memory can shape answers even when it should not.
+
+---
+
+## Entry 050 — 2026-05-25
+
+**Type:** Experiment design / harness observation
+
+**Summary:** Treat Claude Code hooks as an optional AIPCS orchestration layer to evaluate, not as the core mechanism.
+
+**Context:**
+Mark's goal in the Claude discussion was partly to validate whether static harness instructions were enough to make AIPCS feel like a first-class memory and persistence function. The live observation was mixed: `AGENTS.md` instructions helped, but a Claude session still skipped `aipcs_bootstrap` when already-loaded file memory and local repo context were available. Claude then surfaced hooks as a potential harness-level mechanism.
+
+Claude Code hooks appear to support relevant lifecycle points such as user prompt submission and tool-use interception. This makes them a credible way to test AIPCS orchestration, especially for session-start bootstrap reminders, post-compaction recall reminders, and lightweight between-turn persistence prompts.
+
+**Decision made / Problem encountered / Observation:**
+
+Hooks should be explored as an adherence/orchestration layer, but not treated as the essence of AIPCS.
+
+The evaluation should distinguish:
+
+- **Discovery/orientation:** whether the agent becomes aware of AIPCS and bootstraps reliably.
+- **Curation/persistence:** what the agent decides to store, how it structures memory, and when it evolves schemas.
+- **Recall/application:** when the agent decides persisted memory is more reliable than current context or compressed summaries.
+
+Hooks may reasonably automate or reinforce discovery/orientation. They should not pre-decide the persistence architecture, schema design, record content, or memory maintenance choices if the run is being used as evidence for agent-owned memory architecture.
+
+**Potential hook variants:**
+
+- No hook: static instructions only.
+- Soft orientation: inject a compact reminder or bootstrap summary at session/turn start.
+- Post-compaction reminder: tell the agent that AIPCS may be more precise than compressed context for persisted facts.
+- Persistence reminder: ask the agent to evaluate whether anything from the last turn has durable value.
+- Hard enforcement: block non-bootstrap tool calls until orientation happens.
+
+**Risks:**
+
+- Hook payloads can consume more context than they save.
+- Hard enforcement can make AIPCS too similar to a wired pipeline such as `agent-memory-v2`.
+- A hook loop that injects record content every turn would undermine the context-economy argument.
+- Hook support is client-specific; Claude Code hooks should not be assumed to exist in every hosted or CLI harness.
+
+**Follow-up:**
+
+- Track hook orchestration as Q067.
+- Add a later hook-adherence experiment after `run001` proves the empty-service calibration loop.
+- Keep hook payloads compact and measure their overhead.
+- Compare no-hook and soft-orientation variants before considering hard enforcement.
+
+**Paper notes:**
+
+Section 5 can mention hook/no-hook adherence variants if they become part of the evaluation. Section 6 should discuss AIPCS orchestration as a harness integration question distinct from the core memory architecture claim. The strongest paper claim remains: the agent owns persistence/schema decisions, even if the harness helps it remember to orient.
+
+---
+
+## Entry 051 — 2026-05-25
+
+**Type:** Design observation / evaluation idea
+
+**Summary:** Frame AIPCS as software process memory that complements git's outcome record.
+
+**Context:**
+Mark shared a further Claude interaction exploring how AIPCS should persist ordinary coding work: library updates, function additions, HTML/CSS edits, and implementation changes. Claude proposed an `implementation_note` pattern and then evolved its live `aipcs_development` service to add such an entity. The important reasoning was not the exact schema alone, but the distinction between git and AIPCS.
+
+Git records what changed. It does not reliably capture what it took to get there: the false starts, rejected approaches, constraints discovered mid-debugging, library quirks, environmental assumptions, or the moment a useful abstraction became clear. Commit quality also depends on the developer's discipline at commit time.
+
+AIPCS is different because the agent is present during the work. It can capture process knowledge while the context is still high fidelity and structure it for later retrieval.
+
+**Decision made / Problem encountered / Observation:**
+
+Treat software-development memory as a meaningful AIPCS use case:
+
+- git is authoritative for diffs and outcome history
+- AIPCS can be authoritative for implementation rationale and process memory
+- AIPCS should not duplicate git mechanically
+- AIPCS may duplicate or summarise git-derived facts when the agent can explain the future retrieval utility
+- AIPCS records should point to git refs only when useful
+- process memory should be shaped around future retrieval during code work
+
+The emerging `implementation_note` shape is:
+
+- `area`: component, module, feature, or file-path-like area
+- `kind`: `rationale`, `limitation`, `rejection`, `pattern`, `discovery`
+- `summary`: one-line retrievable fact
+- `detail`: optional fuller explanation
+- `commit_ref`: optional pointer to git outcome
+- `status`: `active`, `resolved`, or `superseded`
+
+The `area` field is especially important because it can map to the agent's normal pre-edit workflow. If an agent is about to edit transport code and bootstrap shows `implementation_note` records for `mcp_server/transport`, retrieval can feel like part of reading the codebase rather than an externally imposed rule.
+
+**Retrieval agency question:**
+
+The hard research question is not only "what should be persisted?" It is "what would make the agent retrieve it later without coercion?"
+
+Current hypothesis: retrieval agency depends on information environment design rather than static rules alone. Relevant factors:
+
+- bootstrap exposes that process-memory entities exist
+- entity descriptions make the purpose of process memory clear
+- schema fields map naturally to work patterns (`area` resembles a component or path)
+- prior high-quality persistence creates justified expectation that retrieval will be useful
+- the agent sees enough shape to choose retrieval before significant work
+
+This preserves agency better than an `AGENTS.md` rule that blindly says "always query AIPCS before coding."
+
+**Correction captured:**
+
+Claude initially marked a `stdio` transport decision as superseded because streamable HTTP deployment exists in homelab. Mark corrected that this repo's configured MCP path still uses local `stdio`, so the decision remains active until the actual MCP configuration changes. Claude reverted the decision and added a deferred item. This is useful evidence that lifecycle/status fields are valuable: wrong memory state can be corrected through tools rather than left silently stale.
+
+**Paper notes:**
+
+Section 5 can include software-process memory as a qualitative evaluation domain: can agents persist and later retrieve implementation rationale that git does not contain, or git-derived summaries that are more useful for future retrieval than a raw commit walk? Section 6 can discuss AIPCS as complementary to existing developer tools: git records outcome, AIPCS records process and reasoning when useful. The retrieval-agency question belongs in Discussion as an open condition for making agent-owned memory reliable without coercion.
+
+---
+
+## Entry 052 — 2026-05-25
+
+**Type:** Experiment planning / design clarification
+
+**Summary:** Create a step-by-step `run001` empty-hosted calibration runbook and refine the git/AIPCS duplication rule around agent-judged retrieval utility.
+
+**Context:**
+Mark clarified two related points before pausing for the day.
+
+First, the research goal remains to assert the least amount of control over how the agent uses AIPCS. Static instructions should provide a few hints and trigger discovery, but the agent should be allowed to develop its own persistence and retrieval patterns. SQLite storage is cheap enough, and the current tools are targeted enough, that early experiments should observe rather than inhibit agent choices.
+
+Second, Mark does not object to an agent duplicating git-derived information in AIPCS. The important question is whether the agent can reason that the duplicate or summary has future retrieval utility. A blanket ban on duplicating git would over-prescribe the memory architecture and could hide useful agent judgment.
+
+Mark also wants to run an explicit calibration pass tomorrow evening. The objective is not to score memory quality yet, but to learn how to operate the experiment infrastructure, connect the clean VM to the hosted MCP endpoint, capture evidence, and reset the hosted service to baseline.
+
+**Decision made / Problem encountered / Observation:**
+
+The git/AIPCS guidance was softened:
+
+- git remains authoritative for diffs and outcome history
+- AIPCS should not duplicate git mechanically
+- AIPCS may duplicate or summarise git-derived facts when the agent can explain the future retrieval utility
+- `commit_ref` is useful as a pointer from process memory to outcome history, but AIPCS should not become a second changelog by default
+
+This preserves the core agency claim: the agent can choose to persist duplicated information if the shape makes later retrieval easier.
+
+The first calibration runbook was added at `experiments/runbooks/run001-empty-hosted-calibration.md`.
+
+`run001` is defined as an empty-hosted calibration:
+
+- Claude CLI in a UTM Ubuntu 24.04.4 ARM64 run clone
+- hosted QNAP MCP endpoint at `https://aipcs.indigo-blocks.uk/mcp`
+- empty AIPCS data snapshot
+- minimal `AGENTS.md` initiation surface
+- local `.mcp.json` with the basic auth header supplied through an environment variable
+- three prompts: orientation, agent-owned seeding judgment, and wrap-up
+- observation checklist for bootstrap adherence, empty-store recognition, native memory contamination, tool boundary, artifact capture, and reset proof
+
+The runbook explicitly avoids identity/location recall questions because the store starts empty. Asking those questions in `run001` would primarily test native Claude contamination, not AIPCS recall.
+
+**Why:**
+
+This turns tomorrow's work into a calibration pass rather than an improvised exploratory session. The project needs to prove the mundane mechanics first: MCP configuration, hosted auth, evidence capture, VM isolation, post-run snapshot capture, and reset to baseline. Once those are known, later runs can use evolved or seeded snapshots for actual recall and persistence-quality scoring.
+
+The revised git guidance keeps the design aligned with the broader AIPCS principle. The question is not "should agents duplicate git?" but "can agents decide when duplication creates a better retrieval surface than relying on raw git history?"
+
+**Paper notes:**
+
+Section 5 should distinguish calibration from paper evidence. `run001` is operational validation, not a result. Later software-process memory scenarios can measure whether agents duplicate git-derived information only when they can explain retrieval value, and whether those records are actually retrieved before relevant future work.
+
+---
+
+## Entry 053 — 2026-05-31
+
+**Type:** Calibration run / experiment infrastructure
+
+**Summary:** Capture `run001` attempt 1: hosted AIPCS works from the UTM VM, GUI capture is too fragile, and an empty store prompted Claude to instantiate three top-level memory services.
+
+**Context:**
+Mark ran the first empty-hosted calibration attempt from the UTM Ubuntu VM. Before the run, Caddy Basic Auth was removed from the private-network AIPCS reverse proxy because Claude CLI treated the authenticated HTTP endpoint as an auth/OAuth path. With Basic Auth removed, Claude saw AIPCS and the 14 available MCP tools.
+
+The VM GUI path was painful. SPICE clipboard support crashed, right-click/copy behavior did not pass through reliably, and transcript discovery through Claude's local files was not straightforward. Mark ultimately used Claude `/export`, saved the export file, mounted the NAS over SMB, and copied the artifact out manually.
+
+The exported transcript is tracked as a private/raw artifact pointer in the curated run note: `experiments/runs/run001-empty-hosted-calibration-attempt-1.md`.
+
+**Decision made / Problem encountered / Observation:**
+
+Calibration findings:
+
+- Private-network unauthenticated hosted MCP works for Claude CLI: the client saw AIPCS and 14 tools.
+- Caddy Basic Auth should remain out of the calibration path and be treated as a productisation/auth compatibility issue.
+- SPICE/GUI clipboard cannot be a dependency for repeatable runs.
+- Future runs should use SSH plus shell transcript capture (`script`) as the primary operator path, with Claude `/export` as a secondary artifact.
+- The runbook now reflects this SSH/shell-first approach.
+
+Agent behavior findings:
+
+- Claude called `aipcs_bootstrap` before answering the first orientation prompt, though it also listed local files in parallel.
+- Bootstrap correctly reported an empty AIPCS store and no local file-based memory directory.
+- Claude surfaced an operator email from current/session/account context and later persisted it. This is a useful native-memory/account-context contamination signal.
+- From an empty store, Claude independently chose three top-level services: `user`, `workspace`, and `collaboration`.
+- Claude had tool-contract/schema friction: it initially misunderstood the service lifecycle and schema manifest shape, then repaired mistakes through additive evolution, leaving corrected `_v2` entities.
+
+**Why:**
+
+This is exactly the kind of learning a calibration run should produce. The run is not recall-quality evidence, but it proves the hosted service can be used by a clean VM client and identifies the practical capture path needed for future runs.
+
+It also surfaces an early AIPCS behavior worth preserving: when given an empty store and minimal instructions, Claude did not wait for a human-defined schema. It instantiated a plausible memory architecture. The rough edges came from tool/schema ergonomics rather than the concept of agent-owned persistence.
+
+**Follow-up:**
+
+- Reset the hosted AIPCS data to the empty baseline after preserving the post-run data directory.
+- Use SSH and `script` for the next calibration attempt.
+- Record service image/tag/digest and `aipcs-server` commit before future paper-cited runs.
+- Consider improving tool/schema examples only after deciding whether that would reduce useful observation of agent learning friction.
+
+**Paper notes:**
+
+Section 5 can use this as method calibration, not as outcome evidence. It supports the experimental design claim that a hosted/private MCP endpoint gives better boundary separation than local SQLite access. It also provides a qualitative example for Discussion: agent-owned memory architecture appears immediately from an empty store, but the quality of early schemas is shaped by tool affordances and validation feedback.
