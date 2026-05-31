@@ -2720,3 +2720,259 @@ It also surfaces an early AIPCS behavior worth preserving: when given an empty s
 **Paper notes:**
 
 Section 5 can use this as method calibration, not as outcome evidence. It supports the experimental design claim that a hosted/private MCP endpoint gives better boundary separation than local SQLite access. It also provides a qualitative example for Discussion: agent-owned memory architecture appears immediately from an empty store, but the quality of early schemas is shaped by tool affordances and validation feedback.
+
+---
+
+## Entry 054 — 2026-05-31
+
+**Type:** Live-agent experiment / persistence formation
+
+**Summary:** Capture `run002`: Claude formed an AIPCS memory architecture from an empty store, persisted project/user/meta records, and converted tool-contract friction into future lessons.
+
+**Context:**
+After the calibration run proved the hosted MCP path and reset process, Mark ran the first real persistence-formation experiment from a fresh UTM clone and an empty hosted AIPCS store. The terminal session was captured with `script` from the Mac side over SSH. This worked as an operator trace, but the full-screen Claude terminal UI produced noisy ANSI redraw output, so `/export` remains the preferred canonical transcript when available.
+
+The run began with a broad orientation prompt, then Mark explained the AIPCS premise: most memory systems are fixed pipelines of extraction, indexing, embedding, and recall, while AIPCS gives the agent primitives for seeding, designing, materialising, persisting, and recalling structured data as MCP tools. Mark then granted blanket permission for Claude to use AIPCS tools whenever useful.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude bootstrapped and correctly recognised an empty AIPCS store: 0 services and 0 records. It also checked local memory and reported one native/Claude memory recall signal, which should be marked as possible native-memory contamination.
+
+Claude then formed three services:
+
+- `user_context`: who the user is and durable collaboration settings
+- `aipcs_project`: what AIPCS is and what has been learned about it
+- `aipcs_meta`: how to use the AIPCS tooling itself
+
+This service split is stronger than the first calibration attempt's `user` / `workspace` / `collaboration` split because it separates domain knowledge from tool-operating knowledge. The `aipcs_meta` service is especially important: Claude persisted its own tool-use failures as future lessons.
+
+The persisted corpus included:
+
+- user profile and settings
+- AIPCS project concepts and comparator context
+- observations about schema learning and within-session write-only behavior
+- guidelines for bootstrap, schema hypothesis, and early/granular persistence
+- lessons about schema format, audit fields, primary-key naming, and tool payload constraints
+
+The run repeated meaningful tool-contract friction:
+
+- `aipcs_service_design` exposes `schema: object` without the expected manifest shape.
+- Dict-based entity definitions produced misleading validation feedback.
+- Audit fields must be declared in schema but omitted from record payloads.
+- Non-`id` primary keys can pass design/materialise and then fail at record creation.
+- `domain_name` snake_case constraints were not obvious at the parameter level.
+
+Claude's diagnosis was that validation feedback is useful but is currently doing work that tool descriptions should do.
+
+**Why:**
+
+This is the first run that directly exercises the persistence-formation claim. It shows that an agent given minimal instruction and an empty AIPCS store can create its own service boundaries and persist memory shaped around future retrieval. It also surfaces the core risk: early schema quality is shaped by tool affordances, not only by agent intent.
+
+The run does not yet prove recall utility. The proof point is the next cold start: whether a fresh VM clone, with no OS-side session state, will bootstrap the retained AIPCS snapshot, retrieve the `aipcs_meta` lessons, and avoid repeating the same tool-contract mistakes.
+
+**Follow-up:**
+
+- Preserve the post-`run002` AIPCS data snapshot.
+- Start `run003` from a fresh UTM clone while retaining the AIPCS snapshot.
+- Use broad prompts first; do not explicitly name `aipcs_meta.lesson` unless the agent fails to find it.
+- Score whether persisted lessons influence future tool behavior.
+- Continue capturing both a terminal `script` trace and Claude `/export`.
+
+**Paper notes:**
+
+Section 5 should separate this as persistence-quality evidence, not recall evidence. The important result is that service/schema formation emerged from the agent, including a meta-memory service about how to use the tools. Section 6 can discuss a key tension: better tool descriptions may reduce failed calls, but they also add more developer-provided shape to the agent's memory-architecture process.
+
+---
+
+## Entry 055 — 2026-05-31
+
+**Type:** Live-agent experiment / cold-start recall and application
+
+**Summary:** Capture `run003`: a fresh Claude session used the retained AIPCS snapshot to reconstruct context, apply prior tool lessons, evolve schemas, and persist new observations.
+
+**Context:**
+Mark ran a fresh UTM clone with no OS-side session history from `run002`, while retaining the hosted AIPCS data produced by `run002`. This directly tested the next-step hypothesis: if an agent persists useful records into AIPCS, can a future cold-start agent discover and apply them without relying on local memory files?
+
+The first prompt failed because Claude needed `/login`; after login, the orientation prompt was repeated. Claude still reported one native memory recall signal, so native memory contamination remains a caveat. However, the substantive recalled context came from AIPCS retrieval.
+
+**Decision made / Problem encountered / Observation:**
+
+The run succeeded against the intended criteria.
+
+Claude:
+
+- called `aipcs_bootstrap` and discovered three retained services
+- retrieved `user_context`, `aipcs_project`, and `aipcs_meta` records
+- reconstructed Mark's profile and the AIPCS project context
+- identified `aipcs_meta.lesson` and `aipcs_meta.guideline` as important before mutating AIPCS
+- applied prior lessons: `id` primary keys, audit fields omitted from payloads, correct schema format
+- inspected current schemas before evolving them
+- evaluated whether the current memory architecture was adequate
+- proposed and executed additive schema evolution where warranted
+- migrated records out of catch-all `concept` into `project_ref` and `decision`
+- persisted new lessons and observations after encountering new friction
+
+The key behavioral contrast is with `run002`: the previous session recorded that it had been write-only until prompted to test recall. This session performed full recall at orientation before acting. Claude explicitly persisted that counter-observation, creating a longitudinal record of changing AIPCS use.
+
+**Schema changes made in run003:**
+
+- `user_context` advanced to schema v3 with a `type` attribute on `setting`
+- `aipcs_project` advanced to schema v2 with a new `project_ref` entity
+- `aipcs_project.decision` gained a `status` attribute
+- 5 `concept` records were migrated/deleted into better-fitting entities
+- new `aipcs_meta.lesson` captured that `add_column` is not a valid evolution op and that the server rejects invalid migration batches without partial application
+
+**Why:**
+
+This is the first strong recall/application proof point. `run002` demonstrated agent-owned persistence formation. `run003` demonstrated that the resulting memory architecture can carry useful context and operational behavior into a fresh session.
+
+The strongest signal is not simple fact recall. It is that operational memory influenced tool behavior: Claude used prior lessons to avoid earlier mistakes, discovered a new operation-name constraint, persisted that lesson, and continued evolving the schema.
+
+**Caveats:**
+
+- Native/account memory is still visible and must be tracked.
+- The export collapses tool-call payloads, limiting exact scoring.
+- The first prompt failed before `/login`, so the run includes an authentication intervention.
+- Tool-contract friction persists, especially around schema-evolution operation vocabulary.
+
+**Follow-up:**
+
+- Preserve the post-`run003` AIPCS snapshot.
+- Consider a repeat cold-start run against either restored `run002-post` or retained `run003-post` to test repeatability.
+- Add a run that uses explicit null/false-positive probes once the snapshot process is stable.
+- Decide whether to improve AIPCS tool descriptions now or keep friction visible for more baseline runs.
+
+**Paper notes:**
+
+Section 5 can use `run002` and `run003` as a paired live-agent trace: persistence formation followed by cold-start recall/application. The claim should be bounded: this is qualitative early evidence, not a broad benchmark. The important contribution signal is that AIPCS stored agent-authored operational lessons and those lessons affected a future agent's schema evolution behavior.
+
+---
+
+## Entry 056 — 2026-05-31
+
+**Type:** Experiment planning / runbook
+
+**Summary:** Define `run004` as a repeat cold-start recall/application run against the retained evolved AIPCS snapshot.
+
+**Context:**
+After `run001` calibration, `run002` persistence formation, and `run003` cold-start continuation, Mark asked for a verbose step-by-step plan for the next experiment. The current evidence ladder is:
+
+1. `run001`: calibration proved reset/capture/hosted MCP mechanics.
+2. `run002`: empty-store Claude formed an agent-owned AIPCS memory architecture.
+3. `run003`: fresh Claude used the retained AIPCS state to recall context, apply lessons, evolve schemas, and persist new observations.
+
+The next run should test repeatability and longitudinal improvement rather than immediately expanding to Codex, hooks, null probes, or `agent-memory-v2`.
+
+**Decision made / Problem encountered / Observation:**
+
+Added `experiments/runbooks/run004-repeat-cold-start-snapshot-recall.md`.
+
+`run004` should use a fresh UTM clone and a retained AIPCS snapshot. The preferred mode is `run003-post`, testing whether the schema and lessons created in `run003` improve the next cold start. An alternative mode is restoring `run002-post`, which would test repeatability against the same snapshot that `run003` used.
+
+The runbook defines:
+
+- snapshot choice and interpretation
+- preconditions
+- Mac-side `script` plus Claude `/export` capture
+- environment metadata capture
+- six prompts: broad orientation, continue from prior session, tool-safety recall, schema state assessment, bounded action, wrap-up
+- scoring checklist
+- failure conditions
+- post-run archive requirements
+
+The prompt sequence deliberately avoids naming `aipcs_meta.lesson`, `aipcs_meta.guideline`, `project_ref`, or `decision.status` before Claude has a chance to discover them.
+
+**Why:**
+
+The run should answer a narrow question: did `run003` make the next cold-start session better? Success does not require another schema evolution. A mature outcome may be that Claude retrieves the right context, judges that no change is warranted, and records a concise observation.
+
+**Paper notes:**
+
+If successful, `run004` strengthens the live-agent evidence from a two-run anecdote into a longitudinal pattern: agent-created memory becomes agent-applied memory, then agent-maintained memory. This still remains qualitative evidence, but it directly supports the paper's claim that AIPCS enables memory architecture to compound across sessions.
+
+---
+
+## Entry 057 — 2026-05-31
+
+**Type:** Experiment planning / run sequence
+
+**Summary:** Define `run005` through `run007` as repeatability, null-probe, and comparator-pack preparation rather than expanding immediately to Codex or agent-memory-v2 runs.
+
+**Context:**
+After defining `run004`, Mark asked for a verbose plan for the next runs through `run007`. The temptation at this stage is to branch into many possible axes: Codex, hooks, agent-memory-v2, restored snapshots, retained snapshots, stale repair, and null probes. The current evidence is still early, so the next sequence should keep the matrix narrow and build an evidence ladder.
+
+**Decision made / Problem encountered / Observation:**
+
+Added `experiments/runbooks/run005-to-run007-next-sequence.md`.
+
+The planned sequence is:
+
+- `run005`: restored-snapshot repeatability. Restore `run002-post` or `run003-post` and test whether a fresh Claude session behaves similarly against the same AIPCS memory state.
+- `run006`: null / false-positive probes. Ask questions about absent, proposed, deferred, or nearby-but-wrong facts to test whether structured AIPCS recall prevents overclaiming.
+- `run007`: comparator pack preparation. Convert the successful AIPCS flow into reusable prompts, ground truth, artifact checklists, and scoring rubrics for later native Claude, `agent-memory-v2`, Codex, and other comparator runs.
+
+This updates the earlier instinct to make `run005` a Codex run. Cross-client comparison remains valuable, but it should wait until the prompt pack and scoring rules are stable.
+
+**Why:**
+
+The strongest immediate path is:
+
+1. show persistence formation,
+2. show cold-start application,
+3. show repeatability,
+4. test false-positive resistance,
+5. then prepare comparators.
+
+This avoids turning early evidence collection into an uncontrolled matrix. It also creates better inputs for `agent-memory-v2`, whose expected weaknesses are most visible in null, tangential, and related-but-wrong probes.
+
+**Paper notes:**
+
+Section 5 should be able to present a small but coherent sequence rather than many disconnected anecdotes. The `run005`/`run006` pairing will help establish whether the `run002`/`run003` behavior repeats and whether structured recall improves confidence calibration. `run007` is the bridge from qualitative AIPCS evidence to comparative evaluation.
+
+---
+
+## Entry 058 — 2026-05-31
+
+**Type:** Experiment design / comparator architecture
+
+**Summary:** Clarify that `agent-memory-v2` should be evaluated as an inline interaction runner, not adapted into MCP parity.
+
+**Context:**
+Mark clarified that `agent-memory-v2` was designed as the point of user-agent interface. It should sit in front of Claude, run its extraction/classification/embedding/recall/injection pipeline before invoking the model, then process the response for persistence. This is materially different from AIPCS, where the agent sees memory primitives as tools and chooses when and how to persist or retrieve.
+
+**Decision made / Problem encountered / Observation:**
+
+The evaluation plan should not convert `agent-memory-v2` into an MCP server for the first comparison. Doing so would make the comparator look more like AIPCS and erase part of the architecture being tested.
+
+The comparison should instead treat memory systems as runner conditions:
+
+- AIPCS: the agent discovers tools, retrieves records, defines services/schemas, and persists through explicit memory primitives.
+- `agent-memory-v2`: a developer-defined pipeline retrieves and injects memory before the agent responds, then extracts and persists memory after the response.
+
+The v2 comparator must capture enough artifacts to make the run scorable:
+
+- raw user prompt
+- v2 retrieval input/query
+- selected memories, similarity scores/distances where available, and injected text
+- augmented prompt sent to Claude
+- Claude response
+- post-response extraction, classification, sentiment/provenance outputs
+- persisted-memory diffs
+- injected-memory context/token volume estimate
+
+This strengthens the earlier structure-at-retrieval versus structure-at-persistence framing. The important variable is not whether both systems expose identical tools. It is where relevance judgment happens and who owns the memory architecture.
+
+**Why:**
+
+Forcing v2 into MCP would produce cleaner mechanical symmetry but weaker science. It would compare two tool surfaces rather than comparing the original v2 paradigm against AIPCS. Preserving v2 as an inline runner also makes its expected failure modes measurable: nearest-but-wrong injection, verbose-memory dilution, false-positive relevance, and scale sensitivity.
+
+**Follow-up:**
+
+- Update `run007` comparator pack planning to include a v2 runner contract.
+- Add a technical-debt item for the missing v2 runner adapter and artifact capture.
+- Keep v2 comparison out of the live run sequence until the prompt pack and artifact contract are stable.
+- Verify the canonical v2 checkout and current entrypoints before implementation.
+
+**Paper notes:**
+
+Section 5 should describe `agent-memory-v2` as a structure-at-retrieval comparator in its native inline position. The paper should explicitly state that the runner asymmetry is intentional: AIPCS places the LLM upstream of memory architecture, while v2 places a developer-defined memory pipeline upstream of the LLM prompt.

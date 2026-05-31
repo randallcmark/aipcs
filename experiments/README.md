@@ -44,11 +44,12 @@ The first pilot should be intentionally small:
 | Run | Client | Scenario | Snapshot | Purpose |
 |---|---|---|---|---|
 | `run001` | Claude CLI | `001_bootstrap_recall` calibration variant | `empty-hosted` | Prove clean-runner + hosted MCP + transcript/run-note/reset workflow; first attempt captured in `runs/run001-empty-hosted-calibration-attempt-1.md`. |
-| `run002` | Claude CLI | `001_bootstrap_recall` | `evolved-natural` | Test bounded recall against a controlled memory snapshot. |
-| `run003` | Claude CLI | `001_bootstrap_recall` | same snapshot restored | Check repeatability against the same client. |
-| `run004` | Codex CLI | `001_bootstrap_recall` | same snapshot restored | Compare tool-use discipline and recall behavior across clients. |
-| `run005` | Claude CLI | `002_stale_memory_repair` | `stale` | Test repair once basic recall is proven. |
-| `run006` | Claude/Codex TBD | `007_probe_spectrum` | seeded spectrum fixture | Test direct, inferential, nuanced, tangential, and null probes after mechanics are stable. |
+| `run002` | Claude CLI | empty-store persistence formation | `empty-hosted` | Observe agent-owned service/schema formation from an empty store; captured in `runs/run002-empty-store-persistence-formation.md`. |
+| `run003` | Claude CLI | cold-start snapshot recall/application | `run002-post` | Fresh VM clone against retained AIPCS data; successful recall/application captured in `runs/run003-cold-start-snapshot-recall-application.md`. |
+| `run004` | Claude CLI | repeat cold-start snapshot recall/application | `run003-post` or restored `run002-post` | Check repeatability and whether schema evolution improves the next cold start; procedure in `runbooks/run004-repeat-cold-start-snapshot-recall.md`. |
+| `run005` | Claude CLI | restored-snapshot repeatability | restored `run002-post` or `run003-post` | Check whether a fresh Claude session behaves similarly against the same AIPCS state; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
+| `run006` | Claude CLI | null / false-positive probe | retained or restored evolved snapshot | Test whether structured recall avoids overclaiming when related-but-wrong memory exists; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
+| `run007` | N/A or Claude/Codex TBD | comparator pack preparation | scenario artifacts | Convert the successful AIPCS flow into reusable prompts, ground truth, and scoring for later native/v2/Codex comparisons; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
 
 ## Evidence Levels
 

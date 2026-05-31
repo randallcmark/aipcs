@@ -166,9 +166,11 @@ Current implementation evidence to promote:
 
 **Comparator methodology (from Entry 046):**
 - Use `agent-memory-v2` as the owned fixed-schema/pipeline comparator.
+- Evaluate `agent-memory-v2` in its native position as an inline interaction runner, not as an MCP tool/server. The flow is user input → v2 pre-processing/retrieval/injection → Claude invocation → v2 post-response extraction/persistence.
 - Run `v2-hybrid` as the strong practical baseline: semantic router + structured extractor + taxonomy.
 - Run `v2-schema-only` as the cleaner fixed-schema lower bound: taxonomy path without semantic/vector safety net where feasible.
 - Hold scenario inputs and output artifacts comparable across systems; do not normalise internals because LLM upstream vs downstream is the independent variable.
+- Capture comparator artifacts: raw prompt, retrieval input, selected/injected memories, similarity scores where available, augmented prompt, model response, post-response extraction/classification outputs, persisted-memory diffs, and injected context volume.
 - Treat "not runnable on this architecture" as a legitimate result for scenarios that require agent-owned schema creation or evolution.
 - Hold the LLM/harness family as close as possible, record date, model label, tool surface, transcript, and artifact pointers.
 - Frame the architectural contrast as structure-at-retrieval (`agent-memory-v2`) versus structure-at-persistence (AIPCS).

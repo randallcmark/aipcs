@@ -4,7 +4,7 @@
 **Owner:** Agent
 **Created:** 2026-05-18
 **Last updated:** 2026-05-31
-**BUILD_JOURNAL entries:** Entry 037, Entry 042, Entry 044, Entry 048, Entry 049, Entry 052, Entry 053
+**BUILD_JOURNAL entries:** Entry 037, Entry 042, Entry 044, Entry 048, Entry 049, Entry 052, Entry 053, Entry 054, Entry 055
 
 ---
 
@@ -379,6 +379,19 @@ Use this as the core comparator frame:
 - `agent-memory-v2`: structure-at-retrieval. It stores verbose interactions and tries to recover relevance later through extraction, similarity, and injection.
 - AIPCS: structure-at-persistence. The agent decides what matters while context is richest and designs records/schema around anticipated retrieval.
 
+For the first comparison, do not convert `agent-memory-v2` into an MCP server. It should be evaluated as its original inline interaction runner: pre-process the user's input, retrieve/inject memory, invoke Claude, then post-process the response and persist extracted memory. AIPCS remains a tool-mediated memory substrate that the agent discovers and uses. This runner asymmetry is not a confound to remove; it is part of the architectural contrast being measured.
+
+Required `agent-memory-v2` comparator artifacts:
+
+- raw user prompt
+- v2 retrieval input/query
+- selected memories, similarity scores/distances where available, and injected text
+- augmented prompt sent to Claude
+- Claude response
+- post-response extraction/classification/sentiment/provenance outputs
+- persisted memory diffs
+- injected-memory context/token volume estimate
+
 This predicts scale and nuance differences:
 
 - direct facts should be closer to parity
@@ -445,6 +458,11 @@ This predicts scale and nuance differences:
 | 2026-05-25 | Added bootstrap-adherence spectrum, persistence-vs-recall distinction, structure-at-persistence comparator frame, and probe-spectrum/null-probe plan. |
 | 2026-05-25 | Added hook orchestration as an explicit adherence variable and updated the portable AIPCS instruction with between-turn persistence and post-compaction recall heuristics. |
 | 2026-05-31 | Captured `run001` attempt 1 and updated the runbook to use SSH/shell transcript capture instead of VM GUI copy/paste. |
+| 2026-05-31 | Captured `run002` as the first empty-store persistence-formation run; next run should cold-start against the retained snapshot. |
+| 2026-05-31 | Captured `run003` as a successful cold-start recall/application run against the retained `run002` AIPCS snapshot. |
+| 2026-05-31 | Added a verbose `run004` runbook for repeat cold-start recall/application against `run003-post` or restored `run002-post`. |
+| 2026-05-31 | Added verbose run planning for `run005` restored-snapshot repeatability, `run006` null/false-positive probes, and `run007` comparator pack preparation. |
+| 2026-05-31 | Clarified `agent-memory-v2` as an inline pre/post Claude runner condition, not an MCP/tool condition, and added required comparator artifacts. |
 
 ## Decisions Made During Work
 
@@ -462,6 +480,7 @@ This predicts scale and nuance differences:
 | Treat null probes as first-class evaluation cases | Similarity/injection systems can over-apply nearest memories; structured retrieval can return no result and let the agent reason about absence. |
 | Evaluate hooks as variants, not defaults | Hooks may make AIPCS feel first-class in the harness, but they can also coerce behavior and add token cost. |
 | Use SSH/shell capture as the default operator path | VM GUI clipboard and SPICE behavior are too fragile for repeatable evidence capture; `script` and `/export` provide more reliable artifacts. |
+| Treat `agent-memory-v2` as an inline runner comparator | Forcing v2 into MCP would erase its original architecture; compare raw/augmented prompts, injected memory, retrieval scores, responses, and memory diffs instead. |
 
 ## Validation
 
