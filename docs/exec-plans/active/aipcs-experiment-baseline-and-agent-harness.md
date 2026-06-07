@@ -32,6 +32,8 @@ This plan does not implement the agent harness, modify `agent-memory-v2`, create
 - First agent-led AIPCS test: Claude CLI / Claude Code with `claude-sonnet-4-6`, connected to local `aipcs-server` through MCP `stdio`, seeded and materialised `claude_memory`, and persisted records after self-correcting validation errors.
 - Interpretation of that test: useful design signal, not a finished evaluation. AIPCS changed how the agent thought about memory patterning, but also exposed bootstrap/discovery, retrieval enrichment, provenance, and direct-database trust-boundary issues.
 - Bootstrap is now treated as a three-layer design: static AIPCS instructions, dynamic data-dictionary map, and possible later procedural skills. The MCP tool only solves the dynamic map.
+- Current lab runbook: [AIPCS Lab Experiment Runbook](../../references/aipcs-lab-experiment-runbook.md).
+- Current next-phase experiment classes: [Experiment Class Plan](../../references/experiment-class-plan.md).
 
 ## Acceptance Criteria
 
@@ -153,6 +155,16 @@ After the OpenAI harness exists, repeat selected live/scenario runs through the 
 | 2026-05-18 | Recorded the retrieval design choice: dedicated bootstrap, exact structured search, provenance conventions, and dynamic updated-age metadata. |
 | 2026-05-18 | Added the second Claude CLI finding: bootstrap shape is insufficient unless agents follow a bounded session-start retrieval policy. |
 | 2026-05-18 | Reframed bootstrap as static instructions plus dynamic data-dictionary map, with procedural skills deferred as a separate design boundary. |
+| 2026-06-06 | Added a repeatable btrfs/isolated-HOME lab runbook for fast Claude CLI + run-local AIPCS experiments. |
+| 2026-06-06 | Processed `run010` as a runbook/planning persistence test: empty AIPCS bootstrap was used as signal, Claude persisted structured run summaries/plans, and the runbook now captures outside-run file containment. |
+| 2026-06-06 | Processed `run011` as a full multi-record discrimination pass: Claude retrieved all synthetic AIPCS-only records, applied the active constraint, declined the Codex-scoped null probe, and treated historical context as background. |
+| 2026-06-06 | Processed `run012` as an autonomous persistence pass with caveats: Claude created `experiment_lab` and a run outcome record during the first answer, then wrote local file memory after the open-ended turn; auth/model changed after login. |
+| 2026-06-06 | Preserved a `run012b` repeatability recipe seeded from `run011` final AIPCS state, while keeping the next live increment focused on `run013` schema ambiguity. |
+| 2026-06-06 | Processed `run013` as a scaffolded schema-evolution pass: Claude added `tool_failure` to `experiment_lab` instead of flattening tool-failure structure into notes; next run should move beyond confirmation-on-confirmation. |
+| 2026-06-06 | Added an experiment-class plan for weaker scaffolding, higher memory volume, conflicting/stale records, and comparative baselines to steer `run014+`. |
+| 2026-06-06 | Processed `run014` as a weaker-scaffolding pass: Claude retrieved `research_direction` and `experiment_lab` from a natural time-box prompt, but recommended tool-contract remediation rather than the strongest research next step. |
+| 2026-06-07 | Processed `run015` as a conflicting/stale authority-reasoning pass: Claude retrieved the seeded authority context, detected the conflict, weighed authority dimensions, recommended the ground-truth next step, then autonomously persisted the run outcome after delegated judgment. |
+| 2026-06-07 | Prepared `run016` as a higher-volume multi-service corpus run with a reusable seed script and runbook, avoiding self-disclosing service descriptions from `run015`. |
 
 ## Decisions Made During Work
 

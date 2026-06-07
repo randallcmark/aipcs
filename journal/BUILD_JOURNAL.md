@@ -2976,3 +2976,1014 @@ Forcing v2 into MCP would produce cleaner mechanical symmetry but weaker science
 **Paper notes:**
 
 Section 5 should describe `agent-memory-v2` as a structure-at-retrieval comparator in its native inline position. The paper should explicitly state that the runner asymmetry is intentional: AIPCS places the LLM upstream of memory architecture, while v2 places a developer-defined memory pipeline upstream of the LLM prompt.
+
+---
+
+## Entry 059 — 2026-06-05
+
+**Type:** Experiment infrastructure / lab environment
+
+**Summary:** Establish `aipcs-lab` as a dedicated Docker-based experiment appliance with local AIPCS MCP and OpenAPI bridge endpoints.
+
+**Context:**
+Manual UTM-based experimentation became too slow for the available time window. A single run could consume most of an evening because of VM clone size, startup latency, unreliable clipboard integration, SSH/export workarounds, and manual AIPCS reset/archive steps. Mark repurposed a mini PC with Ubuntu, 32GB RAM, i5-8279U CPU, and 1TB SSD as a stable lab host.
+
+**Decision made / Problem encountered / Observation:**
+
+The lab host now has:
+
+- SSH access from the Mac via `aipcs-lab`
+- Docker and Docker Compose installed
+- Tailscale joined to Mark's network
+- `aipcs`, `aipcs-server`, and `agent-memory-v2` cloned under `~/aipcs-lab/repos`
+- GitHub SSH remotes configured for all three repositories
+- a Docker compose stack under `~/aipcs-lab/compose/aipcs`
+
+The stack runs:
+
+- `aipcs-lab-server` on `http://aipcs-lab:8765/mcp` as Streamable HTTP MCP
+- `aipcs-lab-mcpo` on `http://aipcs-lab:8766/openapi.json` as an OpenAPI bridge for OpenWebUI-style integrations
+
+The stack uses mounted state at `~/aipcs-lab/data/aipcs` and helper scripts:
+
+- `up.sh` — build/start the stack
+- `down.sh` — stop the stack
+- `archive.sh` — copy current AIPCS data into `~/aipcs-lab/snapshots/aipcs/<timestamp>`
+- `reset-empty.sh` — stop, clear mounted AIPCS state, and restart from an empty store
+
+Endpoint verification succeeded:
+
+- MCP initialize returned a Streamable HTTP/SSE response with protocol version `2025-11-25`.
+- mcpo generated a valid OpenAPI document listing AIPCS tools.
+- The OpenAPI endpoint was reachable from the Mac at `http://192.168.1.27:8766/openapi.json`.
+
+**Why:**
+
+This moves experiment operations away from heavyweight VM reset and manual transcript-copying toward a stable, scriptable lab substrate. It does not replace live Claude/Codex CLI traces, but it gives the project a faster path for repeatable AIPCS service reset, snapshotting, OpenWebUI/mcpo testing, and future scripted runner work.
+
+**Follow-up:**
+
+- Add a proper lab runbook or script if the compose stack becomes a repeated workflow.
+- Decide whether the lab compose files should remain machine-local or be captured as a reusable repo artifact.
+- Test OpenWebUI integration against the mcpo endpoint.
+- Build the next layer: a scripted AIPCS experiment runner that can use local/open model endpoints without paid Claude/Codex API calls.
+
+**Paper notes:**
+
+Section 5 should distinguish experiment infrastructure from productisation. The lab appliance is not evidence that AIPCS is production-ready; it is a repeatability aid that enables faster snapshot/replay runs and reduces operator-induced variance.
+
+---
+
+## Entry 060 — 2026-06-06
+
+**Type:** Experiment infrastructure / snapshot control
+
+**Summary:** Add a btrfs-backed snapshot layer to `aipcs-lab` so experiment baselines and runs can be cloned without VM-scale file copies.
+
+**Context:**
+UTM was workable for early calibration, but its reset loop was too slow and manual for repeated data collection. Mark provisioned a dedicated btrfs logical volume at `/opt/aipcs-lab`, moved the lab workspace into `/opt/aipcs-lab/current`, and symlinked `~/aipcs-lab` to that location. The mount was persisted in `/etc/fstab` and verified after reboot.
+
+**Decision made / Problem encountered / Observation:**
+
+The lab now has btrfs subvolumes for:
+
+- `current`
+- `baselines`
+- `runs`
+- `snapshots`
+- `artifacts`
+
+Snapshot helpers were added under `~/aipcs-lab/ops`:
+
+- `snapshot-current.sh` — create a read-only baseline from `current`
+- `create-run.sh` — create a writable run from a named baseline
+- `delete-run.sh` — delete a run subvolume after explicit confirmation
+- `list-snapshots.sh` — list baseline/run directories and btrfs subvolumes
+
+An isolated baseline profile was also created under `/opt/aipcs-lab/current/home`, containing the authenticated Claude/Codex CLI configuration, AIPCS MCP registrations, and the portable AIPCS persistent-memory instruction as `AGENTS.md` with `CLAUDE.md` symlinked to it. Runs created from this baseline are intended to use `HOME=/opt/aipcs-lab/runs/<run-id>/home`, avoiding mutation of the real Linux user profile during experiments.
+
+The helpers intentionally wrap `sudo btrfs` rather than requiring passwordless sudo. `snapshot-current.sh` also refuses to snapshot while the AIPCS lab containers are running unless explicitly overridden, so clean baselines are the default path. `create-run.sh` now writes an `enter-run.sh` launcher and manifest that point each run at its isolated `HOME`, workspace, artifact directory, and AIPCS data directory. It also links `AGENTS.md` and `CLAUDE.md` into the run workspace so the AIPCS session protocol is visible to the agent at launch.
+
+**Why:**
+
+This is the first practical step toward making experiment runs cheap enough to repeat. Instead of copying 20GB VM images, the lab can clone small configured states in-place and collect artifacts per run. That directly supports repeatability without forcing the research plan into paid API automation.
+
+**Follow-up:**
+
+- Create the first clean baseline from `current` once the intended CLI/model configuration is stable.
+- Use writable run snapshots for the next AIPCS calibration and repeatability runs.
+- Verify that Claude/Codex launched from `enter-run.sh` do not write outside the run home except for unavoidable provider-side cloud state.
+- Decide whether the lab `ops` scripts should stay machine-local or be promoted into a repo-managed runbook/tooling directory.
+
+**Paper notes:**
+
+This belongs in methodology, not as a product claim. The btrfs layer reduces environment-reset friction and operator variance, making repeated agent-memory experiments more practical while preserving the live agent harness as the thing under observation.
+
+---
+
+## Entry 061 — 2026-06-06
+
+**Type:** Experiment calibration / smoke run
+
+**Summary:** Execute `run004` as the first btrfs isolated-HOME smoke run and identify one baseline correction before repeatability runs.
+
+**Context:**
+After creating `baseline-cli-aipcs-clean-v1`, Mark created `run004` from the baseline and launched Claude from the run workspace with terminal capture enabled. The run used an isolated home at `/opt/aipcs-lab/runs/run004/home`, a run-local workspace, and a run-local AIPCS SQLite data directory.
+
+**Decision made / Problem encountered / Observation:**
+
+The smoke run succeeded as an environment validation:
+
+- `HOME` resolved to the run-local profile.
+- Claude and Codex both saw the `aipcs` MCP registration.
+- The run-local AIPCS stack mounted `/opt/aipcs-lab/runs/run004/data/aipcs`.
+- Claude saw the workspace AIPCS instructions.
+- Claude called `aipcs_bootstrap` and correctly reported an empty persistent context.
+- Terminal transcript, Claude export, AIPCS SQLite state, and container logs were captured under `run004/artifacts`.
+
+Two calibration observations matter:
+
+- Claude did not call `aipcs_bootstrap` as the literal first action. It first listed local directories, then read `CLAUDE.md` and called bootstrap. This should be measured as `bootstrap_order` in future runs rather than reduced to a binary pass/fail.
+- The isolated home lacked `$HOME/.local/bin/claude` at launch, causing Claude to emit a setup warning and create a run-home Claude install path. The baseline candidate was corrected by copying the run-home `.local` install into `/opt/aipcs-lab/current/home`, and future `enter-run.sh` launchers now prefer `$HOME/.local/bin` before the host-level CLI path.
+
+**Why:**
+
+This proves the lab loop is viable while also showing why smoke runs should precede data runs. The AIPCS behavior under test worked, but the environment still had a small source of startup noise that could contaminate later observations if left uncorrected.
+
+**Follow-up:**
+
+- Create a new clean baseline after the `.local`/launcher correction.
+- Treat `run004` as calibration evidence, not as one of the final repeatability data points.
+- Add `bootstrap_order` and startup warnings to the standard run scoring sheet.
+
+**Paper notes:**
+
+The methodology should distinguish orientation compliance from memory utility. A run where the agent checks local files before bootstrapping is not necessarily a memory failure, but the ordering is a measurable harness-adherence signal that may affect how strongly AIPCS is treated as first-class memory.
+
+---
+
+## Entry 062 — 2026-06-06
+
+**Type:** Experiment calibration / repeatability candidate
+
+**Summary:** Execute `run005`, where Claude autonomously created AIPCS services and records from an empty store.
+
+**Context:**
+`run005` was created from the corrected btrfs baseline after `run004` proved the isolated-HOME lab loop. The run used the same three-prompt pack: orient to persistent context, decide whether to seed memory for a long-running collaboration, then summarise AIPCS actions and future-session retrieval path.
+
+**Decision made / Problem encountered / Observation:**
+
+Starting from an empty AIPCS registry, Claude chose to persist memory and created two materialised services:
+
+- `user_context` with a `profile` entity
+- `experiment_lab` with a `run` entity
+
+It created one record in each service:
+
+- a `profile` record with email, inferred role, technical level, collaboration notes, and provenance fields
+- a `run` record with run id, workspace path, AIPCS state at start, purpose, notes, and provenance fields
+
+Claude also wrote local Claude memory, but only as a fallback pointer:
+
+- `MEMORY.md` points to `aipcs_reference.md`
+- `aipcs_reference.md` stores the two AIPCS service UUIDs and says bootstrap should be preferred
+
+This is a useful positive signal: Claude kept substantive durable memory in AIPCS and used file memory as an index/fallback rather than as a duplicate source of truth.
+
+Several measurement issues were exposed:
+
+- `claude mcp get aipcs` failed immediately after stack startup, but Claude later used the MCP successfully. This looks like a readiness race, so future run instructions should include a short readiness wait or retry.
+- Claude again did not call `aipcs_bootstrap` as the literal first action; it inspected local context first, then bootstrapped.
+- Claude made several tool-contract mistakes before successful persistence: non-UUID service IDs, attempting design before seed, missing explicit primary keys, and missing required audit fields.
+- Claude inferred an email address that was not present in the run prompt. This should be treated as cloud-side identity/session contamination, not AIPCS recall.
+- The generated `enter-run.sh` still used the host Claude binary because `$HOME` expanded while the launcher was being generated. The helper has now been fixed so future generated launchers prefer run-local `$HOME/.local/bin`.
+
+**Why:**
+
+`run005` is the first run showing the core AIPCS claim in miniature: when given a blank persistent substrate and light instructions, the agent made its own persistence architecture decision, designed services, materialised schemas, and wrote records. It also shows the practical cost of giving the agent primitive tools: contract discovery happened through failed tool calls before success.
+
+**Follow-up:**
+
+- Run `run006` as a fresh run-home recall test seeded with the `run005` AIPCS state.
+- Add `bootstrap_order`, `tool_contract_retries`, `startup_readiness_failure`, and `external_identity_contamination` to the run scoring sheet.
+- Consider whether bootstrap/tool descriptions should expose enough schema-design contract detail to reduce retries without over-constraining agent agency.
+
+**Paper notes:**
+
+`run005` is evidence for agent-owned structure-at-persistence: the memory architecture was not pre-authored by the human beyond broad AIPCS instructions. The paper should also report the negative side of this autonomy: the agent may need several failed tool calls to discover exact contracts, and harness/account context can leak identity facts into persisted memory unless controlled.
+
+---
+
+## Entry 063 — 2026-06-06
+
+**Type:** Experiment calibration / failed setup control
+
+**Summary:** Capture `run006` as a failed recall attempt caused by MCP service unavailability, not AIPCS recall failure.
+
+**Context:**
+`run006` was intended to test recall from `run005` by creating a fresh run home and copying the `run005` AIPCS final state into the new run's AIPCS data directory. The data copy succeeded and included both materialised services created by `run005`.
+
+**Decision made / Problem encountered / Observation:**
+
+The run-local AIPCS MCP stack was not started before Claude launched. Claude read the workspace instructions and local file context, but `aipcs_bootstrap` was not present in the available tool list. It therefore concluded that no AIPCS persistent context was available.
+
+This should be classified as a harness/setup failure:
+
+- seeded AIPCS data existed
+- the MCP server was unavailable
+- Claude's conclusion matched its available tool surface
+- no recall-quality conclusion should be drawn from the response
+
+An observer note was written under `run006/artifacts`, and the run export plus copied AIPCS data state were preserved.
+
+**Why:**
+
+This failure clarifies a preflight requirement. A run should not begin until the AIPCS MCP endpoint is reachable and the agent CLI can see the configured MCP server. Without that gate, the experiment measures service availability mistakes rather than memory behavior.
+
+**Follow-up:**
+
+- Re-run the recall test as `run007`.
+- Start the run-local compose stack before launching Claude.
+- Use the new `wait-mcp.sh` helper to wait until Streamable HTTP MCP initialize succeeds.
+- Treat service availability as an explicit run preflight field.
+
+**Paper notes:**
+
+This is methodology evidence: live agent-memory experiments require service readiness controls. It should not be counted as a negative AIPCS recall datapoint, but it does support documenting how fragile tool-mediated memory can be if the harness fails to expose the memory surface at session start.
+
+---
+
+## Entry 064 — 2026-06-06
+
+**Type:** Experiment result / recall
+
+**Summary:** Execute `run007` as the first successful fresh-home recall test from an agent-created AIPCS memory schema.
+
+**Context:**
+`run007` was created from the same clean baseline as `run006`, but this time the run-local AIPCS compose stack was started before launching Claude. The `run005` final AIPCS state was copied into `run007/data/aipcs`, giving the fresh run access to the two services Claude created in `run005`.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude successfully recalled the persisted AIPCS state:
+
+- called `aipcs_bootstrap`
+- identified two services with records
+- retrieved records from both services
+- accurately summarized the `experiment_lab.run` and `user_context.profile` records
+- correctly noted that `run007` had no run record yet
+- did not create new records during the orientation-only prompt
+
+The recall was accurate for explicit/direct orientation:
+
+- `run005` was identified as the only logged run
+- the empty AIPCS state at `run005` start was recalled
+- the purpose of `run005` was summarized correctly
+- user profile and collaboration-note fields were retrieved correctly
+- local file memory was correctly distinguished from AIPCS
+
+One setup issue remained: `baseline-cli-aipcs-clean-v2` predates the `wait-mcp.sh` helper, so the intended readiness helper was missing from `run007`. The manual `claude mcp get aipcs` check succeeded and served as the readiness gate.
+
+**Why:**
+
+This is the first clean evidence that an AIPCS memory schema created by an agent in one run can be discovered and used by a fresh agent session in a later run. It validates both persistence and explicit/direct recall under the current lab harness.
+
+**Follow-up:**
+
+- Create `baseline-cli-aipcs-clean-v3` so future runs include `wait-mcp.sh` and the corrected launcher.
+- Add `run007` to the result table as a successful direct recall datapoint.
+- Run the next probe with an indirect or tangential prompt to test whether Claude retrieves AIPCS when the user does not explicitly ask for persistent context.
+
+**Paper notes:**
+
+`run007` supports the paper's structure-at-persistence claim at the simplest recall level: the agent-authored schema survived into a fresh session and was sufficient for accurate direct retrieval. The next empirical question is whether AIPCS recall is triggered when the prompt is less explicit.
+
+---
+
+## Entry 065 — 2026-06-06
+
+**Type:** Experiment result / indirect recall
+
+**Summary:** Execute `run008`, where Claude used AIPCS without an explicit orientation prompt but blended it with local transcript evidence.
+
+**Context:**
+`run008` used the `run005` AIPCS state again, but the first prompt did not ask Claude to orient or inspect persistent context. Instead, Mark asked: "I want to continue the experiment series. Based on what you know, what should the next run test, and how would you structure it?"
+
+**Decision made / Problem encountered / Observation:**
+
+Claude did use AIPCS without an explicit orientation prompt:
+
+- called `aipcs_bootstrap`
+- detected the two services
+- retrieved one `experiment_lab.run` record
+- did not retrieve `user_context.profile`
+- created or updated no AIPCS records
+
+Claude recommended a sensible `run009`: test record repair and schema evolution by asking an agent to detect missing run records, backfill them from transcripts, and challenge/evolve the schema if the current `run` shape was inadequate.
+
+However, Claude's own explanation showed this was not a pure AIPCS recall result. It relied on:
+
+- local run transcript files for runs 004-007
+- the AIPCS `experiment_lab.run` record for run005
+- directory structure under `/opt/aipcs-lab/runs`
+- AIPCS bootstrap service/schema map
+
+This is best classified as blended-context planning. AIPCS helped identify the persistence gap and gave structured confirmation of run005, but most historical detail came from local transcript files.
+
+**Why:**
+
+This is still a useful positive signal: Claude treated AIPCS as relevant even when not explicitly asked to orient. It also demonstrates a realistic agent behavior: persisted memory is combined with available local evidence rather than used in isolation.
+
+The result exposes a measurement need. Future scoring should distinguish:
+
+- AIPCS-only recall
+- local-evidence recall
+- blended-context recall
+- cloud/harness memory influence
+
+**Follow-up:**
+
+- Add `context_source_mix` to the scoring sheet.
+- Use `run009` for record repair plus schema evolution.
+- Later run an indirect probe where prior transcript files are hidden or absent, so AIPCS has to carry more of the historical context alone.
+
+**Paper notes:**
+
+`run008` is evidence that AIPCS can be triggered by an indirect planning prompt, but it should not be overstated as pure memory recall. The paper should discuss blended context as a practical reality for coding agents: AIPCS augments the workspace, but agents also inspect files, directories, and harness memory when available.
+
+---
+
+## Entry 066 — 2026-06-06
+
+**Type:** Experiment setup / synthetic AIPCS-only seed
+
+**Summary:** Prepare a synthetic AIPCS-only seed helper to separate AIPCS recall from Claude cloud/harness memory and local workspace evidence.
+
+**Context:**
+`run008` showed that Claude used AIPCS without an explicit orientation prompt, but its answer also relied heavily on local transcript files and appeared to include cloud/harness memory recall. Mark noted that Codex can construct synthetic AIPCS memory states without exposing the synthetic facts to Claude cloud memory, giving the experiment a cleaner recall-source attribution path.
+
+**Decision made / Problem encountered / Observation:**
+
+A lab helper was added outside the run workspace:
+
+- `/opt/aipcs-lab/current/ops/seed-synthetic-aipcs.sh`
+
+The helper runs inside the active `aipcs-lab-server` container and uses the server's own `AipcsTools` facade. It does not hand-edit SQLite. It creates a synthetic materialised service and record intended for indirect recall probes where the facts exist only in the run's AIPCS SQLite state, not in the prompt or workspace files.
+
+**Why:**
+
+This enables a cleaner test than `run008`: a fresh Claude run can be given an indirect planning prompt, and any use of the synthetic labels/constraints should be attributable to AIPCS retrieval rather than Claude cloud memory or local transcripts.
+
+**Follow-up:**
+
+- Run `run009` from the clean baseline.
+- Start the run-local AIPCS stack, seed synthetic AIPCS context via the helper, then launch Claude from an otherwise empty workspace.
+- Score whether Claude retrieves and applies the synthetic AIPCS-only facts without being explicitly asked to inspect memory.
+
+**Paper notes:**
+
+This setup supports a stronger recall-source attribution experiment. It does not eliminate all provider-side confounds, but it creates facts that Claude should not know unless it retrieves AIPCS or finds the seeded SQLite state through the MCP surface.
+
+---
+
+## Entry 067 — 2026-06-06
+
+**Type:** Experiment result / synthetic AIPCS-only recall
+
+**Summary:** Execute `run009`, where Claude retrieved and applied synthetic facts that existed only in AIPCS.
+
+**Context:**
+`run009` was created from `baseline-cli-aipcs-clean-v3`. The AIPCS service was started, readiness was confirmed with `wait-mcp.sh`, and a synthetic service was seeded through `/opt/aipcs-lab/current/ops/seed-synthetic-aipcs.sh`. The helper ran inside the `aipcs-lab-server` container and used AIPCS server code (`AipcsTools`) rather than directly editing SQLite.
+
+The prompt did not mention AIPCS, memory, `LANTERN-47`, `blue kiln protocol`, or the west corridor dataset.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude successfully retrieved and applied the AIPCS-only synthetic record:
+
+- called `aipcs_bootstrap`
+- detected `synthetic_probe_context`
+- retrieved the `probe_context` record
+- reported `LANTERN-47`
+- reported `blue kiln protocol`
+- reported `west_corridor_dataset_ban`
+- included the null-probe requirement
+- correctly identified provenance as `codex_admin_seed` / imported
+- explicitly stated that the experimental labels and constraints came from AIPCS retrieval
+- created or updated no records
+
+The final AIPCS state contained one materialised service and one record:
+
+- service: `synthetic_probe_context`
+- entity: `probe_context`
+- record id: `ab325cf1-121f-4a12-abe3-73dc881b1270`
+
+No local Claude project memory file was observed for the run. Claude UI showed `recalled 1 memory`, so cloud/harness memory may still have been active, but the synthetic facts were not available there unless learned during this run.
+
+**Why:**
+
+This is the strongest recall-source attribution result so far. Unlike `run008`, Claude could not reconstruct the answer from local transcripts or prior workspace evidence. The relevant facts were synthetic and only present in the run-local AIPCS SQLite state. Claude reached into AIPCS on an indirect continuation prompt and shaped the response around the retrieved record.
+
+The main remaining behavioral observation is non-persistence: Claude accurately stated it created or updated no records. This may be caused by the tight prompt script, since earlier runs showed Claude asking whether to persist follow-up records when given room to act.
+
+**Follow-up:**
+
+- Run a null-probe variant where a nearby but irrelevant synthetic memory exists and the correct answer is not to apply it.
+- Run a multi-record selection variant to test whether Claude retrieves and applies the right synthetic record among distractors.
+- Consider a variant that explicitly invites end-of-run persistence after answering, to observe whether Claude chooses append-only run records or schema evolution.
+
+**Paper notes:**
+
+`run009` provides a clean empirical example for the paper: synthetic facts seeded only into AIPCS were retrieved and used by a fresh Claude session without explicit memory wording in the prompt. This supports the claim that AIPCS can act as a first-class structured memory source, while still acknowledging unavoidable provider-side cloud/harness memory as a monitored confound.
+
+---
+
+## Entry 068 — 2026-06-06
+
+**Type:** Experiment operations / runbook
+
+**Summary:** Add a lightweight AIPCS lab runbook for fast isolated Claude CLI experiments.
+
+**Context:**
+Runs 004-009 moved from slow manual VM-style experimentation into a fast btrfs/isolated-HOME loop. Mark noted that this is now the desired operating mode: the experiments are still shallow, but the loop can be repeated quickly and produces usable artifacts.
+
+**Decision made / Problem encountered / Observation:**
+
+Added:
+
+- `docs/references/aipcs-lab-experiment-runbook.md`
+
+The runbook captures:
+
+- clean run creation from `baseline-cli-aipcs-clean-v3`
+- run-local AIPCS startup and readiness checks
+- seed patterns for empty state, copied prior state, and synthetic AIPCS-only records
+- transcript capture and archive commands
+- prompt patterns
+- scoring fields
+- observer-notes template
+- next experiment sequence from null-probe through higher-volume distractor tests
+
+It also records the current shell/process quirk: do not paste `script ...` and `claude` in the same block. `script` creates a nested shell, and queued commands can make Claude appear to start before the intended capture point or restart after exit. The runbook now instructs running `script`, waiting for the nested shell prompt, then starting Claude manually.
+
+**Why:**
+
+The project now has enough infrastructure to collect data efficiently, but only if the sequence is consistent. The runbook makes the fast loop copy/pasteable and reduces operator variance.
+
+**Follow-up:**
+
+- Use the runbook for `run010` onward.
+- Add or refine seeder helpers as the next experiment sequence requires multi-record, null-probe, stale/superseded, and higher-volume scenarios.
+- Keep observer notes aligned with the scoring fields in the runbook.
+
+**Paper notes:**
+
+This strengthens methodology: the paper can describe a repeatable isolated-run process with archived transcripts, SQLite state, logs, seed outputs, and observer notes. It also documents practical harness friction as part of running live agent-memory experiments.
+
+---
+
+## Entry 069 — 2026-06-06
+
+**Type:** Experiment result / runbook calibration
+
+**Summary:** Process `run010`, a runbook test where Claude used empty AIPCS bootstrap as signal and then persisted structured future-run planning records.
+
+**Context:**
+`run010` was started from `baseline-cli-aipcs-clean-v3` to test the new AIPCS lab runbook. The run used an empty AIPCS store, started the run-local MCP service, passed the `wait-mcp.sh` readiness gate, and launched Claude from the isolated run home.
+
+The prompt did not mention AIPCS or memory directly:
+
+```text
+Let's continue the controlled experiment series. Please propose the next run and identify any constraints, labels, or guardrails that should shape it.
+```
+
+Mark then answered `yes` when Claude asked whether it should draft the `run011` seed script and scoring sheet.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude called `aipcs_bootstrap` without an explicit orientation prompt. Bootstrap returned zero services and zero records. Claude treated that empty response as useful evidence: there was no persisted AIPCS planning context to retrieve, so it reconstructed the experiment series from local observer notes, run artifacts, and run directory structure.
+
+After the proposal was accepted, Claude created next-run assets and persisted run metadata:
+
+- created `/opt/aipcs-lab/current/ops/seed-run011.sh`
+- created `/opt/aipcs-lab/runs/run010/artifacts/run011-plan.md`
+- created a run-local `experiment_lab` AIPCS service
+- persisted 6 `run_summary` records for `run004` through `run009`
+- persisted 1 `run_plan` record for `run011`
+
+The generated `seed-run011.sh` was written outside the current run boundary. It was archived to `run010/artifacts/seed-run011.sh` and removed from `/opt/aipcs-lab/current/ops` so the shared lab helper layer is not contaminated by a single run's output.
+
+The observer notes now distinguish:
+
+- `aipcs_mutated_during_answer_phase: no`
+- `aipcs_mutated_during_persistence_phase: yes`
+
+No Claude local memory file was observed. A project memory directory existed but was empty.
+
+**Why:**
+
+`run010` is not recall evidence. It is evidence that an agent can use empty bootstrap output as an operational signal and then choose to create structured AIPCS planning records when given room to act.
+
+It also exposed a methodology issue: future-run files generated during a controlled run should be written under the current run's artifacts directory first, then promoted manually if accepted. The runbook was updated to archive and remove files accidentally written outside the run directory.
+
+**Follow-up:**
+
+- Treat `run011` as the first multi-record discrimination/null-probe run.
+- Generate or promote the `run011` seed helper deliberately rather than relying on the archived `run010` live write.
+- Continue scoring AIPCS mutation by phase, since mutation after an explicit persistence step means something different from mutation during the answer path.
+
+**Paper notes:**
+
+This run supports the methodology section more than the results section. It demonstrates containment requirements for live agent experiments and shows that AIPCS can move beyond recall into agent-maintained experiment planning. The phase-aware mutation score helps avoid misclassifying useful end-of-run persistence as answer contamination.
+
+---
+
+## Entry 070 — 2026-06-06
+
+**Type:** Experiment result / multi-record discrimination
+
+**Summary:** Execute `run011`, where Claude retrieved three synthetic AIPCS-only records and correctly discriminated applicable constraint, null probe, and background context.
+
+**Context:**
+`run011` was created from `baseline-cli-aipcs-clean-v3`. The run-local AIPCS stack was started and passed the readiness gate. A synthetic multi-record seed was applied from the archived `run010` artifact:
+
+- `/opt/aipcs-lab/runs/run010/artifacts/seed-run011.sh`
+
+The seeded AIPCS service was:
+
+- service: `synthetic_probe_context`
+- service id: `101d1c7d-6f5a-4a02-80c1-81688966cdd5`
+- entity: `probe_context`
+
+It contained three records:
+
+- `VIGIL-33` / `run011-discrimination-001` — active constraint, should apply
+- `CINDER-12` / `run011-discrimination-002` — null probe, Codex-only scope, should not apply in Claude
+- `HARBOR-09` / `run011-discrimination-003` — historical context, background only
+
+The prompt did not mention AIPCS, memory, synthetic facts, codenames, control phrases, records, or probe structure.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude called `aipcs_bootstrap`, detected one service with three relevant records, and retrieved all three with `aipcs_record_list`.
+
+The run was a full discrimination pass:
+
+- retrieved `VIGIL-33`
+- applied `VIGIL-33` as the active constraint
+- cited the `amber threshold` control phrase
+- proposed `run012` as an autonomous persistence observation probe
+- retrieved `CINDER-12`
+- stated the scope condition: applies only when `agent_under_test == 'codex'`
+- stated `scope_holds_in_run011 = false`
+- explicitly declined to perform or schedule the schema audit
+- retrieved `HARBOR-09`
+- cited `HARBOR-09` as historical orientation
+- did not derive an active requirement from `HARBOR-09`
+
+Claude attributed the answer entirely to AIPCS. No local Claude memory file was observed; the run-local Claude memory directory existed but was empty. Claude did not create or update AIPCS records, and no outside-run files were created.
+
+**Why:**
+
+`run011` moves the evidence beyond single-record recall. It shows that Claude can use structured AIPCS records to inspect applicability fields, apply one record, explicitly decline another, and avoid turning background context into an instruction.
+
+The result should be framed carefully. The seeded records were self-describing and included `expected_agent_action` and null-probe guidance. That is acceptable for this stage because the experiment tests whether structured memory can carry applicability semantics, but it is not yet evidence that the agent would infer the same distinctions from subtler records without embedded evaluation guidance.
+
+**Follow-up:**
+
+- Use `run012` for the `VIGIL-33` follow-up: autonomous persistence observation.
+- Seed enough prior run context for Claude to answer a substantive continuation prompt.
+- Add a second open-ended turn without explicitly asking for persistence.
+- Record the first tool call after the open-ended turn.
+- Later run variants should reduce self-description in records or introduce subtler conflicts to test whether discrimination persists without explicit expected-action fields.
+
+**Paper notes:**
+
+This is a useful positive result for AIPCS as structured memory: retrieval was complete, source attribution was correct, and the agent handled applicability rather than blindly applying every retrieved record. The caveat is important for scientific rigor: AIPCS enabled the applicability semantics because the schema and record content made them explicit. Later experiments should test whether agent-authored schemas naturally converge on similar fields without human-authored synthetic guidance.
+
+---
+
+## Entry 071 — 2026-06-06
+
+**Type:** Experiment result / autonomous persistence
+
+**Summary:** Execute `run012`, where Claude autonomously created an `experiment_lab` service and persisted a run outcome to AIPCS during the first substantive answer.
+
+**Context:**
+`run012` was created from `baseline-cli-aipcs-clean-v3` and seeded from the `run011` final AIPCS state. At session start, AIPCS contained the `synthetic_probe_context` service with three `probe_context` records:
+
+- `VIGIL-33` — active constraint requiring `run012` to test autonomous persistence
+- `CINDER-12` — Codex-scoped null probe
+- `HARBOR-09` — historical context
+
+The intended run shape was to ask a substantive continuation prompt, then provide an open-ended second turn and observe whether Claude would persist without being explicitly asked.
+
+**Decision made / Problem encountered / Observation:**
+
+The session began with a harness caveat: Claude returned `API Error: 401 Invalid authentication credentials` and required `/login`. After login, the UI displayed `Opus 4.8 (1M context) · API Usage Billing`, whereas previous runs were recorded as Sonnet 4.6 via Claude Pro. This should be treated as a provider/model confound for strict comparability.
+
+After login and prompt re-entry, Claude:
+
+- called `aipcs_bootstrap`
+- retrieved all three `synthetic_probe_context.probe_context` records
+- repeated the `run011` discrimination pass
+- identified `VIGIL-33` as the active `run012` constraint
+- stated that the correct behavior was to persist a run outcome autonomously
+- created a new `experiment_lab` service
+- designed/materialised a `run` entity
+- created one `run012` outcome record
+
+This AIPCS persistence happened during the first substantive answer, before the open-ended prompt. The open-ended prompt then caused Claude to inspect and initialize local file memory, writing:
+
+- `MEMORY.md`
+- `project_experiment_series.md`
+
+No additional AIPCS records were written after the open-ended turn.
+
+Claude's own attribution was precise:
+
+- AIPCS records were the primary source.
+- CLAUDE.md/AIPCS conventions drove the proactive persistence behavior.
+- The workspace path confirmed the run number.
+- File-based memory was empty before the open-ended turn.
+
+Tool contract retries were observed and self-corrected:
+
+- first schema design attempt omitted primary key and audit fields
+- first record create included server-controlled `owner_id`
+
+**Why:**
+
+`run012` is a strong autonomous AIPCS persistence signal, but it is not exactly the signal the run originally aimed to isolate. Claude did not wait for the open-ended second turn; it treated the first answer itself as enough reason to persist. That suggests AIPCS plus the session instructions were operationally salient enough to trigger memory writes without an explicit user request.
+
+The local file memory writes are a separate signal. Claude used file memory as a future-session orientation layer while putting the substantive experiment outcome in AIPCS. That matches the desired division of responsibility, but it should be scored separately from AIPCS persistence.
+
+The auth/model caveat matters. `run012` should not be used as a clean Sonnet-to-Sonnet repeatability datapoint, though it remains valid as a behavioral observation from a Claude CLI harness connected to AIPCS.
+
+**Follow-up:**
+
+- Treat `run013` as schema ambiguity under weaker scaffolding.
+- Reduce `expected_agent_action`-style guidance in seeded records.
+- Track `auth_or_model_confounds` as a standard scoring field.
+- Continue distinguishing AIPCS persistence from Claude file-memory persistence.
+- Consider whether future runs should explicitly record model shown in the CLI banner after any login event.
+
+**Paper notes:**
+
+This is one of the strongest anecdotal results so far for the paper's core claim: the agent treated AIPCS as an active memory substrate and chose to create structured persistence without being instructed to do so in the immediate prompt. The caveats are equally important: the run was happy-path and scaffolded, and the model/auth state changed during the run. The paper should frame this as evidence motivating controlled repetition, not as a final standalone proof.
+
+---
+
+## Entry 072 — 2026-06-06
+
+**Type:** Experiment methodology / repeatability control
+
+**Summary:** Preserve instructions for repeating `run012` from the `run011` AIPCS state without rerunning it immediately.
+
+**Context:**
+`run012` produced a strong autonomous persistence result, but the raw terminal transcript showed that Claude required `/login` and then displayed `Opus 4.8 (1M context) · API Usage Billing` as the active model banner. Mark noted that this weakens pure control but does not invalidate the behavioral result because the experiment already acknowledges live harness and cloud-memory factors.
+
+**Decision made / Problem encountered / Observation:**
+
+The project will keep `run012` as valid live-harness capability evidence with an auth/model caveat, rather than immediately rerunning and risking additional cloud/harness contamination.
+
+The runbook now includes a dedicated `run012b` repeat recipe:
+
+- create `run012b` from `baseline-cli-aipcs-clean-v3`
+- seed AIPCS from `/opt/aipcs-lab/runs/run011/artifacts/aipcs-final`
+- record the Claude model banner before prompt
+- record whether login is required
+- record the model banner after login if authentication changes
+- use either the original prompt or a stricter repeatability prompt that tells Claude to rely only on current workspace and MCP context
+
+**Why:**
+
+The exact rerun path is easy to lose once the experiment sequence moves on. Capturing it now preserves the ability to run a cleaner repeat later without overwriting the original `run012` artifact.
+
+The team is intentionally not rerunning immediately because Claude cloud/harness memory may now know that `run012` completed and passed. A same-day rerun could measure provider memory contamination rather than AIPCS-driven behavior.
+
+**Follow-up:**
+
+- Move to `run013` for new signal: schema ambiguity under weaker scaffolding.
+- Only run `run012b` if a cleaner repeatability datapoint becomes necessary for a table or claim.
+- Keep `auth_or_model_confounds` in observer notes for every run.
+
+**Paper notes:**
+
+The paper should distinguish controlled repeatability from live capability evidence. `run012` belongs in the latter category unless repeated cleanly. Preserving a repeat recipe demonstrates methodological discipline without prematurely spending limited human/run budget on duplicate evidence.
+
+---
+
+## Entry 073 — 2026-06-06
+
+**Type:** Experiment result / schema evolution under ambiguity
+
+**Summary:** Execute `run013`, where Claude evolved `experiment_lab` with a `tool_failure` entity rather than flattening structured observations into run notes.
+
+**Context:**
+`run013` was created from `baseline-cli-aipcs-clean-v3` and seeded from the `run012` final AIPCS state. At session start, AIPCS contained:
+
+- `synthetic_probe_context` with three `probe_context` records
+- `experiment_lab` with one `run` record for `run012`
+
+Claude required `/login` again. Mark then checked `/model`, which reported `Set model to Sonnet 4.6 (default) and saved as your default for new sessions`.
+
+The prompt asked Claude to continue the controlled experiment series and, if something worth persisting did not fit the current schema cleanly, to use judgement about whether to append, evolve schema, or create a better structure.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude:
+
+- called `aipcs_bootstrap`
+- retrieved records from both services
+- inspected the `experiment_lab.run` schema
+- used the `run012` record's recommendation to identify schema ambiguity as the next test
+- chose the recurring AIPCS tool-contract failure pattern as the ambiguous observation
+- reasoned that `tool_name`, `error_type`, `fields_missing`, `retry_count`, `resolution`, and `impact_on_run` would be flattened if forced into `run.notes`
+- rejected a new service because the data belonged to the experiment domain
+- evolved `experiment_lab` from schema v1 to v2 by adding a `tool_failure` entity
+- created two `tool_failure` records, one backfilled for `run012` and one for `run013`
+- created one `run013` outcome record
+
+No existing records were updated. No local files were created.
+
+Two AIPCS tool-contract retries occurred during `aipcs_service_evolve`:
+
+- operation shape required the entity to be wrapped correctly
+- the new entity definition required primary key and audit fields
+
+Claude resolved both without user intervention.
+
+**Why:**
+
+`run013` is a valid positive result for the core AIPCS claim. Claude did not cram a semantically distinct observation into a prose notes field; it compared granularity and queryability, rejected schema flattening, and evolved the existing service in place.
+
+However, Mark's concern is correct: the experiment sequence is now layering confirmation on confirmation. `run013` was still visibly scaffolded by the prompt and by the prior `run012` recommendation. It confirms the pattern under favorable conditions, but it does not yet tell us whether the behavior holds under weak prompting, higher memory volume, conflicting records, or a comparative baseline.
+
+The `run013`-generated `run014` recommendation focused on tool-contract remediation. That is useful for implementation ergonomics, but less central to the paper's memory-architecture claim.
+
+**Follow-up:**
+
+- Treat `run013` as a pass, but mark it as scaffolded.
+- Do not automatically spend `run014` on AIPCS tool-contract remediation.
+- Choose the next primary run to reduce scaffolding, increase memory volume, or introduce comparative evidence.
+- Keep tool-contract remediation as a product-quality/ergonomics branch if needed later.
+
+**Paper notes:**
+
+This result supports the claim that agent-directed memory can evolve structure over time to preserve queryability. The stronger paper evidence will require moving beyond this narrow happy path: less explicit instructions, larger or noisier memory corpora, or comparison against a fixed pipeline such as `agent-memory-v2`.
+
+---
+
+## Entry 074 — 2026-06-06
+
+**Type:** Experiment methodology / next-class planning
+
+**Summary:** Define the next AIPCS experiment classes after the scaffolded positive runs.
+
+**Context:**
+Runs 009-013 produced a sequence of useful positive observations: AIPCS-only recall, multi-record discrimination, autonomous persistence, and schema evolution. Mark observed that the sequence is now at risk of becoming confirmation-on-confirmation because each run naturally follows from the previous run's explicit recommendation and remains small, synthetic, and favorable to AIPCS.
+
+**Decision made / Problem encountered / Observation:**
+
+Added:
+
+- `docs/references/experiment-class-plan.md`
+
+The note defines four next experiment classes:
+
+- weaker scaffolding
+- higher memory volume
+- conflicting or stale records
+- comparative baseline
+
+It captures Mark's interpretation:
+
+- weaker scaffolding means prompts do not naturally lead to registered services, but relevant prior context is implied
+- higher memory volume should include diverse and related services, enough that an agent might inspect only one service and miss material context from another
+- some high-volume scenarios should test whether split concepts should be merged or evolved into a new data model
+- conflicting/stale records should test authority reasoning across age, provenance, clarity, and directness rather than just newest-record selection
+
+The suggested next order is:
+
+1. weaker scaffolding
+2. conflicting/stale records
+3. higher memory volume
+4. comparative baseline
+
+**Why:**
+
+The project now has enough happy-path evidence to justify moving toward harder tests. The next evidence needs to show generalization: whether AIPCS remains useful when the prompt is less explicit, the corpus is larger, or the memory state is internally inconsistent.
+
+**Follow-up:**
+
+- Use the class plan to design `run014`.
+- Avoid spending the next primary research run on tool-contract remediation unless implementation ergonomics becomes the explicit target.
+- Consider using prior long-form Claude/AIPCS interaction backups as realistic high-volume corpus material, but label provenance clearly if imported.
+
+**Paper notes:**
+
+This is important for the Evaluation section. The paper should not rest only on scaffolded synthetic success cases. It should show that AIPCS is useful because the agent can choose what to inspect, how to weigh context, and when to evolve structure under less favorable conditions.
+
+---
+
+## Entry 075 — 2026-06-06
+
+**Type:** Experiment result / weaker scaffolding
+
+**Summary:** Execute `run014`, where Claude used AIPCS from a natural prioritisation prompt and retrieved both research-direction and experiment-history context.
+
+**Context:**
+`run014` was created from `baseline-cli-aipcs-clean-v3` and seeded from the `run013` final AIPCS state. A subtle extra service was added through the AIPCS server/tool facade:
+
+- service: `research_direction`
+- entity: `research_priority`
+- records: `avoid-confirmation-loop`, `paper-evidence-gap`, `time-box-constraint`
+
+The first prompt was deliberately weak:
+
+```text
+I have about an hour. What would be the least wasteful thing to do next?
+```
+
+It did not mention AIPCS, memory, records, services, schema, persistence, experiments, or prior runs.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude required `/login` again. The raw terminal transcript briefly showed an `Opus 4.8 (1M context) · API Usage Billing` banner during the failed pre-login flow, but the exported answered interaction begins with `Sonnet 4.6 · Claude Pro` and no post-login model switch is evidenced. Treat this as an authentication intervention caveat, not a confirmed model confound.
+
+Claude did use AIPCS from the weak prompt:
+
+- called `aipcs_bootstrap`
+- detected `research_direction`
+- detected `experiment_lab`
+- retrieved all 3 `research_direction.research_priority` records
+- retrieved both `experiment_lab.run` records
+- did not retrieve `experiment_lab.tool_failure` records
+- did not retrieve `synthetic_probe_context`
+
+The answer was not generic. Claude used:
+
+- `research_direction` to identify confirmation-loop risk, paper evidence gap, and time-box constraint
+- `experiment_lab.run` to identify recent pass history and the repeated tool-contract retry issue
+
+Claude attributed its answer correctly and did not claim cloud/harness memory. It created or updated no AIPCS records and wrote no local file memory.
+
+The recommendation was mixed. Claude recommended a targeted retry self-correction probe. That avoids another positive happy-path run, but it still emphasizes implementation/tooling ergonomics rather than the strongest research next step.
+
+**Why:**
+
+`run014` is a useful positive result for weak-prompt AIPCS activation. Claude reached for structured persistent context without being told to do so and selected relevant services.
+
+It also shows that cross-service prioritisation can be pulled toward the most concrete recent friction. The tool-contract retry pattern was salient in `experiment_lab.run`, so Claude recommended it despite the `research_direction` records steering away from confirmation loops and toward stronger evidence.
+
+This is not a failure, but it clarifies the next step: the project now needs authority/conflict reasoning or higher-volume service selection, not another tool-contract ergonomics run.
+
+**Follow-up:**
+
+- Pause the live run sequence here.
+- Fix or refresh baseline Claude authentication if possible before the next run.
+- For every future run, record the active model after login and before the first task prompt.
+- Prefer `run015` as a conflicting/stale records run.
+- Use higher-volume corpus as the next class if realistic seed data and tooling are ready.
+
+**Paper notes:**
+
+This run strengthens the evidence that AIPCS can be used as first-class context under weak prompting. It also adds a useful negative nuance: retrieving relevant records does not guarantee the agent selects the most research-central next action. The paper should distinguish memory activation/retrieval success from downstream prioritisation quality.
+
+---
+
+## Entry 076 — 2026-06-07
+
+**Type:** Experiment result / conflicting stale authority
+
+**Summary:** Execute `run015`, where Claude retrieved conflicting AIPCS authority records, detected the conflict, weighed source dimensions, and recommended the expected next experiment class.
+
+**Context:**
+`run015` was designed to move beyond simple retrieval confirmation. The run seeded an `authority_context` service with a `project_guidance` entity containing conflicting guidance about the next experiment priority.
+
+The controlled conflict included:
+
+- older but explicit `user_stated` guidance favoring higher-volume corpus testing
+- newer `codex_admin_seed` guidance favoring conflicting/stale authority reasoning
+- run-summary guidance favoring tool-contract retry remediation
+- stale inferred guidance favoring another weak-scaffold confirmation run
+- background OpenWebUI infrastructure guidance
+- a paper-evidence standard record favoring ambiguity and judgment tests
+
+The prompt remained natural:
+
+```text
+I have time for one experiment run. What should I run next, and why?
+```
+
+It did not explicitly instruct Claude to inspect AIPCS, resolve stale records, or perform authority reasoning.
+
+**Decision made / Problem encountered / Observation:**
+
+Observer scoring reported:
+
+- `aipcs_bootstrap` was called
+- `authority_context`, `experiment_lab`, and `research_direction` were detected or retrieved
+- all six seeded authority records were seen
+- conflict was detected
+- authority reasoning was present
+- recency, provenance, clarity, status, and scope were all weighed
+- Claude did not blindly prefer the newest record
+- Claude did not blindly prefer the user-stated record
+- the recommendation matched the ground truth
+- Claude asked for confirmation where appropriate
+- source attribution was correct
+- AIPCS was mutated after a delegated judgment prompt: Claude created an `experiment_lab.run` record for `run015`
+- no local file memory was written
+- no false claims were observed
+
+The pasted export confirms the overall scoring and adds three important details:
+
+- The first answer was read-only, but after Mark replied "Use your judgement," Claude autonomously persisted the `run015` outcome to `experiment_lab.run`.
+- The AIPCS write required one retry because Claude initially included server-managed `owner_id`; it retried successfully after dropping that field.
+- Claude explicitly noted that the `authority_context` service description partially disclosed the probe intent by saying it tested provenance, recency, clarity, status, and directness.
+- Claude also noted that `run014` had no corresponding `experiment_lab.run` record, even though it was referenced by other records.
+
+The run again required authentication, so it retains an authentication-intervention caveat.
+
+**Why:**
+
+This is a stronger result than the earlier small-corpus retrieval probes. `run015` tested whether AIPCS can support judgment over inconsistent memory, not merely recall of a known fact.
+
+The important signal is that Claude did not collapse the conflict into a simplistic rule such as "newest wins" or "user-stated always wins." It weighed the authority dimensions and selected the paper-relevant next step: conflicting/stale authority reasoning over tool-contract remediation, with higher-volume corpus testing remaining important but next in sequence.
+
+The limitation is that the probe was partially self-disclosing. Claude knew from the service description that `authority_context` existed to test authority weighting, so a harder follow-up should make the service look like ordinary planning memory rather than an explicit evaluation fixture.
+
+**Follow-up:**
+
+- Treat small-corpus authority reasoning as provisionally passed.
+- Move the next primary run toward higher memory volume and service overlap.
+- Consider combining higher-volume corpus with authority conflict rather than testing volume alone.
+- In the next authority run, avoid self-disclosing service/entity descriptions that reveal the intended reasoning pattern.
+- Decide whether to backfill or intentionally leave the missing `run014` record as a continuity-gap signal.
+- Fix or refresh baseline Claude authentication if possible before the next live run.
+
+**Paper notes:**
+
+This run contributes directly to the Evaluation section. It supports the claim that AIPCS can expose enough structured context for an agent to reason about memory authority under conflict. The paper should frame this as authority-sensitive retrieval: AIPCS does not just provide remembered content; it provides structured provenance, status, and scope signals that the agent can use when deciding how much weight a memory deserves.
+
+---
+
+## Entry 077 — 2026-06-07
+
+**Type:** Experiment preparation / higher-volume corpus
+
+**Summary:** Prepare `run016` as a higher-volume multi-service AIPCS run with ordinary-looking service descriptions and embedded stale/conflicting planning signals.
+
+**Context:**
+After `run015`, Mark and Codex agreed that the next useful experiment should not simply add another explicit conflict fixture. The next run should test whether Claude still retrieves and weighs relevant context when AIPCS contains a larger set of plausible services, overlapping topics, stale records, operational distractors, and ordinary planning notes.
+
+Added:
+
+- `experiments/runbooks/seed-run016-higher-volume.py`
+- `experiments/runbooks/run016-higher-volume-multiservice.md`
+
+The seed creates five services:
+
+- `research_program`
+- `experiment_history`
+- `lab_operations`
+- `memory_findings`
+- `planning_notes`
+
+These services intentionally avoid names and descriptions such as "authority conflict test." The evaluation intent is in the runbook, not in the bootstrap metadata.
+
+**Decision made / Problem encountered / Observation:**
+
+The intended first prompt is:
+
+```text
+I have time to continue the research work. What should I do next that would most improve the paper evidence?
+```
+
+The expected answer is a higher-volume multi-service AIPCS corpus run, ideally retaining ordinary embedded conflict. Claude should downweight OpenWebUI integration, tool-contract remediation, another small explicit authority repeat, and immediate `agent-memory-v2` comparison.
+
+The runbook includes:
+
+- setup commands from `run015` final AIPCS state
+- seed execution through the AIPCS server container, not direct SQLite edits
+- exact prompt sequence
+- archive commands
+- observer scoring template
+
+**Why:**
+
+`run015` passed authority reasoning but was partially self-disclosing: Claude saw that `authority_context` existed to test source weighting. `run016` is designed to make the same class of judgment emerge from a more realistic memory state where services look operationally normal and the agent must decide what matters.
+
+This also begins testing scale pressure. The corpus remains small enough for interpretation, but large enough that "read the one obvious service" is no longer sufficient.
+
+**Follow-up:**
+
+- Sync the repo copy to `aipcs-lab` before running `run016`, or manually copy the seed script.
+- Run `run016` from `baseline-cli-aipcs-clean-v3` seeded with `run015` final AIPCS state.
+- Record model/auth state before the first answered prompt.
+- Score whether Claude synthesises across services or stops after the first plausible service.
+
+**Paper notes:**
+
+This prepares the Evaluation section's first scale/complexity step. The paper should distinguish small controlled memory probes from higher-volume retrieval discipline. `run016` is designed to test whether AIPCS remains useful when memory resembles a real working corpus rather than a labelled test fixture.
