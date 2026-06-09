@@ -50,6 +50,7 @@ The first pilot should be intentionally small:
 | `run005` | Claude CLI | restored-snapshot repeatability | restored `run002-post` or `run003-post` | Check whether a fresh Claude session behaves similarly against the same AIPCS state; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
 | `run006` | Claude CLI | null / false-positive probe | retained or restored evolved snapshot | Test whether structured recall avoids overclaiming when related-but-wrong memory exists; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
 | `run007` | N/A or Claude/Codex TBD | comparator pack preparation | scenario artifacts | Convert the successful AIPCS flow into reusable prompts, ground truth, and scoring for later native/v2/Codex comparisons; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
+| `run018`-`run023` | Claude CLI | bootstrap/orientation scalability | generated synthetic stores, then organic/hybrid stores | Measure where bootstrap payload size, service breadth, schema verbosity, record volume, and organic ambiguity affect AIPCS use; procedure in `runbooks/run018-to-run023-bootstrap-scalability.md`. |
 
 ## Evidence Levels
 

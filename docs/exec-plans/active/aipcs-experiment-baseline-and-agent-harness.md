@@ -165,6 +165,8 @@ After the OpenAI harness exists, repeat selected live/scenario runs through the 
 | 2026-06-06 | Processed `run014` as a weaker-scaffolding pass: Claude retrieved `research_direction` and `experiment_lab` from a natural time-box prompt, but recommended tool-contract remediation rather than the strongest research next step. |
 | 2026-06-07 | Processed `run015` as a conflicting/stale authority-reasoning pass: Claude retrieved the seeded authority context, detected the conflict, weighed authority dimensions, recommended the ground-truth next step, then autonomously persisted the run outcome after delegated judgment. |
 | 2026-06-07 | Prepared `run016` as a higher-volume multi-service corpus run with a reusable seed script and runbook, avoiding self-disclosing service descriptions from `run015`. |
+| 2026-06-07 | Processed `run016` as agent-led corpus construction: Claude used the planning corpus to seed five realistic services and 19 records, persisted the run outcome, and proposed `run017` as the cold retrieval probe. |
+| 2026-06-07 | Processed `run017` as a mixed higher-volume retrieval probe: Claude selected several relevant AIPCS services and explained skipped context, but local/harness memory was consulted and some expected services were missed. |
 
 ## Decisions Made During Work
 

@@ -148,7 +148,8 @@ Current implementation evidence to promote:
 - What workflows became possible that weren't before?
 - Latency cost of agent schema design vs a hand-designed schema
 - Token cost of the schema design step
-- **Context efficiency:** tokens spent to retrieve and use each relevant fact across a scenario or longer session; this should capture whether structured query beats repeated prose re-insertion over time
+- **Context efficiency:** tokens spent to persist, retrieve, maintain, and use each relevant fact across a scenario or longer session; this should capture whether structured query and agent-authored schema beat repeated prose re-insertion over time
+- **Cost/value accounting:** distinguish expensive corpus-construction or schema-synthesis sessions from ordinary recall/use sessions. AIPCS can justify higher token/tool overhead only when it improves recall precision, false-positive resistance, stale/conflicting memory handling, or reduces user re-explanation.
 - **Probe spectrum:** evaluate direct, inferential, nuanced/contextual, tangential/referential, and null/false-positive probes rather than only direct factual recall
 - **Seed-to-materialisation speed**: how quickly do seeds materialise in practice? Average number of interactions before materialisation (from Entry 002)
 - **Schema evolution frequency**: how many evolutions occur during a typical domain tracking lifecycle? (from Entry 005)

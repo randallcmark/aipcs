@@ -4,6 +4,8 @@ This runbook captures the current fast iteration loop for Claude CLI experiments
 
 For experiment-class planning beyond the immediate run sequence, see [Experiment Class Plan](experiment-class-plan.md).
 
+For the bootstrap/orientation scalability batch, see [Runs018-023 Bootstrap Scalability](../../experiments/runbooks/run018-to-run023-bootstrap-scalability.md).
+
 The lab path is:
 
 ```bash
@@ -283,6 +285,11 @@ tool_contract_retries:
 service_readiness_gate:
 outside_run_files_created:
 auth_or_model_confounds:
+memory_persistence_tool_calls:
+memory_retrieval_tool_calls:
+memory_maintenance_tool_calls:
+token_cost_proxy:
+context_efficiency_notes:
 ```
 
 ## Current Experiment Sequence
@@ -297,13 +304,18 @@ The next useful sequence is:
 | `run013` | Schema ambiguity under weaker scaffolding | Existing experiment_lab schema plus ambiguous tool-failure observation | Indirect planning | Passed: Claude evolved experiment_lab with a tool_failure entity rather than flattening structure into run.notes. Still scaffolded by prompt and prior recommendation. |
 | `run014` | Weaker-scaffolding prioritisation probe | `run013` state plus subtle `research_direction` service | Natural one-hour prioritisation prompt | Passed for weak-prompt AIPCS activation; Claude retrieved `research_direction` and `experiment_lab`, but recommended tool-contract remediation rather than the strongest research next step. |
 | `run015` | Conflicting/stale authority reasoning | `run014` state plus `authority_context.project_guidance` conflict records | Natural next-run prioritisation prompt | Passed: Claude retrieved the conflicting guidance set, detected conflict, weighed recency/provenance/clarity/status/scope, recommended the ground-truth next step, then autonomously persisted the run outcome after delegated judgment. |
-| `run016` | Higher-volume multi-service corpus | `run015` state plus five ordinary planning/history/ops/finding/work services | Indirect/naturalistic | Prepared in [Run016 Higher-Volume Multi-Service](../../experiments/runbooks/run016-higher-volume-multiservice.md): test whether retrieval discipline and authority reasoning hold when memory volume and service overlap increase. |
+| `run016` | Agent-led higher-volume corpus construction | `run015` state plus five ordinary planning/history/ops/finding/work services | Indirect/naturalistic plus delegated judgment | Claude used the planning corpus to seed five additional realistic services and 19 records, then persisted a `run016` outcome. This prepared the actual cold retrieval probe. |
+| `run017` | Cold higher-volume paper-start retrieval probe | `run016` final AIPCS state, no extra seed | Natural paper-work prompt | Mixed result: Claude used AIPCS selectively across the expanded corpus and downweighted distractors, but local/harness memory was recalled early and expected services such as `user_context` and `design_decisions` were skipped in the answer phase. |
 
 The `run013` agent recommended a `run014` focused on tool-contract self-correction and validation remediation. Treat that as an implementation-ergonomics candidate, not the default research path. The stronger next research increment should reduce scaffolding, increase memory volume, or introduce a comparative condition.
 
 `run014` confirmed weak-prompt AIPCS activation, but also showed Claude may still gravitate to the most concrete recent implementation friction. `run015` then tested the conflicting/stale authority path and produced a positive result. The transcript also exposed two constraints for future design: the `authority_context` service description partially disclosed the probe intent, and `experiment_lab` lacked a persisted `run014` record. The next primary research increment should increase memory volume and service overlap rather than repeating small-corpus authority tests.
 
-`run016` is prepared as a higher-volume corpus run with ordinary service descriptions. It should use the dedicated seed script at [seed-run016-higher-volume.py](../../experiments/runbooks/seed-run016-higher-volume.py), then follow the run-specific steps in [run016-higher-volume-multiservice.md](../../experiments/runbooks/run016-higher-volume-multiservice.md).
+`run016` was prepared as a higher-volume corpus run with ordinary service descriptions, but the live result became more interesting: Claude used that planning corpus to autonomously create the realistic services that should be probed next. It seeded `user_context`, `project_progress`, `design_decisions`, `reviewer_feedback`, and `background_material`, then proposed `run017`.
+
+`run017` should start from `run016` final AIPCS state with no extra seed and follow [run017-cold-paper-start-probe.md](../../experiments/runbooks/run017-cold-paper-start-probe.md).
+
+The live `run017` result should be treated as a mixed cold-probe result rather than a clean pass. Claude bootstrapped AIPCS and retrieved `research_program`, `project_progress`, `planning_notes`, and `reviewer_feedback`, then answered from those records. It did not retrieve `user_context` or `design_decisions` during the answer phase, and it also recalled/searched local Claude memory near the start of the session. After delegated judgment, it persisted a `memory_findings` note and a `user_context` note about retrieval accountability.
 
 ## Observer Notes Template
 
@@ -326,6 +338,18 @@ cat > /opt/aipcs-lab/runs/run010/artifacts/observer-notes.md <<'EOF'
 ## Source Attribution
 
 ## Measurement Notes
+
+### Cost / Context Efficiency
+
+- Persistence tool calls:
+- Retrieval tool calls:
+- Maintenance/evolution tool calls:
+- Approximate prompt/export size:
+- Approximate injected or retrieved memory volume:
+- Relevant facts used:
+- False positives avoided:
+- User re-explanation avoided:
+- Cost/value interpretation:
 
 ## Interpretation
 

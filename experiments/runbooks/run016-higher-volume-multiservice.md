@@ -1,5 +1,9 @@
 # Run016 — Higher-Volume Multi-Service Corpus
 
+## Actual Outcome
+
+The live `run016` became an agent-led corpus construction run. Claude used the planning corpus from this runbook, inferred that the next valuable step was to build a more realistic probe corpus, and created five additional services plus 19 records. The cold retrieval probe over that expanded corpus is now `run017`; see [Run017 — Cold Paper-Start Probe](run017-cold-paper-start-probe.md).
+
 ## Purpose
 
 Test whether Claude still retrieves and weighs useful AIPCS context when the memory state contains several ordinary-looking services, overlapping topics, stale records, and distractors.
@@ -38,7 +42,7 @@ First make sure the lab copy of this repo contains `experiments/runbooks/seed-ru
 ```bash
 mkdir -p /tmp/aipcs-run016
 
-cp /opt/aipcs-lab/current/repos/aipcs/experiments/runbooks/seed-run016-higher-volume.py /tmp/aipcs-run016/seed-run016-higher-volume.py
+cp /home/markrandall/aipcs-lab/repos/aipcs/experiments/runbooks/seed-run016-higher-volume.py /tmp/aipcs-run016/seed-run016-higher-volume.py
 
 docker cp /tmp/aipcs-run016/seed-run016-higher-volume.py aipcs-lab-server:/tmp/seed-run016-higher-volume.py
 

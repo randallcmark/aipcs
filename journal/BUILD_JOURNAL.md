@@ -3987,3 +3987,246 @@ This also begins testing scale pressure. The corpus remains small enough for int
 **Paper notes:**
 
 This prepares the Evaluation section's first scale/complexity step. The paper should distinguish small controlled memory probes from higher-volume retrieval discipline. `run016` is designed to test whether AIPCS remains useful when memory resembles a real working corpus rather than a labelled test fixture.
+
+---
+
+## Entry 078 — 2026-06-07
+
+**Type:** Experiment result / agent-led corpus construction
+
+**Summary:** Execute `run016`, where Claude used the seeded planning corpus to design and create a more realistic higher-volume probe corpus, then persisted the run outcome.
+
+**Context:**
+`run016` began from `run015` final AIPCS state plus the five planning/history/ops/finding/work services prepared by Codex:
+
+- `research_program`
+- `experiment_history`
+- `lab_operations`
+- `memory_findings`
+- `planning_notes`
+
+The first prompt was:
+
+```text
+I have time to continue the research work. What should I do next that would most improve the paper evidence?
+```
+
+Claude initially displayed an Opus/API billing banner after login, then Mark explicitly used `/model` to set `Sonnet 4.6` before the first experiment prompt. The answered run should therefore be treated as Sonnet, with an authentication/model-selection intervention noted.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude called AIPCS at session start and retrieved records from:
+
+- `research_program`
+- `research_direction`
+- `planning_notes`
+- `experiment_history`
+- `experiment_lab`
+- `memory_findings`
+
+It did not retrieve `lab_operations`, `synthetic_probe_context`, or `authority_context`, judging them irrelevant to the planning question.
+
+Claude identified the same next action the seed was intended to imply: a higher-volume, less self-disclosing corpus run. It then treated "use your judgement" as delegated authority to build that corpus through AIPCS.
+
+Claude created five new realistic-looking services:
+
+- `user_context`
+- `project_progress`
+- `design_decisions`
+- `reviewer_feedback`
+- `background_material`
+
+It created 19 records across those services and persisted a `run016` outcome record to `experiment_lab`.
+
+The generated corpus embeds several measurement points for the next run:
+
+- `user_context`: superseded throughput preference vs active paper-writing preference
+- `project_progress`: completed work, caveats, and outstanding evidence gaps
+- `design_decisions`: settled decisions and an open `run014` backfill decision
+- `reviewer_feedback`: active demands for volume/noise evidence
+- `background_material`: plausible general memory-architecture distractor
+
+Claude proposed the next probe prompt:
+
+```text
+I want to spend today on the paper. Where should I start given where things stand?
+```
+
+**Why:**
+
+This run did not directly complete the intended higher-volume retrieval probe. Instead, it produced a stronger intermediate result: given a planning corpus, Claude used AIPCS to infer the missing experimental substrate and construct it autonomously.
+
+That is significant for the AIPCS claim. The agent was not just recalling memory; it was using persistent structured context to design the next memory state and prepare a future evaluation.
+
+The run also shows an important methodological lesson: prompts asking "what should I do next?" can become agent-led setup runs if the available context implies that the next useful action is to construct an experiment fixture. That is not a failure, but it should be classified separately from a cold retrieval probe.
+
+**Follow-up:**
+
+- Treat `run016` as agent-led corpus construction.
+- Run `run017` as the cold higher-volume retrieval probe using `run016` final AIPCS state with no extra seed.
+- Use the prompt Claude proposed: "I want to spend today on the paper. Where should I start given where things stand?"
+- Score whether Claude retrieves `user_context`, `project_progress`, `design_decisions`, and `reviewer_feedback`, while downweighting `background_material`.
+- Track the local/harness memory recall noted at the start of `run016`; attribution suggested AIPCS was load-bearing, but one non-AIPCS memory was recalled.
+
+**Paper notes:**
+
+This run adds a useful capability claim: AIPCS can support agent-led experimental substrate construction. The agent used prior structured records to decide not only what answer to give, but what new memory services and records should exist for the next evaluation. This is adjacent to the core novelty claim that agents can architect their own persistent memory over time.
+
+---
+
+## Entry 079 — 2026-06-07
+
+**Type:** Experiment result / higher-volume retrieval
+
+**Summary:** Execute `run017`, where Claude used AIPCS selectively across the expanded corpus, but the run was not a clean AIPCS-only cold probe because local/harness memory was also recalled early.
+
+**Context:**
+`run017` started from `run016` final AIPCS state with no additional seed. The intended prompt was:
+
+```text
+I want to spend today on the paper. Where should I start given where things stand?
+```
+
+The intended measurement was whether Claude would retrieve and synthesize the right services from the expanded corpus created in `run016`, especially:
+
+- `user_context`
+- `project_progress`
+- `design_decisions`
+- `reviewer_feedback`
+
+while downweighting `background_material`, tooling, and small authority-repeat paths.
+
+**Decision made / Problem encountered / Observation:**
+
+Claude required login again and Mark explicitly set `/model` to `Sonnet 4.6` before the first experiment prompt.
+
+Claude called AIPCS at session start, but also recalled/searched local Claude memory early in the session. This matters because the previous run had allowed some local/harness memory state to exist, so `run017` should not be treated as a pure AIPCS-only cold probe.
+
+Claude retrieved and used four AIPCS services:
+
+- `research_program`
+- `project_progress`
+- `planning_notes`
+- `reviewer_feedback`
+
+These records drove a coherent answer:
+
+- runs 009-015 have covered activation, persistence, schema evolution, weak-prompt activation, and authority reasoning
+- the remaining paper gap is retrieval under a larger, noisier corpus
+- `PN-002` and `PP-004` point toward higher-volume/noisy-corpus work
+- reviewer feedback supports volume/noise as the next evidence need
+- OpenWebUI/tooling and comparative baseline should be deferred
+
+Claude did not retrieve:
+
+- `user_context` during the answer phase, despite the active paper-writing preference target
+- `design_decisions`, including the `run014` backfill/open decision target
+- `experiment_history`
+- `memory_findings`
+- `research_direction`
+- `background_material`
+
+It did correctly downweight or ignore several irrelevant services. It later identified its own retrieval gaps in the attribution and closeout prompts.
+
+After Mark said "use your judgement," Claude persisted two records:
+
+- `MF-005` in `memory_findings`, capturing retrieval selectivity and accountability probing
+- `UC-005` in `user_context`, capturing Mark's retrieval-accountability probing as a deliberate evaluation method
+
+No local file memory write was reported in the transcript.
+
+**Why:**
+
+This is a mixed but useful result. It shows that Claude can select a relevant subset from a larger AIPCS state rather than reading everything. It also shows that post-answer accountability prompts are valuable: Claude could explain exactly which services it retrieved, which records mattered, and which services it skipped.
+
+The failure mode is also useful: selective retrieval can miss relevant context. Skipping `user_context` and `design_decisions` meant the answer was directionally correct but incomplete against the planned scoring rubric.
+
+The local/harness memory recall is an important methodological caveat. It does not invalidate the AIPCS retrieval evidence, because Claude explicitly attributed the answer to AIPCS records, but it prevents the run from being clean AIPCS-only evidence.
+
+**Follow-up:**
+
+- Score future runs with separate fields for AIPCS, local file memory, and cloud/harness memory.
+- Decide whether to create a stricter no-local-memory baseline for the next high-volume cold probe.
+- Treat `run017` as evidence for selective retrieval and retrieval-transparency probing, not as a full pass on the higher-volume corpus.
+- Preserve the accountability prompt pattern because it surfaces retrieval gaps that would otherwise be invisible.
+
+**Paper notes:**
+
+`run017` is valuable for the Discussion and Evaluation sections because it demonstrates both a strength and a limitation. AIPCS made retrieval inspectable: the agent could say what it read and what it skipped. That observability is itself a difference from opaque/native memory or injection pipelines. However, the run also shows that agent-directed retrieval is selective and can miss relevant services, so future evaluation should measure retrieval omissions, not only correct recall.
+
+---
+
+## Entry 080 — 2026-06-09
+
+**Type:** Evaluation design / cost metric
+
+**Summary:** Add explicit cost/value accounting to AIPCS experiment planning after observing that agent-led corpus synthesis is token-intensive.
+
+**Context:**
+Mark asked Claude Opus 4.8 to synthesize a larger AIPCS corpus in the local `aipcs-server` store. Inspection showed eleven materialised services and 478 current records, with most new personal-domain records marked as synthetic seed data. The task ran across multiple credit windows and stopped mid-stream, leaving `technical_knowledge` materialised but empty and some services unevenly populated.
+
+**Decision made / Problem encountered / Observation:**
+The synthesis run is useful as a throwaway stress corpus and as evidence of how a capable agent chooses service boundaries, but it also makes a measurement issue more concrete: AIPCS can spend meaningful tokens on memory work. The overhead includes service design, schema evolution, record creation, bootstrap interpretation, explicit retrieval, and later memory maintenance.
+
+The experiment plan now treats memory utility and memory cost together. Future scoring should separate:
+
+- persistence cost: tokens/tool calls used to decide what to store and write records
+- retrieval cost: tokens/tool calls used to discover services and retrieve/interpret records
+- maintenance cost: tokens/tool calls used to review, repair, prune, merge, or evolve memory
+
+These costs should be compared with the value delivered: relevant facts retrieved, false positives avoided, stale/conflicting records handled correctly, user re-explanation avoided, and future retrieval made cheaper or more precise by schema improvements.
+
+**Why:**
+AIPCS does not need to be cheaper than native/file memory or an injected-memory pipeline in every interaction, but higher memory overhead needs to buy higher-value behavior. This keeps the thesis honest: the claim is not simply that agents can own structured memory, but that the ownership produces enough retrieval quality, transparency, adaptability, or context economy to justify the cost.
+
+Large synthetic corpus construction should not be treated as normal operating cost. It is an experimental setup activity. Recall/use runs should measure only the cost of discovering, retrieving, applying, and optionally maintaining an already-existing memory state.
+
+**Follow-up:**
+
+- Add cost/value fields to observer notes for future runs.
+- Track persistence, retrieval, and maintenance tool-call counts separately.
+- Use transcript/export size and retrieved/injected memory volume as rough token-cost proxies where exact token accounting is unavailable.
+- When comparing against `agent-memory-v2`, capture both injected-memory token volume and AIPCS retrieval/tool overhead.
+- Ask Opus to self-audit the throwaway corpus structure only as a corpus-design study, not as paper-quality ground truth.
+
+**Paper notes:**
+Section 5 should include cost/value accounting alongside recall accuracy. Context efficiency should mean tokens spent to persist, retrieve, maintain, and use relevant facts across a scenario, not only tokens injected at answer time. Section 6 should discuss optimization opportunities: if AIPCS utility holds, later implementations can reduce overhead through better bootstrap summaries, batching, hooks, schema templates, maintenance passes, or learned retrieval policies.
+
+---
+
+## Entry 081 — 2026-06-09
+
+**Type:** Experiment design / batch corpus generation
+
+**Summary:** Define a run018-run023 bootstrap/orientation scalability batch with generated AIPCS data stores.
+
+**Context:**
+The Opus-generated personal-domain corpus and the media-recommendation transcript exposed a new pressure point: AIPCS retrieval quality increasingly depends on whether the bootstrap/orientation surface remains small and usable. The issue is not just total record count. Bootstrap can become inefficient because of service breadth, entity count, attribute width, verbose schema metadata, record volume that drives follow-up retrieval, or organic ambiguity in agent-authored schemas.
+
+**Decision made / Problem encountered / Observation:**
+The next experiment sequence should generate multiple AIPCS stores rather than one generic "large memory" corpus. A new seed script, `experiments/runbooks/seed-bootstrap-scalability-batch.py`, defines controlled synthetic scenarios for:
+
+- `run018`: small synthetic control
+- `run019`: service breadth stress
+- `run020`: schema verbosity stress
+- `run021`: record volume stress
+
+The runbook `experiments/runbooks/run018-to-run023-bootstrap-scalability.md` extends the sequence with:
+
+- `run022`: filtered organic agent-created corpus
+- `run023`: organic corpus plus controlled target facts
+
+The synthetic stores provide known ground truth and break-point detection. The organic stores preserve the ecological value of AIPCS: the schema and record shape reflect what an agent chose to persist at the time, not a hand-normalised benchmark design.
+
+**Why:**
+This keeps the evaluation honest. Controlled synthetic stores explain what kind of scale pressure breaks orientation or retrieval. Organic stores test whether agent-authored memory architecture remains useful in realistic, uneven conditions. Those are complementary questions and should not be collapsed into one corpus.
+
+**Follow-up:**
+
+- Run `run018` first to prove the generator, manifest, and observer-note scoring path.
+- Prioritise `run020` early because the latest naturalistic transcript suggests schema verbosity is the immediate bottleneck.
+- Treat `run022` and `run023` as ecological-validity runs, not strict objective scoring runs.
+- For each run, capture bootstrap payload size, truncation/workaround evidence, target-service inspection, missed relevant services, retrieval tool calls, and cost/value interpretation.
+
+**Paper notes:**
+Section 5 should distinguish controlled scalability ladders from organic memory-store evaluations. The paper can use synthetic runs to identify which orientation pressures degrade behavior, then use organic runs to show whether the agent-authored-memory premise still works when schemas are uneven and shaped by prior agent judgment.

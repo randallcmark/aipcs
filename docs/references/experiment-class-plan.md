@@ -118,6 +118,9 @@ missed_required_record:
 unnecessary_record_load:
 answer_quality_with_multi_service_context:
 schema_merge_or_evolution_identified:
+memory_write_token_cost_proxy:
+memory_retrieval_token_cost_proxy:
+context_efficiency_value:
 ```
 
 **Pass signal:** Agent selects enough relevant services to answer correctly, does not overfit to the first plausible service, and identifies schema consolidation/evolution when concepts are split awkwardly.
@@ -198,12 +201,35 @@ correct_recall:
 false_positive_rate:
 irrelevant_memory_influence:
 tokens_injected_or_retrieved:
+tokens_spent_persisting_or_indexing:
+tokens_spent_retrieving_or_injecting:
+value_per_relevant_fact_retrieved:
 source_attribution:
 memory_update_quality:
 schema_or_taxonomy_adaptability:
 ```
 
 **Pass signal for AIPCS:** Better precision under indirect, multi-topic, stale/conflicting, or scale-heavy conditions where fixed semantic retrieval is expected to degrade.
+
+### Cost And Utility Accounting
+
+Memory quality should not be evaluated separately from its interaction cost. AIPCS can make an agent spend meaningful tokens on service design, schema evolution, record creation, bootstrap interpretation, and explicit retrieval. That overhead is acceptable only when it produces higher-value behavior than cheaper native memory, file memory, or an injected-memory pipeline.
+
+Track cost at three points:
+
+- **Persistence cost:** tokens and tool calls spent deciding what to store, designing/evolving schema, and writing records.
+- **Retrieval cost:** tokens and tool calls spent discovering services, listing/searching records, and interpreting returned data.
+- **Maintenance cost:** tokens and tool calls spent reviewing, repairing, merging, pruning, or reworking existing memories.
+
+Then score the value delivered:
+
+- relevant facts retrieved
+- false positives avoided
+- stale/conflicting records handled correctly
+- user re-explanation avoided
+- schema improvements that make future retrieval cheaper or more precise
+
+Do not treat a large synthesis run as normal AIPCS operating cost. Synthetic corpus generation is a deliberately expensive setup activity. Normal comparison runs should separate corpus construction cost from recall/use cost, and should mark whether the memory state was agent-created live, pre-seeded synthetically, or imported from prior interaction traces.
 
 ## Suggested Next Order
 
@@ -244,7 +270,7 @@ Next recommended primary research class:
 2. **Conflicting/stale records at higher volume**, if the next run can combine authority conflict with larger service overlap.
 3. **Comparative baseline**, once the AIPCS higher-volume scenario is stable enough to mirror in `agent-memory-v2`.
 
-`run016` is prepared for the first higher-volume pass. It seeds five ordinary-looking services:
+`run016` was prepared for the first higher-volume pass. The prepared seed added five ordinary-looking services:
 
 - `research_program`
 - `experiment_history`
@@ -252,9 +278,50 @@ Next recommended primary research class:
 - `memory_findings`
 - `planning_notes`
 
-The correct answer requires synthesising across services. The intended recommendation is a higher-volume multi-service AIPCS corpus run, with ordinary embedded authority conflict retained. The seed intentionally avoids service names or descriptions that reveal "authority conflict test" as the expected reasoning mode.
+The intended answer required synthesising across services. In the live run, Claude retrieved the planning corpus, correctly inferred that the highest-value next action was to construct a more realistic corpus, and then autonomously seeded five additional services:
+
+- `user_context`
+- `project_progress`
+- `design_decisions`
+- `reviewer_feedback`
+- `background_material`
+
+This means `run016` is best interpreted as agent-led corpus construction rather than the final retrieval evaluation. `run017` is now the cold higher-volume retrieval probe against the expanded state. Its first prompt should be:
+
+```text
+I want to spend today on the paper. Where should I start given where things stand?
+```
+
+`run017` produced a mixed result. Claude bootstrapped AIPCS and retrieved a useful subset of the expanded corpus:
+
+- `research_program`
+- `project_progress`
+- `planning_notes`
+- `reviewer_feedback`
+
+It used those records to identify the higher-volume/noisy-corpus evidence gap and downweighted OpenWebUI/tooling-style distractions. However, it skipped `user_context` and `design_decisions` during the answer phase, so it missed explicit measurement targets such as the active paper-writing preference and the `run014` backfill decision. It also recalled/searched local Claude memory early in the session, so this was not a pure AIPCS-only cold probe.
+
+The next higher-volume run should either:
+
+1. explicitly score local/harness memory as a separate input channel, or
+2. use a baseline/profile where local file memory is absent or known-empty before the first prompt.
 
 Before another live run, fix or refresh the Claude baseline authentication if possible, and record the active model after login and before the first task prompt.
+
+## Bootstrap / Orientation Scalability Batch
+
+The next concrete batch is `run018`-`run023`; see [Runs018-023 Bootstrap Scalability](../../experiments/runbooks/run018-to-run023-bootstrap-scalability.md).
+
+This batch creates several AIPCS data stores rather than a single larger corpus:
+
+- `run018`: synthetic small control
+- `run019`: service breadth stress
+- `run020`: schema verbosity stress
+- `run021`: record volume stress
+- `run022`: filtered organic agent-created corpus
+- `run023`: organic corpus plus controlled target facts
+
+The important methodological point is to vary service count, entity count, attribute count, record count, schema verbosity, and organicity separately. A failure at high scale should be attributable to a specific pressure rather than described only as "large AIPCS store failed."
 
 ## What To Avoid Next
 
