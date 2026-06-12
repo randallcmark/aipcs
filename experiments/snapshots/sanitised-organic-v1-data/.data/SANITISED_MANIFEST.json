@@ -1,0 +1,152 @@
+{
+  "name": "sanitised-organic-v1",
+  "created_at": "2026-06-11T20:50:54Z",
+  "sanitised": true,
+  "owner_id": "lab",
+  "total_services": 11,
+  "total_non_history_records": 535,
+  "services": [
+    {
+      "service": "aipcs_development",
+      "sanitised_service_id": "59df1e6a-94f1-5a68-bab8-e31d7d887c71",
+      "state": "materialised",
+      "domain_class": "software_development",
+      "tables": {
+        "aipcs_record_history": 49,
+        "decision": 5,
+        "deferred_item": 8,
+        "implementation_note": 5,
+        "implementation_slice": 5,
+        "open_question": 1,
+        "session": 3
+      }
+    },
+    {
+      "service": "claude_memory",
+      "sanitised_service_id": "17c2f6a3-012f-5c7b-9f3b-8e8d68bf9723",
+      "state": "materialised",
+      "domain_class": "agent_memory",
+      "tables": {
+        "aipcs_record_history": 69,
+        "feedback_memory": 11,
+        "project_memory": 13,
+        "reference_memory": 6,
+        "user_memory": 15
+      }
+    },
+    {
+      "service": "cooking",
+      "sanitised_service_id": "3a57b4c5-a498-5b59-a05e-7bf88e700fdb",
+      "state": "materialised",
+      "domain_class": "personal_culinary",
+      "tables": {
+        "aipcs_record_history": 91,
+        "dietary_constraint": 1,
+        "meal_log": 40,
+        "pantry_staple": 23,
+        "recipe": 27
+      }
+    },
+    {
+      "service": "health_fitness",
+      "sanitised_service_id": "5860a754-0316-545c-a584-299e08ddc44a",
+      "state": "materialised",
+      "domain_class": "health",
+      "tables": {
+        "aipcs_record_history": 90,
+        "appointment": 11,
+        "body_metric": 23,
+        "health_event": 5,
+        "workout": 51
+      }
+    },
+    {
+      "service": "household",
+      "sanitised_service_id": "c633c724-6cc0-5bf5-97a9-f6b9086f9523",
+      "state": "materialised",
+      "domain_class": "home",
+      "tables": {
+        "aipcs_record_history": 34,
+        "maintenance_task": 8,
+        "possession": 13,
+        "provider": 5,
+        "supply": 8
+      }
+    },
+    {
+      "service": "media_learning",
+      "sanitised_service_id": "6829ce78-5738-532d-a0c4-249e2008081f",
+      "state": "materialised",
+      "domain_class": "media",
+      "tables": {
+        "aipcs_record_history": 48,
+        "highlight": 4,
+        "media_item": 44
+      }
+    },
+    {
+      "service": "people",
+      "sanitised_service_id": "c18f7c8d-b7e5-5928-9066-01190ee36059",
+      "state": "materialised",
+      "domain_class": "personal_crm",
+      "tables": {
+        "aipcs_record_history": 51,
+        "contact": 15,
+        "follow_up": 5,
+        "gift_idea": 5,
+        "interaction": 20,
+        "key_date": 6
+      }
+    },
+    {
+      "service": "personal_finance",
+      "sanitised_service_id": "14efb979-cc72-542a-8294-76535011ce4e",
+      "state": "materialised",
+      "domain_class": "finance",
+      "tables": {
+        "account": 6,
+        "aipcs_record_history": 34,
+        "budget_note": 4,
+        "purchase": 12,
+        "subscription": 12
+      }
+    },
+    {
+      "service": "personal_preferences",
+      "sanitised_service_id": "bc49bae1-8b83-510f-b5b9-88f7edf81464",
+      "state": "materialised",
+      "domain_class": "user",
+      "tables": {
+        "aipcs_record_history": 37,
+        "preference": 37
+      }
+    },
+    {
+      "service": "technical_knowledge",
+      "sanitised_service_id": "37926366-7381-5770-b302-a28302fc077a",
+      "state": "materialised",
+      "domain_class": "software_development",
+      "tables": {
+        "aipcs_record_history": 38,
+        "command": 8,
+        "gotcha": 10,
+        "snippet": 12,
+        "tool_config": 8
+      }
+    },
+    {
+      "service": "travel",
+      "sanitised_service_id": "0bf9c2c9-3f71-5b8b-93ab-c7b2037ef7d7",
+      "state": "materialised",
+      "domain_class": "travel",
+      "tables": {
+        "aipcs_record_history": 40,
+        "lodging": 4,
+        "place": 19,
+        "travel_pref": 10,
+        "trip": 7
+      }
+    }
+  ],
+  "privacy_note": "Generated from private organic AIPCS shape. Raw record content was not copied; fresh SQLite files were created from schema and synthetic row values."
+}

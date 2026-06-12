@@ -41,6 +41,14 @@ Bootstrap is not only a server response. It has three layers:
 
 The dynamic map should be descriptive enough that the agent can decide where to probe next and whether new information fits the current schema. It should not return record content by default.
 
+After the bootstrap scalability runs (`run018`-`run021`), the dynamic discovery map has a stronger constraint: it must be a compact recursive map, not a full schema dictionary. Bootstrap should expose service intent, state, entity names, counts, recent activity, and deterministic affordance labels. Full attribute descriptions, allowed values, migration history, and rich schema detail belong behind explicit inspection tools.
+
+Seeded services remain first-class in discovery even before schema design. A seed is an intentional memory branch, so bootstrap should show the branch, its intent, its schema/materialisation state, and whether the next useful action is schema design.
+
+Optional record samples are not part of default bootstrap. Sampling belongs in a deeper service-summary or record-retrieval step so the agent chooses when to spend context.
+
+Facets should be agent-declared and server-counted. The agent decides which schema fields help discovery; the server may mechanically aggregate counts over those declared fields, but should not infer semantic facets from prose.
+
 Common top-level domain classes are reference guidance, not a closed taxonomy in v1. They support interoperability and discovery while preserving the agent's ability to propose new categories.
 
 ---
