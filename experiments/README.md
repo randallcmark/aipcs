@@ -51,6 +51,9 @@ The first pilot should be intentionally small:
 | `run006` | Claude CLI | null / false-positive probe | retained or restored evolved snapshot | Test whether structured recall avoids overclaiming when related-but-wrong memory exists; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
 | `run007` | N/A or Claude/Codex TBD | comparator pack preparation | scenario artifacts | Convert the successful AIPCS flow into reusable prompts, ground truth, and scoring for later native/v2/Codex comparisons; procedure in `runbooks/run005-to-run007-next-sequence.md`. |
 | `run018`-`run023` | Claude CLI | bootstrap/orientation scalability | generated synthetic stores, then organic/hybrid stores | Measure where bootstrap payload size, service breadth, schema verbosity, record volume, and organic ambiguity affect AIPCS use; procedure in `runbooks/run018-to-run023-bootstrap-scalability.md`. |
+| `run026` | Claude CLI | authored corpus recall/composition | Kropotkin memoir AIPCS corpus | Test whether a fresh agent can use source-derived AIPCS memory to write a substantive essay without source access; captured in `runs/run026-kropotkin-membership-recall.md`. |
+| `run027+` | Claude CLI | representational compression evaluation | public-domain source packets, AIPCS corpora, flat summaries | Compare AIPCS-only, source-only, flat-memory-only, and combined representations for quality, cost, contamination, and recall efficiency; plan in `docs/exec-plans/active/representational-compression-evaluation.md`. |
+| `closeout01`-`closeout05` | Claude CLI | representational compression close-out | multi-memoir AIPCS snapshot, source packets, flat memory summary | Bounded five-run batch intended to close data collection for paper drafting; procedure in `runbooks/closeout-representational-compression-runs.md`. |
 
 ## Evidence Levels
 

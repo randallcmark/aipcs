@@ -218,6 +218,51 @@ Search remains available for deliberate retrieval.
 
 The discovery path should make targeted inspect/search natural enough that the agent does not default to broad search or grep-like workflows.
 
+### R014 — Bootstrap Affordances Must Teach The Next Retrieval Step
+
+Bootstrap should not only expose state labels such as `search_or_sample_if_relevant`; it should orient a cold agent toward the next useful tool call.
+
+For populated materialised services, bootstrap should make the recursive path explicit:
+
+```text
+bootstrap -> service_summary -> exact-match record retrieval
+```
+
+When a service has declared discovery facets or retrieval guidance, the bootstrap card should expose a concise signal that service summary is the correct next step before search/list. Example:
+
+```json
+{
+  "affordances": [
+    "summarise_service_if_relevant",
+    "search_or_list_after_summary",
+    "inspect_schema_if_needed"
+  ],
+  "summary_available": true,
+  "summary_hints": {
+    "declared_facets": ["entry_type"],
+    "retrieval_guidance_available": true
+  }
+}
+```
+
+This remains deterministic metadata, not server reasoning. The goal is to prevent a cold agent from seeing only "search" and attempting exact-match filters without knowing which fields are meaningful.
+
+### R015 — Retrieval Guidance Must Not Advertise Non-Filterable Fields
+
+Service summary retrieval guidance must distinguish:
+
+- exact-match filter fields that can be used directly with record retrieval tools;
+- human-readable annotation fields that are useful after retrieval but not useful as exact filters;
+- free-text fields that require listing/sampling or a future search capability.
+
+Guidance such as "query by tags" is misleading when `tags` is a comma-separated text field and `aipcs_record_search` only supports exact-match filters. In that case the guidance should say:
+
+```text
+Use entry_type as the primary exact-match facet. Tags are human-readable annotations only; do not exact-filter individual tag terms.
+```
+
+The service summary should prefer declared facets whose values are intentionally controlled and exactly filterable.
+
 ## Proposed Response Shapes
 
 ### Bootstrap Service Card
@@ -282,6 +327,8 @@ The discovery path should make targeted inspect/search natural enough that the a
 - [x] Facets can be added or changed through service evolution or a metadata update tool.
 - [x] Full schema detail remains available through `aipcs_service_inspect`.
 - [x] Existing record CRUD behavior is unchanged.
+- [ ] Bootstrap/service-summary guidance has been tested against a cold retrieval path, not only schema shape.
+- [ ] Summary guidance does not advertise non-filterable annotation fields as exact-match query fields.
 - [ ] Rerun `run019` and `run020` variants show reduced payload friction and improved target-service selection.
 
 ## Plan
@@ -313,6 +360,8 @@ The discovery path should make targeted inspect/search natural enough that the a
 | Facets are agent-declared and server-counted | Preserves agent ownership of meaning while avoiding drift-prone manual facet maintenance. |
 | No pagination/cursor in first slice | The desired model is recursive discovery, not generic API pagination. |
 | Stable utility ordering | Makes bootstrap deterministic while surfacing likely useful branches first. |
+| Bootstrap should point to summary-first for populated services with facets | `run025` Kropotkin retrieval audit showed bootstrap exposed service existence but not enough actionable signal that service summary was the right next call. |
+| Retrieval guidance must be filterability-aware | The Kropotkin service guidance said records could be queried by tags, but tags were comma-separated annotations and exact-match search on a single tag returned nothing. |
 
 ## Validation
 
@@ -346,3 +395,4 @@ Behavioral validation:
 | Facet fields drift or become stale | Compute counts mechanically from agent-declared fields. |
 | Over-prescribing next actions reduces agent agency | Use deterministic affordance labels, not server-inferred recommendations. |
 | Slim bootstrap hides schema detail needed for tool calls | Keep `aipcs_service_inspect` as explicit full schema retrieval. |
+| Agents follow misleading retrieval guidance | Require guidance to distinguish exact-match facets from non-filterable annotations. |

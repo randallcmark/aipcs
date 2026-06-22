@@ -100,6 +100,7 @@ Relevant files:
 | Date | What happened |
 |---|---|
 | 2026-06-12 | Plan created after `run024f` showed shape-preserving sanitisation is insufficient for recall-quality evaluation. |
+| 2026-06-12 | Claude generated a `kropotkin_memoir` corpus from a public-domain memoir source, then evolved it after a retrieval-path audit to add exact-match `primary_topic` and `salience` facets. |
 
 ## Decisions Made During Work
 
@@ -108,6 +109,7 @@ Relevant files:
 | Use agent-owned persistence rather than scripted main-content insertion | The AIPCS claim depends on agent-selected, agent-shaped memory, not just a hand-built database. |
 | Keep synthetic labels out of record bodies | `run024f` showed Claude correctly downweights records that announce themselves as generated fixtures. |
 | Preserve bursty timestamps as legitimate | Batch persistence is realistic for imports, pre-compaction writes, document ingestion, and retrospective summarisation. |
+| Let the agent refine its own memoir schema under current tooling | The first-pass Kropotkin corpus was useful but had non-filterable comma-separated tags; the agent audited actual AIPCS retrieval and evolved exact-match fields instead of waiting for future membership search. |
 | Score with private ground truth | Published transparency may later require a public fixture, but the immediate experiment needs controlled answers without leaking private source data. |
 
 ## Validation

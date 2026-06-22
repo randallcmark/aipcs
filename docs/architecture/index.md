@@ -49,6 +49,10 @@ Optional record samples are not part of default bootstrap. Sampling belongs in a
 
 Facets should be agent-declared and server-counted. The agent decides which schema fields help discovery; the server may mechanically aggregate counts over those declared fields, but should not infer semantic facets from prose.
 
+Bootstrap affordances should orient the next retrieval step, not merely name available tools. For populated services with declared facets or retrieval guidance, the preferred path is recursive: bootstrap shows that a service summary is available; service summary exposes exact-match facets, facet counts, and filterability-aware guidance; record calls retrieve content. Guidance must not advertise comma-separated annotation fields or free-text fields as if they were exact-match query facets.
+
+AIPCS retrieval should distinguish exact scalar filters from structured membership filters. Scalar fields such as status, entry type, salience, or primary topic remain exact-match retrieval keys. Multi-value fields such as tags should only be advertised as filterable when the schema declares them as structured membership fields; comma-separated prose tags are annotations, not reliable query surfaces. Broad substring, fuzzy, and semantic search remain deferred because the pattern should continue to reward thoughtful persistence structure.
+
 Common top-level domain classes are reference guidance, not a closed taxonomy in v1. They support interoperability and discovery while preserving the agent's ability to propose new categories.
 
 ---

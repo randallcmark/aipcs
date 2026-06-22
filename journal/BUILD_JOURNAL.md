@@ -4603,3 +4603,461 @@ The next experiment needs to test recall quality, not just service selection. Th
 
 **Paper notes:**
 This supports the methods section. It describes how the evaluation can produce reproducible, privacy-preserving corpora while retaining the key experimental property: the memory shape is agent-authored rather than hand-designed by the evaluator.
+
+---
+
+## Entry 091 — 2026-06-12
+
+**Type:** Discovery design feedback / retrieval-path audit
+
+**Summary:** The Kropotkin corpus audit showed bootstrap needs to orient the next retrieval move, and service guidance must distinguish exact-match facets from non-filterable annotations.
+
+**Context:**
+After creating the `kropotkin_memoir` AIPCS service, Claude reflected on its schema and proposed adding `primary_topic` and `salience` to improve retrieval. Mark noted that the answer sounded like abstract search thinking rather than lived recall through the AIPCS tool path, so Claude was asked to test the cold retrieval path with bootstrap, service summary, and record retrieval tools.
+
+**Decision made / Problem encountered / Observation:**
+The audit found:
+
+- Bootstrap showed that `kropotkin_memoir` existed and had 34 records across two entities, but did not expose entry-type vocabulary, discovery facets, retrieval guidance, entity descriptions, or facet breakdown.
+- `aipcs_service_summary` did expose retrieval guidance, key fields, and facet counts, making it the effective orientation layer.
+- A cold agent would only discover that if it chose summary first; bootstrap's generic `search_or_sample_if_relevant` affordance could lead it to try search/list prematurely.
+- The service guidance said records could be queried by `tags`, but `tags` was a comma-separated text field. Exact-match search for `tags="Siberia"` returned zero results, while exact-match on the entire comma-separated tag string returned only one record.
+- The agent revised its schema-improvement priority: first fix misleading guidance, then add exact-match facets such as `primary_topic` and `salience`.
+
+**Why:**
+This sharpens the slim-bootstrap design. Compact bootstrap is necessary but not sufficient. It must also orient a cold agent toward the recursive discovery path:
+
+```text
+bootstrap -> service_summary -> exact-match record retrieval
+```
+
+The design must avoid telling agents to search fields that are not intentionally filterable. AIPCS retrieval works best when agent-authored schemas expose controlled exact-match facets and when discovery metadata makes those facets visible before record calls.
+
+**Follow-up:**
+
+- Update the slim-bootstrap discovery plan with a requirement for summary-first affordance hints.
+- Require retrieval guidance to distinguish exact-match facets from human-readable annotations.
+- For the Kropotkin corpus, add `primary_topic` and `salience` only after preserving the first-pass corpus or snapshotting it.
+
+**Paper notes:**
+This is useful evidence for the "information environment" argument. Agent-owned retrieval is not only about having tools; the discovery surface must make good tool sequencing natural. It also supports the claim that AIPCS can improve over time because the agent can audit retrieval failures and evolve schema facets accordingly.
+
+---
+
+## Entry 092 — 2026-06-12
+
+**Type:** Implementation planning / retrieval semantics
+
+**Summary:** Defined structured membership filters as the next AIPCS-server retrieval slice.
+
+**Context:**
+The Kropotkin retrieval audit exposed that a field called `tags` creates a natural expectation of membership search. Current `aipcs_record_search` is exact structured filtering only, so a comma-separated tag field cannot be queried by individual tag. Mark noted that the tools should feel intuitive without collapsing into broad fuzzy search.
+
+**Decision made / Problem encountered / Observation:**
+Created `docs/exec-plans/active/structured-membership-filters.md`.
+
+The planned slice adds first-class support for schema-declared multi-value fields, such as `string_list` or an explicit membership retrieval mode. Exact scalar filters remain unchanged. Text, fuzzy, and semantic search remain deferred.
+
+The intended behavior is:
+
+```json
+{"tags": ["siberia", "science", "imprisonment"]}
+```
+
+can be retrieved with:
+
+```json
+{"filters": {"tags": "siberia"}}
+```
+
+because `tags` is declared as a membership field, not because the server performs substring search over prose.
+
+**Why:**
+This is the right compromise between usability and the AIPCS principle. Agents should not be forced into counterintuitive comma-string exact matching, but they also should not be encouraged to persist blobs and rely on fuzzy search later. Structured membership fields let agents design useful retrieval surfaces while keeping memory architecture explicit.
+
+**Follow-up:**
+
+- Implement the slice in `aipcs-server`.
+- Update service summary to expose filterability modes: exact, membership, annotation/free-text.
+- Rerun the Kropotkin retrieval audit against a schema with structured tags.
+
+**Paper notes:**
+This supports the implementation-learning narrative: the experiments are not only scoring AIPCS, they are refining the primitive. The distinction between structured membership search and fuzzy retrieval is important for explaining how AIPCS preserves agent-authored memory architecture while reducing tool friction.
+
+---
+
+## Entry 093 — 2026-06-12
+
+**Type:** Experiment result / agent-led schema refinement
+
+**Summary:** Claude generated and refined a Kropotkin memoir corpus, adding exact-match retrieval facets after testing the actual AIPCS tool path.
+
+**Context:**
+Mark sourced Standard Ebooks' `peter-kropotkin_memoirs-of-a-revolutionist` text and prompted Claude to persist durable AIPCS memory for a future commemorative speech or biographical essay task. The source text would not be available to a future session, so the agent needed to persist concise structured memory rather than verbatim text.
+
+**Decision made / Problem encountered / Observation:**
+Claude created one materialised service:
+
+- `kropotkin_memoir` (`98731fe6-0341-4a78-b155-f33d3f6a1708`)
+
+It created two entities:
+
+- `subject_overview`: 1 record
+- `memory_entry`: 33 records
+
+The first pass used `entry_type` plus comma-separated `tags`. After a retrieval-path audit, Claude identified that tags were not meaningfully filterable because AIPCS record search currently performs exact structured filtering only. It evolved the schema and backfilled all 33 memory records with:
+
+- `primary_topic`: controlled scalar for life domain
+- `salience`: controlled scalar for task scope
+
+It also updated discovery facets to `entry_type`, `primary_topic`, and `salience`, corrected retrieval guidance to state that tags are annotation-only, and reclassified the Alexander II assassination record from `formative_event` to `theme`.
+
+Persisted counts after refinement:
+
+- `entry_type`: contradiction 3, formative_event 6, hardship 3, interpretive_note 5, relationship 4, theme 5, turning_point 4, value 3
+- `primary_topic`: childhood 5, education 2, exile 2, history 4, imprisonment 4, radicalization 3, relationships 3, siberia 3, theory 7
+- `salience`: anchor 10, core 17, detail 6
+
+**Why:**
+This is a stronger corpus-generation result than the placeholder sanitised corpus. The records are semantically meaningful, source-derived, task-oriented, and compact. The refinement is also important: the agent did not merely design a schema abstractly; it tested the actual AIPCS retrieval path and adapted its schema to today's exact-match tooling.
+
+This supports the AIPCS premise that agents can own memory architecture over time. The agent created a memory design, audited it against future recall constraints, discovered a mismatch, and evolved it additively.
+
+**Follow-up:**
+
+- Snapshot the current first refined corpus as `authored-memoir-kropotkin-v1`.
+- Run a clean recall session without source text to test whether a fresh agent follows the guidance: `subject_overview`, then `interpretive_note`, then `salience=anchor`.
+- After preserving this version, compare against a future AIPCS-server build with structured membership filters.
+
+**Paper notes:**
+This is strong evidence for agent-led memory improvement. It demonstrates the distinction between persistence and maintenance: AIPCS is not only a place to store memories, but a substrate where the agent can inspect retrieval failure modes and refine schema affordances for future use.
+
+---
+
+## Entry 094 — 2026-06-12
+
+**Type:** Experiment result / clean recall over authored memory corpus
+
+**Summary:** `run026` showed that a fresh Claude session could use the Kropotkin AIPCS corpus to write a nuanced commemorative essay without source access.
+
+**Context:**
+After the structured membership-filter slice was implemented in `aipcs-server`, Claude revisited the `kropotkin_memoir` service and evolved it to schema v3 with a `retrieval_tags` `string_list` field. The corpus was snapshotted, patched for the lab owner, copied to `aipcs-lab`, and loaded into a clean `run026` environment.
+
+The lab corpus contained:
+
+- `subject_overview`: 1 record
+- `memory_entry`: 33 records
+- `retrieval_tags`: populated on all 33 `memory_entry` records
+- discovery facets: `entry_type`, `primary_topic`, `salience`, `retrieval_tags`
+
+**Decision made / Problem encountered / Observation:**
+The clean session had no local Claude memory files and did not read the source memoir. It discovered AIPCS, called `aipcs_bootstrap`, inspected `kropotkin_memoir` through `aipcs_service_summary`, retrieved the `subject_overview`, and listed all 33 `memory_entry` records.
+
+Claude then wrote a detailed commemorative essay using persisted details from the AIPCS corpus: Kropotkin's noble formation, serfdom context, Corps of Pages education, Siberian disillusionment, scientific work, Peter-Paul Fortress imprisonment, escape, exile, mutual aid, political violence, and interpretive caveats about the memoir's incompleteness and audience.
+
+The result is a strong success for composition from durable AIPCS memory. The agent used only persisted tool-accessible context and produced a response that would not have been possible from the empty workspace alone.
+
+The caveat is that the run did not directly exercise membership-filtered retrieval during the writing phase. Claude saw `retrieval_tags` and reasoned about how membership tags differ from exact facets, but because the corpus had only 33 records it chose the reasonable strategy of retrieving the whole compact corpus in one call. This makes `run026` evidence for authored-corpus recall and composition, not evidence that broad prompts naturally trigger membership-filtered search.
+
+**Why:**
+This run materially advances the experiment programme. Earlier synthetic and sanitised corpora either looked artificial or lacked semantic depth. The Kropotkin corpus is public-domain, source-derived, agent-authored, compact, structured, and task-relevant. It therefore gives a cleaner substrate for testing whether AIPCS can preserve useful memory across sessions without relying on Claude's local or cloud memory.
+
+The result also clarifies an evaluation distinction: retrieval path correctness and downstream memory utility are not identical. For small corpora, full retrieval may be the optimal path. Membership filters become more important for targeted thematic prompts or larger corpora where full retrieval is inefficient.
+
+**Follow-up:**
+
+- Run a targeted thematic probe that should naturally use `retrieval_tags`, such as a prompt about Kropotkin's science across life domains or voluntary solidarity as a lived practice.
+- Run a constrained recall probe where full-corpus listing is discouraged or made less practical by corpus size.
+- Preserve `run026` as a success case for authored persistent-memory composition.
+- Use the same public-domain authored-corpus pattern for a larger second corpus before returning to comparative work against agent-memory-v2.
+
+**Paper notes:**
+`run026` supports the claim that AIPCS can serve as a first-class persistent memory substrate: an agent-authored corpus survived across sessions and enabled a future agent to perform a meaningful writing task without source access.
+
+The caveat is valuable for the paper: agents may correctly choose full retrieval for compact corpora, so experiments should not overfit success criteria to whether a specific filter was called. The stronger metric is whether the selected retrieval path is rational for the corpus size and task.
+
+---
+
+## Entry 095 — 2026-06-12
+
+**Type:** Experiment design / comparative evaluation planning
+
+**Summary:** Defined a representational compression experiment to compare AIPCS memory against raw source access and flat memory summaries.
+
+**Context:**
+`run026` showed that an agent-authored Kropotkin AIPCS corpus could support a fresh Claude session writing a substantive commemorative essay without access to the original source text. The final AIPCS snapshot was about 536 KB, with about 46k characters of active live record content derived from a source repository of roughly 3.5 MB.
+
+That result suggests a stronger comparative experiment: hold the source material and downstream tasks constant, then compare different information representations.
+
+**Decision made / Problem encountered / Observation:**
+Created `docs/exec-plans/active/representational-compression-evaluation.md`.
+
+The planned experiment compares:
+
+- AIPCS-only: fresh agent with structured persisted memory and no source.
+- Source-only: fresh agent with complete source packets and no persisted memory.
+- Flat-memory-only: fresh agent with a prose memory summary and no AIPCS.
+- AIPCS + source: fresh agent with both structured memory and source.
+- AIPCS + flat memory + source: maximum-context condition, used sparingly.
+
+The experiment will use five tangentially related public-domain topics or biographies, ideally sharing narrow themes such as exile, reform, science, revolution, moral conviction, or institutional critique. This creates retrieval pressure, cross-topic synthesis opportunities, and contamination risk.
+
+The central research question is:
+
+> Can agent-authored structured memory preserve enough task-relevant meaning from source material to support later high-quality synthesis at lower task-time context cost than raw-source access or flat memory summaries?
+
+**Why:**
+This moves the experiment programme closer to publishable evidence. Earlier runs established that AIPCS can be wired in, discovered, used, evolved, and applied. The next stage needs comparative evidence showing when AIPCS is useful relative to simpler alternatives.
+
+The comparison should not require AIPCS to beat raw source access in every case. Raw source may be strongest when context is cheap and source volume is small. The more important measurements are:
+
+- quality per task-time context load,
+- recall efficiency,
+- cross-topic discrimination,
+- false-attribution rate,
+- usefulness of agent-authored schema and facets,
+- ability to recover source-level performance from compact memory.
+
+**Follow-up:**
+
+- Use Kropotkin as the first pilot topic.
+- Add four related public-domain source packets after the single-topic representation conditions are stable.
+- Build scoring checklists with anchor facts, interpretive themes, known confusions, and null claims.
+- Run AIPCS-only, source-only, and flat-memory-only before combined conditions.
+- Introduce agent-memory-v2 only after the information-representation baseline is understood.
+
+**Paper notes:**
+This frames AIPCS as a representational compression and recall-efficiency mechanism, not merely a fact store. That is closer to the publishable claim: AIPCS may let agents transform source/context into compact, structured, future-usable memory that preserves enough semantic and interpretive value to support later work at lower task-time cost.
+
+---
+
+## Entry 096 — 2026-06-13
+
+**Type:** Experiment result / retrieval affordance failure
+
+**Summary:** `run027` showed that membership tags were not naturally used under a targeted thematic prompt because the agent skipped service-summary discovery and inferred the wrong filter semantics from serialized record output.
+
+**Context:**
+`run027` reused the `kropotkin-membership-v1` corpus and prompted Claude to write a focused essay on how Kropotkin's scientific habits shaped his anarchism across different periods of his life. This prompt was intended to encourage use of `retrieval_tags=science` or related membership filters.
+
+**Decision made / Problem encountered / Observation:**
+Claude bootstrapped AIPCS and used the `kropotkin_memoir` service, but it did not call `aipcs_service_summary`. It listed `subject_overview` and then listed all 33 `memory_entry` records unfiltered.
+
+The resulting essay was strong and source-free, but the retrieval path repeated `run026`: full corpus listing followed by composition.
+
+In the follow-up retrieval assessment, Claude correctly identified that the full listing was somewhat wasteful and caused a saved-tool-result disk round trip. However, it incorrectly concluded that `retrieval_tags` was unusable because values appeared in records as JSON-encoded strings such as `["science", "state_critique"]` and it assumed exact-match filtering would be applied directly to that serialized value.
+
+That conclusion is wrong for the current implementation: prior audit entries in the same snapshot show `retrieval_tags=science` returning 11 records and `retrieval_tags=voluntary_solidarity` returning 7 records. The failure was not the membership filter mechanism; it was the information environment around the tool contract.
+
+**Why:**
+This is a useful negative result. It shows that implementation capability is insufficient if the agent does not discover or trust the retrieval semantics at decision time. The schema had membership tags, and the server could query them, but the agent skipped the summary path that exposed `filter_modes` and then reasoned from raw serialized output instead.
+
+This suggests the next refinement should improve tool affordance legibility:
+
+- record outputs should decode schema-declared `string_list` values as arrays rather than exposing JSON strings;
+- bootstrap should more strongly route agents to `aipcs_service_summary` before broad record listing;
+- service summary should include concise examples of exact versus membership filters;
+- list/search responses may need `_meta` hints for fields with non-obvious retrieval semantics.
+
+**Follow-up:**
+
+- Treat `run027` as negative evidence for retrieval efficiency, not for memory utility.
+- Add an implementation slice in `aipcs-server` to improve `string_list` output representation and membership-filter discoverability.
+- Rerun the thematic probe after the affordance change.
+- For experiments that specifically test membership filters, use larger or multi-topic corpora where full listing is clearly inefficient.
+
+**Paper notes:**
+This strengthens the paper's honesty. AIPCS's value depends not only on structured persistence, but on making the retrieval surface legible to an agent at the moment of tool choice. A successful architecture must align storage semantics, bootstrap discovery, and record output representation.
+
+---
+
+## Entry 097 — 2026-06-13
+
+**Type:** Implementation planning / retrieval affordance slice
+
+**Summary:** Defined the next `aipcs-server` task as retrieval-affordance legibility, not broader search.
+
+**Context:**
+After `run027`, Mark identified two immediate needs: improve AIPCS tagging/search affordances, and then build a clean corpus from scratch with the improved tooling available from the start.
+
+The key lesson from `run027` is that membership filtering exists mechanically but was not legible enough to the agent. Claude skipped `aipcs_service_summary`, listed all records, saw `retrieval_tags` values serialized as JSON strings, and inferred the wrong search semantics.
+
+**Decision made / Problem encountered / Observation:**
+Created `docs/exec-plans/active/retrieval-affordance-legibility.md`.
+
+The implementation task is scoped to:
+
+- hydrate schema-declared `string_list` fields as arrays in public record outputs;
+- add compact filter examples to `aipcs_service_summary`;
+- strengthen bootstrap guidance toward service summary before broad listing;
+- add compact filter metadata to record list/search/get responses where useful;
+- preserve exact scalar semantics and defer fuzzy/semantic search.
+
+**Why:**
+The failure was not lack of fuzzy search. It was mismatch between internal representation, public tool output, and agent interpretation. AIPCS should make structured retrieval intuitive enough that agents do not have to infer tool semantics from SQLite serialization artifacts.
+
+This preserves the principle that agents should design retrievable schemas, while reducing accidental friction that leads them back to broad listing.
+
+**Follow-up:**
+
+- Hand off the implementation task to a Codex session rooted in `aipcs-server`.
+- After implementation, rebuild a fresh public-domain corpus rather than continuing to retrofit the Kropotkin corpus.
+- Rerun the targeted thematic probe against the fresh corpus.
+- Include first-contact MCP tool description hygiene in the same implementation slice, because tool discovery is part of the bootstrap/familiarisation path.
+
+**Paper notes:**
+This supports the implementation-learning narrative: experiments exposed a retrieval-affordance failure, and the primitive was refined without collapsing into fuzzy search. It also reinforces that AIPCS evaluation should measure whether the memory architecture is legible to future agents, not just whether the backing store can answer queries.
+
+**Addendum — tool discovery hygiene:**
+Mark challenged the initial idea that lifecycle tool contract clarity should be a later slice. The challenge is correct. Repeated failed calls around seed, design, materialise, evolve, create, and update are the same class of failure as the `retrieval_tags` issue: the agent lacks sufficient operational contract clarity at the moment it discovers the tools.
+
+The active implementation slice was therefore widened to include concise MCP docstring improvements for lifecycle preconditions, server-managed fields, schema-defined payloads, and common next steps. This should remain scoped as first-contact hygiene rather than a primitive API redesign.
+
+---
+
+## Entry 098 — 2026-06-17
+
+**Type:** Experiment corpus milestone
+
+**Summary:** Built a combined single-source memoir snapshot with five independently agent-authored AIPCS corpora.
+
+**Context:**
+The Kropotkin-only recall runs showed strong representational usefulness but insufficient retrieval pressure. A single memoir corpus is small enough that broad entity listing can be a reasonable strategy, and the agent does not need to rely on tags, facets, or service selection to produce good output.
+
+To create scale and diversity pressure, five public-domain memoir/autobiographical sources were processed as independently authored AIPCS corpora:
+
+- Peter Kropotkin, `Memoirs of a Revolutionist`
+- Mahatma Gandhi, `The Story of My Experiments with Truth`
+- Booker T. Washington, `Up from Slavery`
+- Henry Adams, `The Education of Henry Adams`
+- William and Ellen Craft, `Running a Thousand Miles for Freedom`
+
+**Decision made / Problem encountered / Observation:**
+Created `experiments/snapshots/memoir-single-source-combined-v1-data/.data` by mechanically merging the five single-source snapshot registries and service databases. Added `scripts/combine-aipcs-snapshots.py` to make this reproducible.
+
+The combined snapshot preserves the independently authored schemas rather than normalising them into a shared schema:
+
+- `kropotkin_biography`: 56 domain records across `life_phase`, `key_moment`, `person`, and `theme`
+- `gandhi_autobiography`: 58 domain records in `entry`
+- `btw_biography`: 39 domain records in `memory`
+- `henry_adams_biography`: 35 domain records across `person` and `note`
+- `craft_narrative_memory`: 34 domain records across seven entities
+
+Total domain records: 222.
+
+**Why:**
+This corpus creates the next evaluation pressure point. A fresh agent now has multiple services, multiple subject domains, and non-uniform schemas. The expected behaviour is no longer simply "retrieve the obvious Kropotkin service"; the agent must decide which authored memory structures are relevant to the requested outcome.
+
+Preserving heterogeneous schemas is intentional. The experiment is testing whether future agents can discover and use agent-authored memory patterns, not whether a human-designed schema can support recall.
+
+**Follow-up:**
+
+- Treat `memoir-single-source-combined-v1` as an optional topology comparator, not the primary next experiment.
+- Run the close-out representational-compression batch against `multimemoir-agent-authored-v1` first, because that snapshot was generated as one cross-source agent-authored memory activity.
+- Only compare against `memoir-single-source-combined-v1` if the close-out batch leaves a specific topology question open.
+- If used later, score whether agents select services/entities reasonably, over-retrieve, miss relevant subjects, or use facets/tags when entity-level listing becomes expensive.
+
+**Paper notes:**
+This snapshot supports a stronger evaluation claim: AIPCS is not only useful for single-source representational compression, but can expose heterogeneous agent-authored memory structures that future agents must discover and navigate. The comparison between independent single-source corpora and a deliberately cross-source corpus may help distinguish authored memory topology from mere record volume.
+
+---
+
+## Entry 099 — 2026-06-20
+
+**Type:** Experiment planning / data-collection close-out
+
+**Summary:** Defined a bounded five-run representational-compression close-out batch to move from exploratory AIPCS experiments toward paper drafting.
+
+**Context:**
+The experiment programme had usefully adapted to repeated feedback from live runs. Bootstrap payloads were too large, service discovery was not compact enough, and retrieval affordances such as membership tags were not legible enough to agents at tool-choice time. Those findings drove implementation improvements in `aipcs-server`.
+
+That adaptation was productive, but it also created drift away from the long-term objective: collect enough comparative evidence to draft the paper. Mark explicitly asked to define enough detail for the next planned runs that another exploratory pivot is unlikely.
+
+**Decision made / Problem encountered / Observation:**
+Created `docs/exec-plans/active/closeout-representational-compression-runs.md` and `experiments/runbooks/closeout-representational-compression-runs.md`.
+
+The close-out batch contains five planned runs:
+
+- `closeout01`: AIPCS-only broad cross-subject synthesis over `multimemoir-agent-authored-v1`.
+- `closeout02`: source-only broad synthesis over the same memoir source packet.
+- `closeout03`: flat-memory-only broad synthesis over a prose memory artifact.
+- `closeout04`: AIPCS-only targeted discrimination/null probe.
+- `closeout05`: flat-memory-only targeted discrimination/null probe.
+
+The optional topology comparator using `memoir-single-source-combined-v1` and the agent-memory-v2 comparison are deliberately deferred until the five-run batch is complete.
+
+**Why:**
+Five runs is the right planning horizon. Runs 1-5 have stable inputs, shared prompts, and directly comparable measurement objectives. Planning beyond that would likely create false precision because the optional topology and agent-memory-v2 comparisons should be shaped by what the close-out batch shows.
+
+The batch is explicitly designed to prevent further implementation detours. If AIPCS underperforms, retrieves broadly, or flat memory performs well, that is data rather than an automatic reason to change the system again.
+
+**Follow-up:**
+
+- Confirm `multimemoir-agent-authored-v1` is copied to `aipcs-lab` and importable with owner/path rewriting.
+- Prepare bounded source packets and a flat memory summary artifact for the same five memoirs.
+- Execute `closeout01`-`closeout05` using the runbook.
+- Write curated run notes and a side-by-side comparison table.
+- Use the results to draft the paper evaluation section before deciding whether optional comparator runs are necessary.
+
+**Paper notes:**
+This entry marks the transition from exploratory evaluation to evidence close-out. The planned runs directly test the paper's comparative claim: whether agent-authored structured memory can preserve enough task-relevant meaning to support later synthesis with different cost and reliability tradeoffs than raw source access or flat memory.
+
+**Addendum — optional post-closeout experiment directions:**
+Mark identified three future experiment classes that may add colour after the main thesis is tested:
+
+- non-natural-language or structured operational data, such as statistics, iterative measurements, software development patterns, variables, loops, algorithms, or implementation constraints;
+- implicit cross-data recall, where separate persisted anecdotes may reveal trends only when considered together, such as a synthetic health/physiology diary used for discussion-support rather than diagnosis;
+- indirect references to other people, where the agent must decide whether and how to persist third-party context mentioned during user-centred work.
+
+These should stay outside the current five-run close-out batch. They are better positioned as future-work probes once the representational-compression evidence is collected.
+
+**Addendum — H1 topology split:**
+`closeout01` succeeded against `multimemoir-agent-authored-v1`, but Mark correctly identified that the corpus was favourable: it had been generated as one cross-source memory activity and already contained a comparative theme layer. To avoid overstating the result, `closeout01b` was added as a paired H1 robustness run against `memoir-single-source-combined-v1`, a mechanically merged store of independently authored single-source memoir services.
+
+`closeout01b` also produced a strong cross-subject essay, but with materially different behaviour. Claude first attempted raw SQLite inspection, which was denied, then recovered to the AIPCS MCP interface. It discovered five independent memoir services, retrieved broadly across heterogeneous schemas, externalised large AIPCS tool results to local files, and then synthesized across those retrieved outputs.
+
+The paired result sharpens the H1 interpretation:
+
+- integrated cross-source memory topology enables efficient synthesis;
+- heterogeneous independently authored memory remains usable through AIPCS, but costs more retrieval and scratch-work;
+- memory topology is itself part of the AIPCS value proposition and limitation.
+
+This should be reflected in the paper as a topology sensitivity result rather than a simple pass/fail recall result.
+
+**Addendum — H2 source-only baseline:**
+`closeout02` ran the same broad synthesis task using only the raw public-domain source packet. AIPCS and persistent memory tools were explicitly forbidden. The source packet contained 336 files and about 4.5 MB of XHTML source material.
+
+Claude produced a strong comparative essay, using selected title pages, chapters, and grep searches across Gandhi, Adams, Kropotkin, Washington, and the Crafts. The output was specific and well-grounded, but the transcript shows a materially heavier navigation process than the AIPCS runs: many shell reads, term searches, and chapter selections were required before generation.
+
+This supports H2 as a quality-ceiling baseline. Source access can produce excellent output and stronger direct provenance, but at higher task-time context/navigation cost. The paper should frame AIPCS as a compact structured representation with different tradeoffs, not as a universal replacement for source access.
+
+**Addendum — structured prior cognition and adaptive memory architecture:**
+The comparison between AIPCS and raw source access sharpened the intended AIPCS value proposition. Raw source access can produce excellent output, but the source reading, selection, and interpretation work happens at answer time and is mostly lost after the session. In a later session, or with a different agent, that work must be repeated if the source files are still available.
+
+AIPCS can persist part of that prior cognition as a durable, queryable memory artifact. The stored value is not only facts; it can include the agent's selected abstractions, provenance, interpretive notes, retrieval tags, and cross-domain structure.
+
+This also highlights adaptive memory architecture as a core claim. An AIPCS agent can restructure memory as it learns what retrieval patterns recur. Repeated answer-time cross-referencing, like the broad extraction needed in `closeout01b`, can become a signal to create new comparative entities, facets, or services. Flat memory accumulates prose; retrieval pipelines accumulate indexed fragments; AIPCS can accumulate and evolve structure.
+
+This should be treated as a paper-level observation: AIPCS turns memory failures and repeated retrieval work into schema-evolution pressure.
+
+**Addendum — H3 flat-memory upper baseline:**
+`closeout03` ran the broad synthesis task using only a flat `MEMORY.md` artifact. The run stayed within the intended boundary: no AIPCS, source files, raw SQLite, prior artifacts, or outside knowledge were used in the visible transcript. Claude read one 5,391-word memory note and produced a strong comparative essay.
+
+The result is important because the flat-memory baseline was not weak. The `MEMORY.md` was generated in a dedicated prep run from the source packet, used research-agent assistance, and was explicitly designed to preserve subject-specific facts, tensions, contrasts, scenes, and cross-cutting themes. Mark observed that it may be "almost too well primed" for the target task.
+
+This should be interpreted as an upper baseline for flat prose memory. It shows that a carefully prepared compact note can be highly competitive for a single broad synthesis task. That narrows any simplistic AIPCS advantage. The stronger AIPCS claim should be framed around durability, queryability, provenance, adaptive schema evolution, selective retrieval under scale, and reuse across future agents/sessions, rather than merely producing a better one-off essay than a well-made prose note.
+
+**Addendum — optional H6 vanilla reconstruction baseline:**
+Mark suggested a useful further comparator: a fresh agent with no supplied AIPCS, no source packet, and no flat memory note may still be able to generate a plausible cross-subject essay using base model knowledge or ordinary research tools. This should be added as optional H6 rather than inserted into the required H4/H5 sequence.
+
+The purpose is to test whether the task itself is easy enough that memory adds little for this domain. If vanilla or research-enabled Claude performs well, the AIPCS claim narrows further: AIPCS is not competing with general knowledge or web research, but preserving prior situated cognition from a user/project/agent history. The expected differentiators become provenance, bounded corpus continuity, reduced re-research cost, and persistence of what a prior agent judged worth retaining.
+
+**Addendum — H4 AIPCS discrimination/null probe:**
+`closeout04` ran the targeted discrimination/null prompt against the integrated `multimemoir-agent-authored-v1` AIPCS snapshot. Claude went directly to AIPCS bootstrap after checking available context, retrieved all three relevant services (`memoir_subjects`, `memoir_themes`, and `memoir_episodes`), and answered using 31 records across those services.
+
+The result was positive for H4. The agent distinguished personal discipline, political or social freedom, confinement, exclusion, and institutional constraint across the represented memoir subjects without flattening them into generic similarity. It explicitly rejected the unsupported claim that Henry Adams and Booker T. Washington shared the same theory of education, while preserving the narrower thematic overlap that both memoirs discuss education outside formal institutions. It also handled the Kropotkin/Gandhi near-neighbor question carefully: both use inquiry language against authority, but Kropotkin's external scientific method and Gandhi's moral-autobiographical experiments are not the same method.
+
+The retrieval path was broad rather than narrow, but that was defensible for a cross-subject discrimination prompt over a compact integrated corpus. The important evidence is that broad structured retrieval did not produce overconfident equivalence claims. The paired `closeout05` flat-memory run remains necessary to compare whether flat prose memory creates more false-positive pressure under the same prompt.
+
+**Paper notes:**
+This run supports the claim that AIPCS can preserve enough structured prior cognition for a fresh agent to reason about absence, near-neighbor similarity, and source discrimination. The paper should use it as H4 evidence, but avoid overclaiming until the flat-memory H5 comparator is run.
