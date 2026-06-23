@@ -51,7 +51,7 @@ The claim is not that AIPCS always beats source access. The sharper claim is abo
 | `closeout01` | AIPCS-only | Broad cross-subject synthesis | Can a fresh agent discover and use an agent-authored multi-memoir AIPCS corpus without source access? |
 | `closeout01b` | AIPCS-only, alternate topology | Same broad synthesis | Can a fresh agent synthesize across independently authored single-source AIPCS services without a pre-integrated comparative memory layer? |
 | `closeout02` | Source-only | Same broad synthesis | What quality and cost does direct source access provide as the strongest obvious baseline? |
-| `closeout03` | Flat-memory-only | Same broad synthesis | Does a prose memory summary achieve comparable quality at lower operational complexity? |
+| `closeout03` | Flat-memory-only | Same broad synthesis | Does a curated single-file memory artifact achieve comparable quality at lower operational complexity? |
 | `closeout04` | AIPCS-only | Targeted discrimination + null probe | Does structured memory reduce cross-subject misattribution and unsupported claims? |
 | `closeout05` | Flat-memory-only | Same discrimination + null probe | Does flat memory over-apply nearby facts or lose source discrimination under the same probe? |
 | `closeout06` | Vanilla / research-enabled optional | Same broad synthesis | Can a fresh agent reconstruct comparable synthesis without supplied AIPCS, source packet, or flat memory, using only model priors and any ordinary research tools available? |
@@ -98,9 +98,9 @@ The contrast between `closeout01` and `closeout01b` adds a topology point. Integ
 |---|---|
 | H1: A later clean agent can discover and use an agent-authored cross-domain AIPCS memory topology for synthesis without source access. | `closeout01` tests an integrated cross-source memory topology with explicit comparative services. `closeout01b` tests a harder alternate topology made from independently authored single-source services. Together they show whether success depends on a pre-integrated comparative layer or whether a future agent can reconstitute synthesis across heterogeneous authored schemas. |
 | H2: Raw source access is the quality ceiling but should carry higher task-time context and navigation cost. | `closeout02` may achieve equal or better factual coverage than AIPCS, but should require reading materially more source text, spend more effort locating relevant passages, and expose whether source access alone gives better synthesis per unit of context consumed. |
-| H3: Flat prose memory is a plausible low-cost baseline, but should lose some retrievability, provenance, or source discrimination under cross-subject pressure. | `closeout03` may produce coherent prose from a compact memory note, but scoring should test whether it drops anchor facts, substitutes generic summaries, blends subjects, or lacks enough structure to explain why particular facts were selected. |
+| H3: A curated single-file memory artifact is a plausible low-cost baseline, but should lose some retrievability, provenance, or source discrimination under cross-subject pressure. | `closeout03` may produce coherent prose from a prepared condensed dossier, but scoring should test whether it drops anchor facts, substitutes generic summaries, blends subjects, or lacks enough structure to explain why particular facts were selected. |
 | H4: AIPCS structured memory should support better discrimination under near-neighbor and null probes than flat memory, if the agent uses the memory topology rationally. | `closeout04` should show whether service/entity/record selection helps the agent distinguish similar subjects, decline unsupported claims, and cite absence or uncertainty from the available structured memory. Failure is still meaningful if the agent over-retrieves, misses relevant branches, or treats weak records as authoritative. |
-| H5: Flat prose memory should reveal whether compact summaries increase false-positive pressure when adjacent but non-equivalent facts are present. | `closeout05` should test whether prose memory causes blending, overconfident analogies, or unsupported equivalence claims in the same discrimination/null task used for `closeout04`. A strong flat-memory result would narrow AIPCS's claimed advantage and should be treated as real evidence. |
+| H5: A curated single-file memory artifact should reveal whether dense summary representations increase false-positive pressure when adjacent but non-equivalent facts are present. | `closeout05` should test whether the prepared flat artifact causes blending, overconfident analogies, or unsupported equivalence claims in the same discrimination/null task used for `closeout04`. A strong flat-memory result would narrow AIPCS's claimed advantage and should be treated as real evidence. |
 | H6: A vanilla or research-enabled fresh agent may reconstruct a plausible synthesis without supplied memory, but should pay re-research cost, show weaker bounded-corpus provenance, or rely unevenly on model priors. | `closeout06` is optional and can run later without sequencing dependency. It tests whether the task itself is easy enough for ordinary model knowledge or live research, and reframes AIPCS as preserving prior situated cognition rather than competing with general knowledge. |
 
 ## Controls
@@ -119,7 +119,7 @@ The contrast between `closeout01` and `closeout01b` adds a topology point. Integ
 - `multimemoir-agent-authored-v1` is the primary AIPCS snapshot for `closeout01`.
 - `memoir-single-source-combined-v1` is the alternate AIPCS topology for `closeout01b`.
 - The source-only condition uses the same five public-domain memoirs that generated the AIPCS corpus.
-- The flat-memory-only condition uses a generated prose memory artifact from the same bounded source packet set.
+- The flat-memory-only condition uses a generated single-file memory artifact from the same bounded source packet set. This is a curated, task-prepared artifact rather than an ordinary organic `MEMORY.md` accumulation.
 - The agent model may shift over time; visible model label and CLI version must be recorded but are not controlled.
 - Claude login may be required in a run home; this is an operational nuisance, not automatically an invalidating condition.
 
@@ -215,6 +215,8 @@ Those are data.
 | 2026-06-20 | `closeout01`, `closeout01b`, and `closeout02` completed. H1 now has integrated and heterogeneous topology evidence; H2 source-only baseline produced strong output with clear navigation/context cost. |
 | 2026-06-22 | `closeout03` completed. Flat-memory-only produced a strong answer from one best-effort source-derived memory note, but the note was unusually rich and task-aligned, making it an upper baseline rather than casual memory. |
 | 2026-06-22 | `closeout04` completed. Claude went directly to AIPCS bootstrap, retrieved the three relevant integrated memoir services, and handled the discrimination/null prompt without unsupported equivalence claims. |
+| 2026-06-22 | `closeout05` completed. Flat-memory-only also handled the discrimination/null prompt well, showing that a deliberately prepared 5,391-word condensed memory artifact is a strong upper baseline rather than a strawman. |
+| 2026-06-22 | `closeout06` completed. Vanilla/model-knowledge-only produced a strong thematic essay but lacked bounded corpus provenance and directly verifiable quotations. |
 
 ## Decisions Made During Work
 
@@ -226,6 +228,8 @@ Those are data.
 | Treat `closeout03` as an upper flat-memory baseline | The flat memory artifact was generated deliberately from source and was highly aligned with the task, so strong performance narrows AIPCS's claim rather than invalidating it. |
 | Add optional H6 vanilla/research-enabled baseline | This tests whether a fresh agent can reconstruct comparable synthesis without supplied memory. It does not require special sequencing and should not block H4/H5. |
 | Treat `closeout04` as a positive H4 AIPCS discrimination result | The agent used AIPCS immediately, retrieved broadly but rationally, and explicitly declined unsupported near-neighbor claims. The paired `closeout05` flat-memory run is still needed before making comparative claims. |
+| Treat `closeout05` as a strong H5 curated-artifact comparator, not a flat-memory failure | The flat memory artifact was analytically rich, highly task-aligned, and substantial: 5,391 words / 33,149 bytes distilled from five sources. It handled the same null/near-neighbor probes well, so the AIPCS claim should focus on structured durability, queryability, provenance, scale, and evolution rather than one-off output quality. |
+| Treat `closeout06` as a model-capability baseline, not a memory baseline | Claude can synthesize well from general knowledge for these well-known figures. The AIPCS comparison should therefore emphasize bounded corpus continuity, provenance, and reusable prior interpretation rather than generic essay competence. |
 | Avoid implementation changes during the batch | The batch is for evidence collection; new implementation changes would reset the baseline. |
 
 ## Validation

@@ -4796,7 +4796,7 @@ The planned experiment compares:
 
 - AIPCS-only: fresh agent with structured persisted memory and no source.
 - Source-only: fresh agent with complete source packets and no persisted memory.
-- Flat-memory-only: fresh agent with a prose memory summary and no AIPCS.
+- Flat-memory-only: fresh agent with a curated single-file memory artifact and no AIPCS.
 - AIPCS + source: fresh agent with both structured memory and source.
 - AIPCS + flat memory + source: maximum-context condition, used sparingly.
 
@@ -4980,7 +4980,7 @@ The close-out batch contains five planned runs:
 
 - `closeout01`: AIPCS-only broad cross-subject synthesis over `multimemoir-agent-authored-v1`.
 - `closeout02`: source-only broad synthesis over the same memoir source packet.
-- `closeout03`: flat-memory-only broad synthesis over a prose memory artifact.
+- `closeout03`: flat-memory-only broad synthesis over a curated single-file memory artifact.
 - `closeout04`: AIPCS-only targeted discrimination/null probe.
 - `closeout05`: flat-memory-only targeted discrimination/null probe.
 
@@ -5045,7 +5045,7 @@ This should be treated as a paper-level observation: AIPCS turns memory failures
 
 The result is important because the flat-memory baseline was not weak. The `MEMORY.md` was generated in a dedicated prep run from the source packet, used research-agent assistance, and was explicitly designed to preserve subject-specific facts, tensions, contrasts, scenes, and cross-cutting themes. Mark observed that it may be "almost too well primed" for the target task.
 
-This should be interpreted as an upper baseline for flat prose memory. It shows that a carefully prepared compact note can be highly competitive for a single broad synthesis task. That narrows any simplistic AIPCS advantage. The stronger AIPCS claim should be framed around durability, queryability, provenance, adaptive schema evolution, selective retrieval under scale, and reuse across future agents/sessions, rather than merely producing a better one-off essay than a well-made prose note.
+This should be interpreted as an upper baseline for a curated single-file memory artifact. It shows that a carefully prepared condensed dossier can be highly competitive for a single broad synthesis task. That narrows any simplistic AIPCS advantage. The stronger AIPCS claim should be framed around durability, queryability, provenance, adaptive schema evolution, selective retrieval under scale, and reuse across future agents/sessions, rather than merely producing a better one-off essay than a well-made flat artifact.
 
 **Addendum — optional H6 vanilla reconstruction baseline:**
 Mark suggested a useful further comparator: a fresh agent with no supplied AIPCS, no source packet, and no flat memory note may still be able to generate a plausible cross-subject essay using base model knowledge or ordinary research tools. This should be added as optional H6 rather than inserted into the required H4/H5 sequence.
@@ -5057,7 +5057,29 @@ The purpose is to test whether the task itself is easy enough that memory adds l
 
 The result was positive for H4. The agent distinguished personal discipline, political or social freedom, confinement, exclusion, and institutional constraint across the represented memoir subjects without flattening them into generic similarity. It explicitly rejected the unsupported claim that Henry Adams and Booker T. Washington shared the same theory of education, while preserving the narrower thematic overlap that both memoirs discuss education outside formal institutions. It also handled the Kropotkin/Gandhi near-neighbor question carefully: both use inquiry language against authority, but Kropotkin's external scientific method and Gandhi's moral-autobiographical experiments are not the same method.
 
-The retrieval path was broad rather than narrow, but that was defensible for a cross-subject discrimination prompt over a compact integrated corpus. The important evidence is that broad structured retrieval did not produce overconfident equivalence claims. The paired `closeout05` flat-memory run remains necessary to compare whether flat prose memory creates more false-positive pressure under the same prompt.
+The retrieval path was broad rather than narrow, but that was defensible for a cross-subject discrimination prompt over a compact integrated corpus. The important evidence is that broad structured retrieval did not produce overconfident equivalence claims. The paired `closeout05` flat-memory run remains necessary to compare whether a curated single-file memory artifact creates more false-positive pressure under the same prompt.
 
 **Paper notes:**
 This run supports the claim that AIPCS can preserve enough structured prior cognition for a fresh agent to reason about absence, near-neighbor similarity, and source discrimination. The paper should use it as H4 evidence, but avoid overclaiming until the flat-memory H5 comparator is run.
+
+**Addendum — H5 flat-memory discrimination/null probe:**
+`closeout05` ran the same targeted discrimination/null prompt using only the flat `MEMORY.md` artifact. AIPCS, raw SQLite files, source files, prior artifacts, and outside knowledge were forbidden. Claude read one file, `workspace/memory/MEMORY.md`, and attributed the answer exclusively to that note.
+
+The result was stronger than a simplistic AIPCS-favouring hypothesis would predict. The flat-memory condition handled the same two likely false positives well. It rejected the claim that Henry Adams and Booker T. Washington shared the same theory of education, while preserving a narrower overlap around inadequacy of conventional education. It also distinguished Kropotkin's external, shareable scientific inquiry from Gandhi's internal moral experiments, rather than claiming they expressed the same method.
+
+This means H5 should be interpreted as a strong curated-artifact comparator, not evidence that flat memory necessarily blends adjacent facts. The caveat is that the `MEMORY.md` artifact was unusually favourable: it was deliberately generated from the source packet, analytically dense, already organized around cross-cutting themes, and substantial at 5,391 words / 33,149 bytes. It is closer to an upper-bound condensed dossier than to ordinary incidental memory accumulated across a long collaboration.
+
+**Paper notes:**
+The closeout H4/H5 pair narrows and strengthens the argument. AIPCS did not clearly outperform a carefully prepared single-file memory artifact on one-off answer quality for a compact narrative corpus. The paper should therefore avoid claiming categorical superiority over curated flat artifacts. The stronger claim is that AIPCS preserves agent-authored structure that remains queryable, inspectable, evolvable, and reusable as memory grows across sessions, agents, domains, and time.
+
+**Addendum — H6 vanilla/model-knowledge reconstruction baseline:**
+`closeout06` ran the broad comparative essay prompt with no supplied AIPCS memory, no source packet, and no flat memory note. Claude did not visibly call tools, read files, use AIPCS, or invoke web/research. The answer appears to have been generated directly from ordinary model knowledge.
+
+The result was thematically strong. Claude produced a coherent typology of responses to authority and freedom across Gandhi, Kropotkin, Washington, the Crafts, and Adams. It handled all five subject groups and produced a rhetorically useful essay. This shows that the task domain itself is not beyond ordinary Claude capability, especially because the figures are historically prominent.
+
+The limitation is bounded provenance. The answer drew on broader historical knowledge that was not constrained to the memoir corpus, including the Salt March, Quit India, Washington's covert legal funding, Kropotkin's World War One position, and later interpretive framing. Claude was transparent about this, explicitly avoiding exact quotations and noting that publication dates, precise quotations, and some secondary-source claims could not be verified in the session.
+
+Mark's observation is the right interpretation: Claude can produce a strong thematic essay, but where it falls short is access to directly quoteable, bounded, corpus-specific remarks.
+
+**Paper notes:**
+H6 further narrows the claim. AIPCS is not necessary for a frontier model to produce plausible synthesis on well-known historical topics. Its value is preserving bounded situated cognition: what an earlier agent read, selected, interpreted, structured, and made reusable from a specific corpus or collaboration. Compared with vanilla model knowledge, AIPCS offers continuity, inspectable provenance, and controlled recall rather than generic model competence.
