@@ -5083,3 +5083,68 @@ Mark's observation is the right interpretation: Claude can produce a strong them
 
 **Paper notes:**
 H6 further narrows the claim. AIPCS is not necessary for a frontier model to produce plausible synthesis on well-known historical topics. Its value is preserving bounded situated cognition: what an earlier agent read, selected, interpreted, structured, and made reusable from a specific corpus or collaboration. Compared with vanilla model knowledge, AIPCS offers continuity, inspectable provenance, and controlled recall rather than generic model competence.
+
+**Addendum — close-out evidence sufficient for drafting:**
+The close-out runs have now been consolidated in `experiments/runs/closeout-summary.md`. The evidence is sufficient to move into paper drafting.
+
+The sufficient evidence is not a broad superiority claim. It is a bounded architectural claim:
+
+- AIPCS can preserve and expose agent-authored memory topology to later clean agents.
+- Integrated AIPCS topology supports efficient cross-domain synthesis.
+- Heterogeneous AIPCS topology remains usable but increases retrieval and scratch-work.
+- Raw source access remains the quality and quotation ceiling, but requires answer-time source triage.
+- A curated single-file memory artifact can perform very well and must be treated as a serious baseline.
+- Vanilla Claude can synthesize thematically from model knowledge, but lacks bounded corpus provenance and directly verifiable quotations.
+
+This narrows the paper's claim in a productive way. AIPCS should be presented as a structured, persistent, inspectable, evolvable memory architecture for preserving bounded prior cognition, not as a universal way to produce better prose than raw sources, curated notes, or model priors.
+
+**Paper notes:**
+The evaluation section can now be drafted around tradeoffs rather than victory claims. The most defensible contribution is that AIPCS makes memory architecture agent-authored and durable across sessions, while exposing clear comparison points against source access, curated flat artifacts, and model-prior synthesis.
+
+**Addendum — full programme publication-readiness review:**
+The close-out summary was too narrow by itself because it only covered the final representational-compression comparator batch. A full evidence review has now been added at `experiments/runs/full-programme-evidence-review.md`, covering calibration, empty-store persistence formation, cold-start recall/application, authority/conflict probes, bootstrap scalability, slim-bootstrap reruns, sanitised organic corpus tests, public-domain authored corpus recall, retrieval-affordance failure, and the close-out baselines.
+
+The objective judgment is that the project has enough evidence to publish AIPCS as a novel memory pattern with a reference implementation and credible early qualitative evaluation. It does not have enough evidence to claim benchmark-level superiority over other memory systems.
+
+The strongest supported claim is architectural:
+
+- agents can instantiate their own persistent memory services;
+- agents can retrieve and apply that memory in later sessions;
+- agents can evolve schemas and repair stale or poorly shaped memory;
+- AIPCS exposes authority, provenance, topology, and retrieval tradeoffs that are not visible in opaque/native or injection-only memory paths.
+
+The under-supported claims are quantitative or comparative:
+
+- no final agent-memory-v2 head-to-head has been run;
+- no large multi-model benchmark exists;
+- service-breadth retrieval remains partly open;
+- cost/token economics are only qualitatively captured.
+
+**Paper notes:**
+The paper should be positioned as an arXiv / early systems paper: pattern, reference implementation, qualitative live-agent evidence, and limitations. The correct contribution is not "AIPCS is empirically best"; it is "AIPCS makes memory architecture agent-owned, persistent, inspectable, and evolvable."
+
+**Addendum — methodological limitation framing and future arcs:**
+Mark clarified several important framing points for the paper limitations and future-work sections.
+
+First, the project should not chase or claim "AIPCS is superior to all memory systems." The aim is to introduce AIPCS as a novel, durable memory pattern that extends beyond inherent agent memory systems by letting the agent own and evolve the persistence architecture.
+
+Second, agent-memory-v2 should remain a future comparator. It is hard to compare cleanly because it is an inline extraction/enrichment/semantic recall/injection system with developer-defined fact extractors and taxonomies. AIPCS is motivated partly by the difficulty of anticipating every fact extractor, domain, and relevance rule up front.
+
+Third, dogfooding was intentionally limited during experiments to avoid contaminating the same Claude/Codex harnesses being evaluated. A controlled API-driven environment would have helped, but exploratory paid API usage was not financially practical.
+
+Fourth, token-cost evidence should be framed pragmatically. AIPCS does not need to be cheaper in every scenario; it needs not to blow normal agent budgets, and its overhead should buy enough durability, provenance, precision, reuse, or schema adaptability to justify itself.
+
+Fifth, harness generalisation should be bounded. The evidence is primarily Claude Code, with Codex experience informing the work. That is acceptable for a first pattern paper as long as the claim is scoped to MCP-capable agent harnesses and not universal model behavior.
+
+Sixth, the privacy/data problem is itself part of the methods story. Private organic memory would be realistic but hard to publish. Synthetic data can be leading or semantically hollow. Public-domain memoirs avoid leakage but overlap with model priors. Real users and businesses will likely face similar sanitisation/redaction issues when sharing persisted memory evidence.
+
+**Paper notes:**
+These points should become a clear limitations paragraph and future-work list. They make the paper more honest without weakening the contribution: AIPCS is ready to introduce as a pattern, while agent-memory-v2 comparison, larger corpora, dogfooding, Codex harness validation, and richer data domains remain future arcs.
+
+**Addendum — paper wireframe captured:**
+A paper-facing wireframe has been added at `paper/wireframe.md` and linked from `paper/outline.md`. The wireframe turns the current evidence review into a section-by-section drafting scaffold: abstract moves, introduction contributions, related-work comparison, AIPCS pattern lifecycle, reference implementation structure, evaluation evidence arcs, discussion framing, limitations, future work, and figure/table checklist.
+
+The purpose is to stabilize the argument before detailed prose drafting. The paper can now be worked through section by section without reopening the experiment plan by default. Further experiments should be added only when they materially close a named evidence gap rather than because the paper outline feels incomplete.
+
+**Paper notes:**
+This is the transition artifact from evidence close-out into drafting. It should guide the first arXiv draft and keep the paper claim bounded: AIPCS as an agent-owned, durable, inspectable, evolvable memory architecture supported by qualitative live-agent evidence, not as a benchmark superiority claim.

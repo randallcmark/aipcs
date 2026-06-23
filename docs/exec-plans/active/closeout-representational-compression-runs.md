@@ -1,6 +1,6 @@
 # Execution Plan: Close-Out Representational Compression Runs
 
-**Status:** Draft
+**Status:** Evidence collected
 **Owner:** Agent + Randall Mark
 **Created:** 2026-06-20
 **Last updated:** 2026-06-20
@@ -10,7 +10,7 @@
 
 ## Goal
 
-Execute a bounded five-run experiment series that gives enough comparative evidence to move from exploratory AIPCS data collection into paper drafting.
+Execute a bounded experiment series that gives enough comparative evidence to move from exploratory AIPCS data collection into paper drafting.
 
 ## Non-Goals
 
@@ -190,7 +190,7 @@ Those are data.
 6. Score `closeout01`, `closeout01b`, `closeout02`, and `closeout03` side by side before proceeding.
 7. Run `closeout04` AIPCS-only discrimination/null probe.
 8. Run `closeout05` flat-memory-only discrimination/null probe.
-9. Write curated run notes for all six runs.
+9. Write curated run notes for the close-out runs.
 10. Update `representational-compression-evaluation.md` with results.
 11. Decide whether optional follow-up is needed:
     - source+AIPCS combined condition;
@@ -200,12 +200,12 @@ Those are data.
 
 ## Acceptance Criteria
 
-- [ ] Six run artifacts exist under the lab run archive.
-- [ ] Six curated run notes exist under `experiments/runs/`.
-- [ ] Each run note includes transcript pointer, representation condition, observed context sources, scoring, and paper relevance.
-- [ ] At least one side-by-side comparison table exists for `closeout01`-`closeout03`, including the `closeout01b` topology variant.
-- [ ] Null/false-positive comparison exists for `closeout04` and `closeout05`.
-- [ ] The batch produces enough evidence to draft the paper's evaluation section without adding a new implementation slice.
+- [x] Close-out run artifacts exist under the lab run archive.
+- [x] Seven curated run notes exist under `experiments/runs/`, covering `closeout01`, `closeout01b`, and `closeout02`-`closeout06`.
+- [x] Each run note includes transcript pointer, representation condition, observed context sources, scoring, and paper relevance.
+- [x] At least one side-by-side comparison table exists for `closeout01`-`closeout03`, including the `closeout01b` topology variant.
+- [x] Null/false-positive comparison exists for `closeout04` and `closeout05`.
+- [x] The batch produces enough evidence to draft the paper's evaluation section without adding a new implementation slice.
 
 ## Progress Log
 
@@ -217,6 +217,7 @@ Those are data.
 | 2026-06-22 | `closeout04` completed. Claude went directly to AIPCS bootstrap, retrieved the three relevant integrated memoir services, and handled the discrimination/null prompt without unsupported equivalence claims. |
 | 2026-06-22 | `closeout05` completed. Flat-memory-only also handled the discrimination/null prompt well, showing that a deliberately prepared 5,391-word condensed memory artifact is a strong upper baseline rather than a strawman. |
 | 2026-06-22 | `closeout06` completed. Vanilla/model-knowledge-only produced a strong thematic essay but lacked bounded corpus provenance and directly verifiable quotations. |
+| 2026-06-23 | Close-out results consolidated in `experiments/runs/closeout-summary.md`. Evidence judged sufficient for paper drafting, with a narrowed AIPCS claim focused on structured, bounded, evolvable memory rather than one-off prose superiority. |
 
 ## Decisions Made During Work
 

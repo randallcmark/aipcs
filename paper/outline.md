@@ -7,6 +7,8 @@
 **Target length:** 6–10 pages (systems paper style)
 **Status:** Outline — sections seeded from BUILD_JOURNAL running notes
 
+**Detailed drafting wireframe:** [wireframe.md](wireframe.md)
+
 ---
 
 ## Abstract
