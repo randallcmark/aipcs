@@ -5148,3 +5148,68 @@ The purpose is to stabilize the argument before detailed prose drafting. The pap
 
 **Paper notes:**
 This is the transition artifact from evidence close-out into drafting. It should guide the first arXiv draft and keep the paper claim bounded: AIPCS as an agent-owned, durable, inspectable, evolvable memory architecture supported by qualitative live-agent evidence, not as a benchmark superiority claim.
+
+**Addendum — dogfooding implementation slices started:**
+Mark is preparing to dogfood AIPCS in real work, so the post-experiment implementation lessons are being converted into handoff slices for `aipcs-server`. The first slice is `docs/exec-plans/active/aipcs-server-slice-01-memory-dimensionality.md`, which proposes a server-managed `memory_branch` layer between service and record-level persistence.
+
+This is a direct response to the flat-model problem observed across user-memory notes, synthetic corpora, heterogeneous memoir services, and close-out runs. The pattern `service -> entity -> record` was sufficient for the first prototype, but it pushes agents toward broad scans, large prose records, and weak topical separation as memory grows. A generic branch layer preserves agent ownership while providing a consistent topology primitive across services.
+
+**Paper notes:**
+This belongs in the Discussion and Future Work sections as evidence that AIPCS evolves from experimental feedback. It also reinforces the paper's claim that memory topology is part of the system: the agent should own domain structure, but the substrate should provide enough generic dimensionality for long-lived memory to remain navigable.
+
+**Addendum — Slice 01 refined for retroactive topology evolution:**
+The memory-dimensionality slice was refined after discussion. The important distinction is that AIPCS should not literally transform an entity table into a branch. Instead, it should allow agents to insert branch topology above existing records once a service outgrows its original flat shape.
+
+The slice now includes `aipcs_branch_assign_records` as the retrospective organisation primitive. This supports a natural agent workflow: start with the shallowest useful shape, persist records, then create branches and assign existing records when multiple topics, phases, sources, or retrieval scopes emerge. Entities remain record-shape definitions; branches become retrieval-scope topology.
+
+**Paper notes:**
+This is a strong example of schema/topology evolution as memory cognition. It should inform the Pattern and Discussion sections: AIPCS does not require perfect up-front schema design. A mature substrate should let agents add memory structure when retrieval pressure reveals the need.
+
+**Addendum — Slice 02 discovery metadata drafted:**
+The second dogfooding handoff slice has been drafted at `docs/exec-plans/active/aipcs-server-slice-02-discovery-metadata.md`. It targets the discovery gap left after slim bootstrap: payload size improved, but service and branch selection quality remains part of the memory system.
+
+The slice frames discovery metadata as selection cues rather than retrieved knowledge. Bootstrap should remain a compact portfolio map with mechanical booleans, buckets, freshness labels, and next-tool hints. `aipcs_service_summary` should carry richer service and branch discovery: branch status/type counts, unbranched counts, filter modes, examples, and retrieval plan hints. This preserves the recursive path `bootstrap -> service_summary -> branch-scoped retrieval` without returning record content too early.
+
+**Paper notes:**
+This belongs in the Reference Implementation and Discussion sections. It supports the claim that memory discovery is not incidental UI; the payload and affordance design directly shapes whether agents use persisted memory effectively.
+
+**Addendum — Slice 03 retrieval affordances drafted:**
+The third dogfooding handoff slice has been drafted at `docs/exec-plans/active/aipcs-server-slice-03-first-class-retrieval-affordances.md`. It supersedes the unresolved parts of the older `retrieval-affordance-legibility.md` plan, which had bundled membership filtering, service-summary examples, record metadata, bootstrap routing, and tool-description hygiene.
+
+The remaining problem is narrower: `run027` showed that even when membership filters exist, agents may not reliably discover or trust them. Slice 03 therefore frames exact and membership retrieval affordances as first-class structured response objects rather than scattered hints. Bootstrap should expose compact booleans/counts saying structured retrieval is available, while `aipcs_service_summary` should expose concrete entity/field/mode/value-shape/filter-shape contracts.
+
+The old retrieval-affordance plan remains as historical context for `run027`, but implementation should proceed from Slice 03.
+
+**Paper notes:**
+This strengthens the reference implementation story: AIPCS is not only persistent storage, but a staged discovery protocol for agent-owned memory. The paper should distinguish memory content from retrieval affordances; the latter are part of making durable memory usable by future agent instances.
+
+**Addendum — Slice 04 authority/provenance/staleness drafted:**
+The fourth dogfooding handoff slice has been drafted at `docs/exec-plans/active/aipcs-server-slice-04-authority-provenance-staleness.md`. It turns one of the strongest experiment findings into a reference-implementation requirement: agents were able to reason over conflicting records when provenance, recency, status, scope, and clarity were visible.
+
+The slice keeps the autonomy-first position. It does not make one global record schema mandatory and does not hard-code a universal authority ranking policy. Instead, it proposes a convention profile plus retrieval-time enrichment: recommended fields for provenance, source, scope, confidence, lifecycle status, validity/staleness, and supersession; compact bootstrap authority cues; service-summary authority profiles; and `_meta.authority` / `_meta.staleness` on returned records when convention fields are present.
+
+The design preserves earlier decisions: provenance is durable data, relative age is computed at retrieval time, and interpretation policy remains with the agent/user rather than the server.
+
+**Paper notes:**
+This supports the paper's claim that durable memory quality depends on more than recall. A useful agent memory substrate must expose the evidence needed for authority judgment: where a record came from, what scope it applies to, whether it is still active, and whether later records supersede it.
+
+**Addendum — dogfooding rollout planned:**
+After the first four dogfooding server-shape slices, the remaining work was reframed around getting AIPCS into real use rather than continuing only with speculative design. Five active execution plans were added:
+
+- `docs/exec-plans/active/aipcs-dogfooding-rollout.md`
+- `docs/exec-plans/active/aipcs-dogfooding-harness-and-safety.md`
+- `docs/exec-plans/active/aipcs-portable-instruction-orchestration.md`
+- `docs/exec-plans/active/aipcs-server-slice-05-memory-maintenance.md`
+- `docs/exec-plans/active/aipcs-context-efficiency-instrumentation.md`
+
+The sequencing is intentionally pragmatic. Dogfooding can start once the store is private, backed up, and clearly separated from publishable experiment artifacts. Perfect instrumentation, maintenance tooling, and hook orchestration are useful but should not block real-use pressure. Dogfooding is now treated as qualitative design evidence unless a specific run is conducted with frozen snapshots and explicit controls.
+
+The rollout order is:
+
+1. establish a reversible private harness and safety baseline;
+2. package portable AIPCS instructions/orchestration guidance;
+3. define and build maintenance helpers for stale, duplicate, low-activity, or poorly organised memory;
+4. capture context-efficiency proxies during dogfooding and future experiments.
+
+**Paper notes:**
+This marks the transition from controlled live-agent experiments into practical use. The paper should frame dogfooding as design feedback and ecological validity, not as the same evidence class as snapshot-replay runs. It also gives the Discussion section a concrete future-work path: AIPCS must be usable in real harnesses with privacy boundaries, maintenance support, and cost awareness.

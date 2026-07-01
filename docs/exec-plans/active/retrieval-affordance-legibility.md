@@ -1,12 +1,32 @@
 # Execution Plan: Retrieval Affordance Legibility
 
-**Status:** Draft
+**Status:** Superseded — merged into `aipcs-server-slice-03-first-class-retrieval-affordances.md`
 **Owner:** Agent
 **Created:** 2026-06-13
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-24
 **BUILD_JOURNAL entries:** 097
 
 ---
+
+## Supersession Note
+
+This plan has been merged into `docs/exec-plans/active/aipcs-server-slice-03-first-class-retrieval-affordances.md`.
+
+The original plan bundled several concerns:
+
+- `string_list` hydration and membership filtering;
+- service-summary filter examples;
+- bootstrap routing toward service summary;
+- record `_meta` retrieval metadata;
+- MCP tool docstring hygiene.
+
+Those concerns have since split naturally:
+
+- structured membership filtering and hydration were implemented in earlier `aipcs-server` work;
+- slim bootstrap and service-summary discovery were improved through Slice 02;
+- remaining work is the narrower Slice 03 problem: make retrieval affordances first-class structured response objects so agents can discover exact and membership query contracts without inferring them from prose, raw record values, or tool descriptions.
+
+Keep this file as historical context for `run027`; use Slice 03 for implementation.
 
 ## Goal
 
