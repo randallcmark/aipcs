@@ -37,10 +37,14 @@ Milestones are tracked in the BUILD_JOURNAL. For quick reference:
 
 ## Current Implementation Priorities
 
-The active prototype is `/Users/markrandall/GitHub/aipcs-server`.
+The research repository remains the canonical pattern and paper record. The active private
+prototype is `/Users/markrandall/GitHub/aipcs-server`. Before public redistribution, use the
+[public-v1 contract](../architecture/public-v1-contract.md) and its execution plan as the product
+boundary.
 
 | Priority | Why it matters | Planning source |
 |---|---|---|
+| Public-v1 contract synchronisation | The historical draft and dogfooded implementation need one explicit release boundary before code redistribution. | BUILD_JOURNAL Entry 100; public-v1 contract |
 | Paper convergence | The build now proves enough locally to support bounded research claims; avoid drifting into productisation before the hypothesis is demonstrated with data. | BUILD_JOURNAL Entry 038 |
 | Agent-Led Evaluation V1 | Deterministic mechanics exist; next work is live-agent trace capture/scoring against the same six scenarios. | BUILD_JOURNAL Entry 037 |
 | Bootstrap/discovery surface | Agents need a map of seeded/materialised domains before probing. This supplements existing context rather than replacing it. | BUILD_JOURNAL Entries 018, 021, 022, 024 |

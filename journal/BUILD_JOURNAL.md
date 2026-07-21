@@ -5213,3 +5213,54 @@ The rollout order is:
 
 **Paper notes:**
 This marks the transition from controlled live-agent experiments into practical use. The paper should frame dogfooding as design feedback and ecological validity, not as the same evidence class as snapshot-replay runs. It also gives the Discussion section a concrete future-work path: AIPCS must be usable in real harnesses with privacy boundaries, maintenance support, and cost awareness.
+
+---
+
+## Entry 100 — 2026-07-21
+
+**Type:** Architecture decision / public-v1 contract synchronisation
+
+**Decision ID:** D031
+
+**Summary:** The historical AIPCS working design and dogfooded primitive server are synchronised
+around a bounded public-v1 contract without changing the core agent-authored-schema pattern.
+
+**Context:**
+The May technical design anticipated dynamic domain tools, per-domain FastAPI processes,
+agent-authored tool definitions, SQLite-only storage, and a two-state lifecycle. The local reference
+implementation instead proved stable generic primitives, structured discovery, branch topology,
+exact retrieval, authority/provenance signals, and maintenance scanning. Dogfooding exposed the
+remaining public-v1 requirements: relational fidelity, portability, lifecycle operations,
+configuration, retries/recovery, and administration.
+
+**Decision made:**
+
+- Keep stable generic AIPCS tools as the public interface; retire generated tools, FastAPI services,
+  agent-authored `tool_definitions`, aliases, registry classification confidence, `session_count`,
+  and dedicated merge/split.
+- Version package, MCP capability, manifest, storage migration, and export bundles independently;
+  private 0.1 stores have a one-way importer rather than permanent runtime compatibility.
+- Require enforced single-service relationships/indices, bounded additive evolution, idempotency,
+  optimistic conflicts, and deterministic repair.
+- Separate `seeded | materialised` from `active | suspended | archived`; no automatic seed TTL.
+- Keep SQLite default/reference; add PostgreSQL as the only secondary reference adapter.
+- Require backend-neutral export/import and an admin CLI. Decide maintenance/support policy late but
+  before general availability.
+- Defer parent-service composition, public remote MCP, OAuth/DCR, hosted tenancy, zero-knowledge
+  storage, and private homelab deployment.
+
+**Why:**
+These decisions preserve the evidence-backed primitive while replacing unproven interface complexity
+with explicit product contracts. They make dogfooding lessons visible to future users rather than
+leaving lifecycle, portability, and integrity gaps implicit.
+
+**Follow-up:**
+Preserve private artifacts, create a clean `aipcs-mcp` target from an allowlist, then execute the
+compatibility, storage, relational, recovery, lifecycle, CLI, packaging, documentation, and release
+governance slices.
+
+**Paper notes:**
+This is a design-evolution result, not a performance result. The paper should present AIPCS as
+agent-authored, durable, inspectable, evolvable memory supported by qualitative evidence; it must
+not claim that public-v1 hardening proves production readiness or superiority over flat memory, raw
+sources, or model priors.

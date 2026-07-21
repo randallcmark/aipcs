@@ -4,9 +4,18 @@
 
 Agent-Instantiated Persistent Context Services (AIPCS) is a pattern for autonomous, domain-adaptive memory infrastructure. It addresses the context economy problem: long-running agents need durable memory, but markdown side files, summaries, and semantic recall often reinsert prose into the context window instead of returning the precise structured fact needed for the current task.
 
-In AIPCS, an AI agent encountering a sufficiently complex stateful tracking problem designs an appropriate data schema, scaffolds a lightweight persistent service around it, and registers that service as an MCP tool — making structured, queryable memory available across all future sessions and any MCP-compatible client.
+In AIPCS, an AI agent encountering a sufficiently complex stateful tracking problem designs an
+appropriate data schema and materialises a lightweight persistent service around it. Stable AIPCS
+MCP primitives make that structured, queryable memory available across future sessions and
+MCP-compatible clients.
 
-The key distinction from prior work: the agent is upstream of the memory architecture. It is the schema architect, not only a consumer of a developer-defined schema, taxonomy, or retrieval pipeline. Memory is structurally queryable, not just semantically searchable. The service is dynamically registered as an MCP tool, composable and portable.
+The key distinction from prior work: the agent is upstream of the memory architecture. It is the schema architect, not only a consumer of a developer-defined schema, taxonomy, or retrieval pipeline. Memory is structurally queryable, not just semantically searchable.
+
+The core pattern is independent of the original product assumptions that every materialised domain
+generates its own MCP tools and FastAPI process. The dogfooded standalone primitive server proves a
+smaller interface: stable generic MCP tools operate agent-authored schemas. The public-v1 direction
+is a standalone `aipcs-mcp` implementation with SQLite as local default and PostgreSQL as one
+reference adapter; dynamic domain tools and processes remain historical/future interface ideas.
 
 ## Who is this for?
 

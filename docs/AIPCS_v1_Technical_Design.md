@@ -13,6 +13,14 @@
 > future interface/productisation layers, but they are not required for the first
 > research proof.
 
+> **2026-07-21 public-v1 synchronisation note:** This document remains the historical
+> pre-implementation working design. The public-v1 primitive-server contract is
+> `docs/architecture/public-v1-contract.md`. It retains agent-authored schema and
+> additive evolution as the pattern core, while making generic tools the public
+> interface and adding explicit relational, lifecycle, portability, recovery, and
+> administration boundaries. Generated tools, FastAPI services, public remote MCP,
+> OAuth/DCR, hosted tenancy, and zero-knowledge storage are not public-v1 requirements.
+
 ---
 
 ## Purpose

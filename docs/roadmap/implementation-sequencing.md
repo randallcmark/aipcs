@@ -1,5 +1,21 @@
 # Implementation Sequencing
 
+## Current Transition: Research Record to Public-v1 Contract
+
+The paper and research record remain first-class. Dogfooding also supports a bounded open-source
+primitive-server v1 without turning the research claim into a production-superiority claim. The
+public-v1 programme preserves private artefacts, freezes the generic-tool and compatibility contract,
+adds truthful relational enforcement, SQLite/PostgreSQL storage ports, idempotency, lifecycle and
+portable export/import, then adds an admin CLI, `uvx` packaging, public documentation, and late
+maintenance-policy decisions.
+
+Generated tools, per-domain FastAPI services, automatic seed expiry, aliases/classification counters,
+dedicated merge/split, public remote MCP, OAuth/DCR, hosted tenancy, and homelab deployment are not
+public-v1 release work. See `docs/architecture/public-v1-contract.md` and
+`docs/exec-plans/active/public-v1-contract-synchronisation.md`.
+
+---
+
 ## Current Phase: Paper Convergence And Agent-Led Evaluation
 
 The pattern is documented, the harness is in place, and the standalone `aipcs-server`

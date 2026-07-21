@@ -12,11 +12,36 @@ AIPCS (Agent-Instantiated Persistent Context Services) is a pattern in which an 
 
 The agent is the schema architect — not a consumer of a pre-designed schema. Memory is structurally queryable, not just semantically searchable. The current reference implementation proves the pattern through stable primitive MCP tools plus generic record operations. Dynamically generated domain-specific tools remain an optional interface layer, not the conceptual minimum.
 
-**Authoritative v1 design document:** [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
+**Historical v1 working design:** [`docs/AIPCS_v1_Technical_Design.md`](../AIPCS_v1_Technical_Design.md)
+
+**Authoritative public-v1 implementation contract:** [public-v1-contract.md](public-v1-contract.md)
+
+The historical design establishes the pattern and research archaeology. The public-v1 contract
+reconciles it with dogfooded primitive-server evidence without changing the agent-authored-schema
+core of AIPCS.
 
 ---
 
-## Two-State Service Lifecycle
+## Public-v1 Interface and Lifecycle Boundary
+
+Stable generic AIPCS MCP tools are the public interface. The server owns tool definitions and MCP
+contracts; the agent-authored schema owns entities, attributes, relationships, indices, and retrieval
+guidance. Generated domain tools, per-domain FastAPI processes, `tool_definitions`, aliases,
+registry classification confidence, `session_count`, and dedicated merge/split are retired from
+public-v1 semantics. Parent-service composition is deferred pending a concrete independent-service
+case. Public v1 is local `stdio`; remote MCP/auth/hosting remain separate future work.
+
+A service has two independent axes:
+
+```text
+design_state:       seeded | materialised
+operational_status: active | suspended | archived
+```
+
+No seed is automatically abandoned by age. Maintenance may identify a dormant candidate, but
+archive and purge are explicit owner/admin actions.
+
+## Historical Two-State Service Lifecycle
 
 Every AIPCS domain service exists in one of two states:
 
