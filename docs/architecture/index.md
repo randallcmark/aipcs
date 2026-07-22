@@ -41,6 +41,10 @@ operational_status: active | suspended | archived
 No seed is automatically abandoned by age. Maintenance may identify a dormant candidate, but
 archive and purge are explicit owner/admin actions.
 
+Relational foreign keys use portable immediate `ON DELETE RESTRICT` and `ON UPDATE RESTRICT`.
+Required cycles are rejected and nullable cycles are staged through null relationship values; see
+[ADR-001](decisions/ADR-001-immediate-restrict.md).
+
 ## Historical Two-State Service Lifecycle
 
 Every AIPCS domain service exists in one of two states:

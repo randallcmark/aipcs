@@ -5264,3 +5264,46 @@ This is a design-evolution result, not a performance result. The paper should pr
 agent-authored, durable, inspectable, evolvable memory supported by qualitative evidence; it must
 not claim that public-v1 hardening proves production readiness or superiority over flat memory, raw
 sources, or model priors.
+
+---
+
+## Entry 101 — 2026-07-22
+
+**Type:** Architecture correction / relational portability
+
+**Decision ID:** D032
+
+**Summary:** Public-v1 foreign keys use portable immediate `RESTRICT`, correcting the
+non-portable deferred-`RESTRICT` combination identified before SQLite materialisation.
+
+**Context:**
+V1-07A initially represented relationships as `ON DELETE/UPDATE RESTRICT` with
+`DEFERRABLE INITIALLY DEFERRED`. V1-07B adapter planning checked the behavior against both required
+reference databases. SQLite executes a `RESTRICT` action immediately even when its constraint is
+declared deferred. PostgreSQL likewise distinguishes immediate `RESTRICT` from deferrable
+`NO ACTION`. The combined contract therefore could not be implemented truthfully across both
+adapters.
+
+**Decision made:**
+
+- Preserve the manifest policy value `restrict`.
+- Change backend-neutral constraint timing from `deferred` to `immediate`.
+- Render native immediate `ON DELETE RESTRICT` and `ON UPDATE RESTRICT` in both reference adapters.
+- Continue rejecting required relationship cycles.
+- Preserve nullable cycles through staged null-edge creation followed by updates.
+- Reject silent `restrict`-to-`NO ACTION` translation and custom deferred enforcement.
+
+**Why:**
+The selected behavior is native, small, testable, and portable. It also matches the planned
+single-record API: required cycles are already impossible, while nullable cycles do not require a
+temporarily invalid transaction.
+
+**Follow-up:**
+Correct the V1-07A public contract value and tests on the V1-07B branch, then freeze SQLite initial
+DDL/inspection against immediate `RESTRICT`. PostgreSQL must later pass the same conformance cases.
+
+**Paper notes:**
+This is a useful implementation-pressure example for the paper's discussion: backend-neutral
+memory semantics must be verified behaviorally, because similar SQL vocabulary can conceal
+different timing guarantees. The correction narrows the contract before release rather than
+emulating a misleading abstraction.

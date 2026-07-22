@@ -45,6 +45,13 @@ constraint and declared index. `add_index` is additive evolution. A new entity m
 existing entity. Changes requiring an existing-table rebuild are rejected with a structured
 unsupported-migration response; the server never retains relational metadata it cannot enforce.
 
+Foreign keys use native immediate `ON DELETE RESTRICT` and `ON UPDATE RESTRICT` semantics in both
+reference adapters. Required relationship cycles are rejected before persistence; nullable cycles
+remain constructible by inserting records with null relationship fields and updating those fields
+after their targets exist. Public v1 does not claim a deferred `RESTRICT` combination: SQLite
+executes `RESTRICT` immediately even on a deferred constraint, and PostgreSQL does not defer
+`RESTRICT`. This preserves one honest cross-backend behavior without custom enforcement.
+
 AIPCS exposes narrow registry and materialised-service storage ports. SQLite is the local default and
 reference adapter. PostgreSQL is the only secondary reference adapter required for v1; no general
 adapter plugin framework is promised. Backend locators/namespaces are non-secret; credentials and
