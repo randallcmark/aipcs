@@ -39,10 +39,11 @@ are migration sources, not a permanent public runtime compatibility promise.
 ## Relational and storage boundary
 
 Initial designs validate every relationship and index. Public v1 supports explicit single-service
-foreign keys and named/generated indexes; materialisation creates every accepted constraint and
-index. `add_index` is additive evolution. A new entity may reference an existing entity. Changes
-requiring an existing-table rebuild are rejected with a structured unsupported-migration response;
-the server never retains relational metadata it cannot enforce.
+foreign keys and explicitly named agent-declared indexes; adapters may generate deterministic
+internal support indexes that are not manifest declarations. Materialisation creates every accepted
+constraint and declared index. `add_index` is additive evolution. A new entity may reference an
+existing entity. Changes requiring an existing-table rebuild are rejected with a structured
+unsupported-migration response; the server never retains relational metadata it cannot enforce.
 
 AIPCS exposes narrow registry and materialised-service storage ports. SQLite is the local default and
 reference adapter. PostgreSQL is the only secondary reference adapter required for v1; no general
