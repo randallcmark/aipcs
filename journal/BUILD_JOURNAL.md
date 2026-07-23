@@ -2062,6 +2062,8 @@ Use this for quick orientation when resuming work after a break.
 | D035 | 2026-07-23 | Keep V1-08D as one private re-observing coordinator | Prove registry-first intent and target-first reconciliation before any public lifecycle surface | 104 |
 | D036 | 2026-07-23 | Resume an exact dirty SQLite foundation once before terminal recovery | Crash-resumable prepared WAL state is externally observable during a valid same-key migration and must be distinguished by bounded action plus re-observation | 105 |
 | D037 | 2026-07-23 | Freeze the bounded V1-08E public lifecycle wire contract | Public composition needs exact request, capability, version, projection, and error semantics without exposing coordinator or storage evidence | 106 |
+| D038 | 2026-07-23 | Freeze the combined V1-08F/G usable-memory-runtime contract | Generic records, topology, and discovery need one backend-neutral mutation and retrieval contract before PostgreSQL proves portability | 107 |
+| D039 | 2026-07-23 | Peer-visible resumable foundation states are not terminal recovery proof | R3 release rehearsal showed that dirty and clean-R2 predecessor observations can both occur during valid exact peer progress | 108 |
 
 ---
 
@@ -5655,3 +5657,194 @@ This is public-product hardening rather than new experimental evidence. It illus
 boundary for the implementation section: agents receive stable generic lifecycle primitives and
 bounded durable state, while cross-store operation evidence and physical recovery mechanics remain
 private.
+
+### 107 — Freeze The Combined V1-08F/G Usable-Memory-Runtime Contract
+
+**Date:** 2026-07-23
+
+**Type:** Architecture decision / public record and discovery runtime
+
+**Decision ID:** D038
+
+**Summary:** Deliver generic records, structured discovery, branch topology, and read-only
+maintenance as one public milestone over a backend-neutral data port and an exact SQLite
+service-store R3 foundation.
+
+**Context:**
+The private dogfood server proved that generic record tools, service summaries, memory branches,
+and maintenance helpers are useful. It also coupled those behaviours directly to SQLite paths,
+performed lazy DDL during reads, exposed legacy schema/tool concepts, and lacked the public
+idempotency and compare-and-swap semantics subsequently required for v1. The public implementation
+now has stronger manifest-v2, application, storage, lifecycle-recovery, principal-isolation, and
+release boundaries. Three independent read-only audits agreed that the behaviour should be
+reimplemented through those boundaries rather than transplanted.
+
+The existing canonical lifecycle text said a service database must not acquire an "operation
+ledger". That statement was intended to keep the registry as the sole materialise/evolve
+transition authority. Generic record and topology mutations, however, occur wholly inside one
+service database and require atomic idempotent replay evidence. Keeping that evidence in the
+registry would create the exact cross-store atomicity problem the lifecycle design avoids.
+
+**Decision made:**
+
+- Deliver V1-08F and V1-08G as one milestone with one contract freeze, implementation cycle,
+  independent review, exact release rehearsal, and alignment pass. They remain internal record/R3
+  and topology/discovery checkpoints.
+- Add a pure record/discovery specification compiled from manifest v2 and a backend-neutral
+  materialised-data port. Application code owns principal-scoped registry admission; adapters own
+  local transactions, codecs, constraints, history, topology, CAS, and data aggregates.
+- Add an exact checksummed SQLite service-store R3 foundation for immutable record history,
+  completed mutation replay evidence, branches, and record/branch mappings. Reads never run DDL.
+  New materialisation reaches R3; an existing exact R2 store may upgrade only on an admitted
+  lifecycle, data, or topology mutation.
+- Permit a service-local **completed record/topology mutation ledger** scoped by principal and
+  idempotency key. It commits atomically with the one-database mutation, has no prepared phase,
+  stores no schema or lifecycle transition authority, and is explicitly distinct from the
+  prohibited materialise/evolve lifecycle ledger.
+- Use server-generated record IDs, fixed MCP provenance, initial `record_version=1`, and
+  compare-and-swap for update and delete. Content changes and effective branch assignment changes
+  increment record version exactly once and append immutable before/after history.
+- Keep branches as server-managed service-local topology: an acyclic forest, active/archived/
+  superseded status, one primary plus optional related mappings, valid unbranched records,
+  branch-revision CAS, and atomic explicit-target assignment.
+- Keep retrieval structured and bounded: scalar exact equality, declared `string_list` membership,
+  optional exact branch scope, opaque cursors, no annotation filters, and no fuzzy, full-text,
+  semantic, or cross-service search.
+- Keep bootstrap value-free and registry-only. Service summary exposes the bounded retrieval
+  contract, observed facets, branches, authority/staleness field availability, counts, and optional
+  0–3 record samples. Maintenance is read-only and uses only declared/mechanical signals; it never
+  uses `session_count`, semantic duplicates, or automatic mutation.
+- Advance the ready SQLite MCP contract to `1.2.0` with 21 tools and truthful `record_runtime` and
+  `discovery_topology` capabilities. Public records omit the storage-only owner/principal value.
+
+**Why:**
+A single combined contract prevents the record layer, topology, and discovery surfaces from
+inventing incompatible views of record identity, revision, branch membership, filters, or
+history. Local replay evidence restores atomic idempotency without weakening the registry's sole
+authority over cross-store lifecycle transitions. An exact R3 migration makes the storage contract
+portable and inspectable before PostgreSQL is asked to implement it.
+
+**Alternatives considered:**
+
+- Porting the private `RecordStore` and `BranchStore` was rejected because their direct SQLite
+  coupling, lazy read-side DDL, legacy inputs, and missing CAS/idempotency violate the public
+  boundary.
+- Keeping mutation replay in the registry was rejected because a record write and its replay
+  evidence could not commit atomically across stores.
+- Treating topology changes as outside record revision was rejected because branch membership
+  changes retrieval-visible record state and otherwise permits stale assignment races.
+- Offset pagination was rejected in favour of deterministic opaque cursors.
+- Unbounded summary samples and `sample="all"` were rejected; bounded record tools remain the
+  content-retrieval path.
+- Automatic migration on startup or discovery was rejected because read-only operations must not
+  mutate storage or conceal incompatible state.
+
+**Implementation reference:**
+Implemented in `aipcs-mcp` commit `a5f0f2a2538c771d00986857df2177c5de300370`;
+completion evidence is recorded in
+`/Users/markrandall/GitHub/aipcs-server/docs/exec-plans/completed/public-v1-milestone-a-usable-memory-runtime.md`.
+
+**Follow-up:**
+Proceed to V1-09 so PostgreSQL proves the complete frozen behavioural contract.
+
+**Paper notes:**
+This is productisation evidence rather than a change to the core AIPCS pattern. It demonstrates how
+agent-authored memory schemas can sit above a stable backend-neutral runtime while retrieval
+topology and maintenance remain advisory, explicit primitives rather than hidden model policy.
+
+---
+
+## Entry 108 — 2026-07-23
+
+**Type:** Architecture correction / concurrent recovery evidence
+
+**Decision ID:** D039
+
+**Summary:** Peer-visible `dirty` and exact clean-R2 `outdated` foundation observations are
+resumable, not terminal recovery proof.
+
+**Context:**
+D036 correctly established that an exact prepared SQLite migration can be observed as `dirty`
+during valid same-key progress. Its first implementation assumed that a successful migration
+action followed by another dirty observation distinguished historical dirt from a live prepared
+window. The combined R3 record/topology release rehearsal disproved that assumption: two
+independent source suites passed, but the installed-artifact verifier reproduced a schedule in
+which both same-key callers surfaced `recovery_required`.
+
+The public `MigrationState(..., "dirty")` value is intentionally coarse. It represents both exact
+adapter-prepared, resumable migration state and historical dirt that the adapter may refuse to
+repair. Multiple action or inspection results do not add an epoch, owner, quiescence proof, or
+stable-state guarantee. One caller could therefore terminalise the shared registry while its peer
+was still progressing toward the exact target.
+
+The final exact-tip rehearsal then exposed the adjacent R3 predecessor window. The service-store
+migrator deliberately commits exact clean R2 before beginning R3 in a separate writer transaction,
+and inspection truthfully reports that state as `outdated`. The materialise planner still treated
+outdated as terminal, allowing a peer to make registry recovery-required while the first caller
+continued through exact R3 and domain materialisation. The retained failure fixture contained
+exactly that contradictory evidence: recovery-required registry state beside a ready R3 foundation
+and ready domain schema.
+
+The same investigation found a separate post-physical boundary: after a caller had observed the
+exact physical target, opening the registry unit of work for finalisation could temporarily fail
+as unavailable while a peer committed the same terminal result. Mapping that failure as a
+pre-action outage lost the fact that physical work had already completed.
+
+**Decision made:**
+
+- A prepared coordinator may perform one additional bounded foundation reconciliation when a
+  migration result and fresh observation remain dirty.
+- If the bounded reconciliation budget still ends in dirty, return retryable
+  `operation_uncertain` and leave the registry intent `prepared`.
+- Repeated dirty evidence alone never makes recovery-required durable. Terminal recovery still
+  requires semantically terminal evidence such as an exact incompatible foundation, unsafe domain
+  state, or an exact registry finalisation refusal.
+- A prepared materialise intent treats exact `outdated` R2 as
+  `PREPARE_FOUNDATION`, matching evolve. It migrates through the adapter boundary and re-observes
+  before domain inspection or creation.
+- Repeated outdated evidence after the bounded action budget is likewise
+  `operation_uncertain` with the registry intent still prepared; it is not recovery-required.
+- Storage unavailability before lifecycle admission remains `storage_unavailable`.
+- Storage unavailability while re-observing after a physical action is
+  `operation_uncertain`; the action may already have committed.
+- Storage unavailability while opening or executing the terminal registry write after physical
+  reconciliation is `operation_uncertain`; the same idempotency key may safely retry.
+- Concurrent same-key proof accepts an initial completed, storage-busy, or operation-uncertain
+  result, then requires explicit same-key retry and replay to converge on the same completed
+  projection with one terminal audit.
+- No lease, process mutex, sleep, unbounded retry loop, or new storage authority is added.
+
+**Why:**
+The coordinator can safely conclude less than the storage vocabulary proves, but not more. Dirty
+is coarse, and outdated is a recognised predecessor—not corruption. Keeping the intent prepared
+preserves the only durable recovery authority and lets exact same-key retry reconcile storage and
+registry without poisoning all callers. A richer terminal distinction would require new typed
+storage evidence rather than interpreting repeated observations as stability.
+
+**Alternatives considered:**
+
+- Treating two dirty observations as persistent corruption was rejected by the reproduced peer
+  progress schedule.
+- Treating exact clean R2 as terminal during materialise was rejected because R2 is a committed,
+  explicitly supported predecessor on the normal R3 migration path.
+- Adding sleeps or an unbounded retry loop was rejected because timing is not durable evidence.
+- Adding a lease, owner token, or service-local lifecycle ledger was rejected because it would
+  duplicate the registry's transition authority.
+- Treating post-action reinspection or terminal-registry unavailability as a pre-action outage was
+  rejected because the physical target may already be complete.
+
+**Implementation reference:**
+`aipcs-mcp` commit `a5f0f2a2538c771d00986857df2177c5de300370`:
+`src/aipcs_mcp/lifecycle.py`, `src/aipcs_mcp/lifecycle_coordinator.py`, and the lifecycle
+recovery, process, and stdio regression suites.
+
+**Follow-up:**
+PostgreSQL conformance must preserve this outcome-level rule without copying SQLite's prepared
+phase mechanics. Future richer recovery tooling may add typed administrative evidence, but must
+not reinterpret repeated coarse dirt as proof.
+
+**Paper notes:**
+This is direct productisation evidence for the paper: a memory system's durable state labels are
+not automatically sufficient concurrency evidence, and a version lag can be a normal committed
+handoff rather than drift. Safe agent-memory infrastructure must preserve uncertainty when the
+storage contract cannot distinguish peer progress from abandonment.

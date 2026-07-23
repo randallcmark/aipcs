@@ -132,28 +132,33 @@ may have taken effect, a failure whose durable outcome cannot be proven is opera
 never becomes recovery-required from exception text or an assumed rollback. Every registry UoW is
 closed on every path.
 
-SQLite's exact crash-resumable foundation migration exposes committed `prepared` WAL states as
-`dirty` between its bounded physical phases. A same-key coordinator therefore runs the existing
-foundation migration action once for an observed dirty foundation, discards the return, and
-re-observes. Exact prepared state converges to ready; generic historical dirt is not repaired and
-remains dirty. Only that freshly re-observed dirt after a successful bounded migration attempt, an
-exact incompatible/domain-unsafe observation, or the registry's exact final CAS refusal makes
-recovery-required durable.
+SQLite's exact crash-resumable foundation migration exposes committed `prepared` states as
+`dirty` and commits the exact clean R2 predecessor as `outdated` before R3 begins. A same-key
+coordinator therefore runs the existing foundation migration action for either observation and
+re-observes. The public `dirty` state deliberately does not distinguish live exact peer progress
+from historical dirt, while `outdated` is explicitly resumable predecessor evidence. Repeated
+non-convergence after the bounded reconciliation budget is operation-uncertain and leaves the
+registry intent prepared; neither observation is sufficient by itself to make recovery-required
+durable. Exact incompatible/domain-unsafe observations or the registry's exact final CAS refusal
+remain terminal recovery evidence.
 
-This private coordinator is implemented in `aipcs-mcp` commit
-`7856338f0490343b2e126b3b5a0e845d65d9509f`. Its deterministic, real-SQLite, and spawned-process
-proof covers admission, cross-store fault boundaries, exact-target restart adoption, persistent
-unsafe-state recovery, same-key cooperation, different-key exclusion, and independent services.
-Separately installed wheel and sdist restart smokes exercise completion and recovery while both
-artifacts preserve the existing five-tool SQLite MCP surface. Runtime, MCP, CLI, configuration,
-and public projections remain uncomposed until V1-08E.
+The completed coordinator and usable-memory runtime are implemented in `aipcs-mcp` commit
+`a5f0f2a2538c771d00986857df2177c5de300370`. Deterministic, real-SQLite, spawned-process, and
+real-stdio proof covers admission, cross-store fault boundaries, exact-target restart adoption,
+persistent unsafe-state recovery, same-key cooperation, different-key exclusion, independent
+services, exact R2-to-R3 migration, and post-action uncertainty. Separately installed wheel and
+sdist workflows exercise the full 21-tool SQLite MCP surface, restart, migration, isolation, and
+redaction from a clean exact commit tip.
 
 The registry-held manifest remains the sole current schema authority. A prepared lifecycle intent
 may retain one immutable admitted target snapshot as operation evidence, but the service database
-must not acquire a manifest, schema version, transition/provenance record, fingerprint, operation
-ledger, or second migration ledger. The lifecycle intent has `prepared`, `completed`, and
-`recovery_required` phases; it is the durable per-service transition authority, rather than a
-process-local mutex or a progress flag.
+must not acquire a manifest, schema version, lifecycle transition/provenance record, lifecycle
+fingerprint, lifecycle operation ledger, or second migration ledger. This does not prohibit the
+service-local completed-mutation replay evidence required to commit record and topology
+idempotency atomically with their one-database mutations; that evidence is not a schema or
+materialise/evolve transition authority and has no prepared phase. The lifecycle intent has
+`prepared`, `completed`, and `recovery_required` phases; it is the durable per-service transition
+authority, rather than a process-local mutex or a progress flag.
 
 After V1-08E public composition, the service projection adds only `service_revision` and the
 bounded aggregate `recovery_state: clear | pending | recovery_required`. It exposes no
