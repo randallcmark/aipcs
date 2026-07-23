@@ -2054,6 +2054,12 @@ Use this for quick orientation when resuming work after a break.
 | D027 | 2026-05-19 | Adopt autonomy-first memory governance for the research phase | Give agents tools, hints, provenance, history, and visibility rather than fixed policy; keep IT/compliance controls as separate productisation layers | 039 |
 | D028 | 2026-05-19 | Treat live-agent transcripts as selective evidence artifacts | Curated notes support paper examples, raw transcripts support exact behavior claims, and the BUILD_JOURNAL remains the narrative source | 040 |
 | D029 | 2026-05-19 | Use snapshot-replay live-agent experiments | Isolated workspaces plus frozen memory snapshots make Claude/Codex runs repeatable while preserving agent-owned memory architecture behavior | 042 |
+| D030 | 2026-05-20 | Treat memory authority drift as a bounded productisation risk | Persistent memory can become a shadow instruction channel, but it should not redirect the first paper from agent-owned memory architecture | 045 |
+| D031 | 2026-07-21 | Synchronise the historical design and dogfooded primitive into a bounded public-v1 contract | Preserve the agent-authored-schema pattern while replacing unproven product layers with explicit lifecycle, portability, and release contracts | 100 |
+| D032 | 2026-07-22 | Use portable immediate `RESTRICT` relationships | SQLite and PostgreSQL cannot honestly share the proposed deferred-`RESTRICT` behavior | 101 |
+| D033 | 2026-07-23 | Freeze lifecycle concurrency, idempotency, and recovery before composition | Registry intent and exact physical observation must govern independent-store recovery | 102 |
+| D034 | 2026-07-23 | Version and secure local SQLite WAL/contention policy | Cross-store coordination needs deterministic writer, busy, sidecar, snapshot, and checkpoint behavior | 103 |
+| D035 | 2026-07-23 | Keep V1-08D as one private re-observing coordinator | Prove registry-first intent and target-first reconciliation before any public lifecycle surface | 104 |
 
 ---
 
@@ -5427,3 +5433,69 @@ explicit checkpoint workflows.
 This is implementation-hardening evidence, not a new memory-quality result. It is a useful example
 of the difference between an agent-authored logical memory schema and the storage policy required
 to make that schema durable and safely evolvable under concurrent agent processes.
+
+---
+
+## Entry 104 — 2026-07-23
+
+**Type:** Architecture decision / internal lifecycle coordination
+
+**Decision ID:** D035
+
+**Summary:** V1-08D is one private, finite, re-observing coordinator that proves registry-first
+intent and target-first reconciliation before public lifecycle composition.
+
+**Context:**
+V1-08A froze lifecycle requests, recovery truth tables, idempotency, and result meaning. V1-08B
+added the exact durable registry intent and final CAS boundary. V1-08C established the secured WAL,
+busy, snapshot, and multi-process policy. The remaining internal step is to compose those proven
+seams without holding a registry transaction across service-store work or inventing a second
+cross-store authority.
+
+An implementation audit also found that a new evolve request could persist prepared intent after
+checking only adjacent schema version. If its target was not a supported additive relational
+transition, the durable blocker would be created before the system discovered that it could never
+apply the request.
+
+**Decision made:**
+
+- Keep the coordinator private and outside the registry-only application package. Do not compose
+  it in MCP, runtime, CLI, configuration, or public projections until V1-08E.
+- Preserve exact existing-key precedence. For a new key only, after service/revision and blocker
+  checks but before prepared insertion, compile materialise's stored manifest and classify evolve's
+  exact current/target relational transition. Unsupported work creates no lifecycle row.
+- Commit prepared registry intent and close the registry UoW before any catalog or domain-schema
+  call. No registry lock spans service-store I/O.
+- Drive materialise/evolve only through fresh foundation/target/source observations and the pure
+  recovery planner. Discard physical-action return values and re-observe.
+- Permit each physical action at most once per coordinator call. Same-key retry is the retry loop;
+  there is no internal backoff, lease, fencing token, process mutex, or progress flag.
+- Adopt an exact physical target inside the documented same-owner contained-store boundary.
+  Partial, extra, altered, incompatible, or unexpectedly deleted state becomes recovery-required
+  and is never repaired automatically.
+- Keep busy and pre-action unavailable observations bounded. After a physical action or registry
+  commit may have taken effect, an unprovable durable outcome is operation-uncertain and leaves
+  prepared intent for exact retry/re-observation.
+- Treat inspection-time migration errors as operation-uncertain because no exact state was
+  returned; do not infer incompatible state. Close every registry UoW on every path.
+- Finalize completed or recovery-required only in a new short registry UoW. The existing registry
+  repository remains the sole constructor of terminal service revision, result, and audit.
+
+**Why:**
+This composition keeps recovery evidence in one place and makes the non-atomic registry/service
+boundary explicit. Relational validation before admission prevents permanent unsupported blockers;
+fresh observation prevents a local return value or exception from being mistaken for durable
+truth. The private slice gives public lifecycle composition a proven internal target without
+expanding the current five-tool server prematurely.
+
+**Follow-up:**
+Implement and adversarially prove V1-08D against the existing registry R3 and service-store R2 WAL
+adapters, including same-key/different-key processes, crash boundaries, target-first adoption,
+final CAS races, and separately installed wheel/sdist restart. V1-08E then owns request parsing,
+runtime construction, public projections, and MCP result mapping.
+
+**Paper notes:**
+This is implementation-hardening evidence, not a new memory-quality result. It demonstrates that
+agent-authored schema evolution still needs an explicit systems boundary: admission must prove a
+requested relational change is implementable, and independent durable stores require observable
+intent plus re-observation rather than an assumed distributed transaction.

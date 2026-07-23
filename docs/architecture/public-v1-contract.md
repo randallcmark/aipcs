@@ -2,7 +2,7 @@
 
 **Status:** Canonical implementation-contract update
 **Date:** 2026-07-23
-**Evidence:** BUILD_JOURNAL Entries 100, 102, and 103
+**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, and 104
 
 This contract preserves the May 2026 technical design as historical working design and research
 archaeology. It does not change the AIPCS pattern: the agent remains the architect of its persistent
@@ -110,11 +110,27 @@ prepared claim resumes deterministic reconciliation; and an exact recovery-requi
 the same bounded terminal result. Only a new key checks current service/schema revisions and the
 per-service blocker before it prepares durable intent.
 
+For that new key, physical relational support is part of admission rather than a later surprise.
+After the blocker check and before inserting prepared intent, materialise compiles the exact stored
+manifest and evolve classifies the exact stored-current/admitted-target pair as one supported
+additive transition. An unsupported relational target creates no lifecycle row. Existing-key
+resolution retains precedence and never depends on current relational state.
+
 For these future operations, malformed input, unsupported transition, stale expected revision,
 changed-fingerprint reuse, recovery-required, storage-unavailable, and generic internal failure are
 non-retryable as submitted. Storage-busy, a *different-key* operation-in-progress, and
 operation-uncertain are retryable. An exact same-key prepared claim resumes reconciliation rather
 than returning operation-in-progress.
+
+The internal coordinator commits prepared intent and closes the registry transaction before any
+service-store I/O. It discards every physical-action return and re-observes exact state through the
+pure recovery planner. A pre-action unavailable observation is storage-unavailable. Numeric busy
+remains storage-busy. An inspection-time migration error is operation-uncertain because no exact
+state was returned; it is not inferred as incompatible. Once a physical action or registry commit
+may have taken effect, a failure whose durable outcome cannot be proven is operation-uncertain; it
+never becomes recovery-required from exception text or an assumed rollback. Every registry UoW is
+closed on every path, and only an exact unsafe observation or the registry's exact final CAS
+refusal makes recovery-required durable.
 
 The registry-held manifest remains the sole current schema authority. A prepared lifecycle intent
 may retain one immutable admitted target snapshot as operation evidence, but the service database
