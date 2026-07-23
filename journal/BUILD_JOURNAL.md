@@ -2064,6 +2064,7 @@ Use this for quick orientation when resuming work after a break.
 | D037 | 2026-07-23 | Freeze the bounded V1-08E public lifecycle wire contract | Public composition needs exact request, capability, version, projection, and error semantics without exposing coordinator or storage evidence | 106 |
 | D038 | 2026-07-23 | Freeze the combined V1-08F/G usable-memory-runtime contract | Generic records, topology, and discovery need one backend-neutral mutation and retrieval contract before PostgreSQL proves portability | 107 |
 | D039 | 2026-07-23 | Peer-visible resumable foundation states are not terminal recovery proof | R3 release rehearsal showed that dirty and clean-R2 predecessor observations can both occur during valid exact peer progress | 108 |
+| D040 | 2026-07-23 | Freeze PostgreSQL as a schema-isolated behavioural reference adapter | Portability needs a second adapter without importing SQLite mechanics, live infrastructure, elevated database administration, or new public semantics | 109 |
 
 ---
 
@@ -5848,3 +5849,99 @@ This is direct productisation evidence for the paper: a memory system's durable 
 not automatically sufficient concurrency evidence, and a version lag can be a normal committed
 handoff rather than drift. Safe agent-memory infrastructure must preserve uncertainty when the
 storage contract cannot distinguish peer progress from abandonment.
+
+---
+
+## Entry 109 — 2026-07-23
+
+**Type:** Architecture decision / PostgreSQL portability and security boundary
+
+**Decision ID:** D040
+
+**Summary:** PostgreSQL is the secondary behavioural reference adapter, using one
+operator-provisioned database with a private registry schema and one generated schema per service.
+
+**Context:**
+Milestone A established complete lifecycle, relational, record, history, topology, discovery, and
+maintenance behaviour through backend-neutral ports and an exact SQLite implementation. V1-09
+must now prove those semantics on a materially different database without treating a connection
+string as a storage abstraction, translating SQLite DDL/WAL mechanics, or using the maintainer's
+homelab database as a development fixture.
+
+The remaining decisions were physical and operational: database-versus-schema allocation, runtime
+role privileges, transaction/migration locking, exact catalogue inspection, SQLSTATE mapping,
+secret resolution, timeouts, supported server versions, and the meaning of cross-backend parity.
+
+**Decision made:**
+
+- One PostgreSQL profile uses one operator-provisioned database. The fixed `aipcs_registry` schema
+  stores the registry; each service uses its exact generated `svc_<uuidhex>` schema.
+- One dedicated non-superuser runtime role owns every AIPCS schema/object. The adapter creates
+  schemas but never databases, roles, extensions, or server configuration and revokes schema
+  access from `PUBLIC`.
+- Registry and service actions remain separate transactions/connections. Sharing one database
+  does not permit a cross-schema shortcut around prepared lifecycle intent and re-observation.
+- Use synchronous Psycopg 3 as an optional dependency and certify PostgreSQL 16–18 through
+  disposable-container conformance at the minimum and current declared major.
+- Keep `postgresql.dsn_env` as a secret reference. Offline configuration commands do not read it;
+  `serve` reads it once at private composition. Expose bounded connect, lock, and statement
+  timeouts with defaults 10 seconds, 5000 ms, and 30000 ms.
+- Delegate TLS/libpq credential material to the referenced DSN, document verified TLS, and make no
+  remote-hosting, pooler, failover, replica, or HA claim.
+- Use independent checksummed PostgreSQL R1 ledgers, transactional DDL, transaction-scoped advisory
+  migration locks, structured `pg_catalog` inspection, schema-qualified objects, and no trusted
+  mutable `search_path`.
+- A missing schema is uninitialised and an exact committed target is ready. Wrong ownership,
+  copied namespaces, checksum mismatch, partial/altered/unknown/future state, and extra reserved
+  objects fail closed. PostgreSQL does not emulate SQLite dirty/outdated/WAL phases.
+- Reads perform no DDL; service creation/migration follows admitted mutations only. There is no
+  driver retry loop. Writes preserve explicit locking, CAS, atomic replay/history/topology, and
+  evidence-led lifecycle recovery.
+- Classify SQLSTATE privately and by operation phase. Bounded concurrency maps to storage-busy;
+  pre-action connection failure to storage-unavailable; post-action ambiguity to
+  operation-uncertain; integrity failures to existing bounded product outcomes; and unknown
+  failures to internal error.
+- Use native PostgreSQL types behind the unchanged logical contract, deterministic explicit
+  identifiers and bytewise ordering, immediate RESTRICT, and principal-scoped relationship checks.
+- V1-09 parity means identical normalised public outcomes for equivalent synthetic workflows.
+  Physical SQLite↔PostgreSQL transfer and collision/restore policy remain V1-10.
+- Release proof creates and destroys exact disposable PostgreSQL containers and never falls back
+  to a live maintainer, homelab, environment, Compose, or external DSN.
+
+**Why:**
+Schema-per-service preserves the existing logical locator and service-local transaction boundary
+without requiring database creation or a credential per service. A dedicated database and
+least-privilege owner keep collision and privilege rules reviewable. Independent adapter
+revisions and structured catalogue evidence let PostgreSQL use its transactional strengths while
+preserving the public recovery contract rather than manufacturing SQLite states.
+
+**Alternatives considered:**
+
+- Database-per-service was rejected because it requires broader administration privileges,
+  connection routing, and credential lifecycle without improving the public contract.
+- A configurable schema prefix or multiple AIPCS installations in one database was deferred; one
+  database per installation is simpler and fail-closed.
+- A mixed SQLite-registry/PostgreSQL-service profile was rejected because it adds an unneeded
+  deployment mode and weakens parity/recovery proof.
+- SQLAlchemy or a general adapter plugin framework was rejected; the existing narrow ports plus a
+  direct reference adapter are sufficient.
+- Reusing the homelab database or accepting arbitrary test DSNs was rejected because release proof
+  must be isolated, reproducible, and incapable of mutating operator data.
+- Hiding serialization/deadlock retries inside the adapter was rejected because durable
+  idempotency and explicit retryability are the existing recovery authority.
+- Calling V1-09 a database migration was rejected; portable transfer needs the explicit V1-10
+  export/import contract.
+
+**Implementation reference:**
+`/Users/markrandall/GitHub/aipcs-server/docs/exec-plans/active/public-v1-milestone-b-portable-data-ownership.md`
+and `aipcs-mcp` branch `codex/v1-09-postgresql-adapter`.
+
+**Follow-up:**
+Implement V1-09 as checkpoints B1–B4 without changing the 21-tool MCP contract, then freeze and
+implement V1-10 portable lifecycle as checkpoint B5 before the milestone release ceremony.
+
+**Paper notes:**
+This is productisation evidence for the implementation discussion: an agent-owned memory schema
+can remain stable above database-specific transaction, catalogue, namespace, and type mechanics.
+The portability claim is behavioural and testable, not an assertion that arbitrary databases are
+interchangeable by connection string.

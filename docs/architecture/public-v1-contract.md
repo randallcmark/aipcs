@@ -2,7 +2,7 @@
 
 **Status:** Canonical implementation-contract update
 **Date:** 2026-07-23
-**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, 104, 105, and 106
+**Evidence:** BUILD_JOURNAL Entries 100 and 102–109
 
 This contract preserves the May 2026 technical design as historical working design and research
 archaeology. It does not change the AIPCS pattern: the agent remains the architect of its persistent
@@ -288,6 +288,76 @@ V1-08D implements and proves the cross-store coordinator under this final policy
 lifecycle MCP operations, V1-08F establishes generic records, and V1-08G
 establishes structured discovery and branch topology. PostgreSQL starts only after V1-08G, so it
 proves this complete behavior rather than defining missing record, branch, or recovery semantics.
+
+### Frozen V1-09 PostgreSQL reference-adapter policy
+
+PostgreSQL implements the existing backend-neutral behavioural contract; it does not translate
+SQLite DDL, WAL mechanics, or adapter revision numbers. One PostgreSQL profile uses one
+operator-provisioned database for both the registry and every service store. The registry occupies
+the fixed private schema `aipcs_registry`; each service occupies the exact generated logical
+schema `svc_<uuidhex>`. Registry and service work still use separate transactions and connections.
+The lifecycle coordinator must commit registry intent before service work and finalise through a
+fresh registry unit of work even though the schemas share one database.
+
+The adapter creates schemas and schema-owned objects only. It never creates a database, role,
+extension, tablespace, publication, replication slot, or server setting. A dedicated
+non-superuser runtime role owns all AIPCS schemas and objects and has only `CONNECT` plus the
+database privilege required to create schemas. It has no `SUPERUSER`, `CREATEDB`, `CREATEROLE`,
+replication, `BYPASSRLS`, or extension privilege. Created schemas grant no access to `PUBLIC`.
+Every application object is schema-qualified and the adapter never trusts a mutable
+`search_path`. PostgreSQL roles and row-level security do not replace the fixed process principal
+or establish an authentication/hosted-tenancy claim.
+
+V1-09 uses Psycopg 3's synchronous API as a private optional dependency. The initial certified
+server range is PostgreSQL 16 through 18, with conformance at the minimum and current declared
+major. Direct connections are supported; poolers, connection pools, failover, replicas, logical
+replication, and HA behaviour are not claimed.
+
+Configuration retains one `postgresql.dsn_env` reference. CLI, TOML, MCP, reports, audits, and
+logs never accept or render a literal DSN. `config show` and `config validate` remain offline and
+do not read the referenced variable or import the driver. `serve` reads it once at the private
+composition boundary and enforces adapter-owned session policy. PostgreSQL exposes connect timeout
+`1..60` seconds (default `10`), lock timeout `1..30000` ms (default `5000`), and statement timeout
+`1000..300000` ms (default `30000`, not below lock timeout) through normal configuration
+precedence. TLS and libpq credential sources remain operator-managed through the referenced DSN;
+public v1 documents verified-TLS use but makes no remote-hosting or certificate-management claim.
+
+PostgreSQL registry and service schemas have independent checksummed R1 ledgers. Service R1
+creates the full current record/history/topology foundation rather than copying SQLite R1–R3.
+Migration uses transactional DDL and transaction-scoped advisory locks. Inspection compares
+structured owned `pg_catalog` facts, never rendered DDL text. A missing clean schema is
+`uninitialised`; an exact committed target is `ready`; wrong ownership, copied namespace,
+checksum mismatch, partial/altered/unknown/future state, or extra reserved objects are
+`incompatible`. PostgreSQL does not invent SQLite's WAL/sidecar dirty phases.
+
+Startup may migrate only the registry. Reads perform no DDL. Service schema creation or migration
+occurs only after admitted lifecycle, record, or topology mutation. There is no adapter retry
+loop. Multi-query reads use bounded read-only snapshots; writes use explicit locking and
+conditional compare-and-swap. Record/history/replay and topology changes remain atomic within one
+service transaction.
+
+SQLSTATE classification is private and phase-aware. Lock timeout, deadlock, serialization
+failure, and bounded pre-commit cancellation map to `storage_busy`. Integrity violations map to
+the existing bounded constraint/conflict outcomes. Connection failure before admitted physical
+action maps to `storage_unavailable`; connection or commit ambiguity after an action may have
+taken effect maps to `operation_uncertain`. Unknown driver failures become bounded internal
+failure. No endpoint, role, database, schema, SQLSTATE, SQL, DSN, credential, or driver text is
+public error, configuration, log, audit, or release data.
+
+The pure relational contract remains authoritative. PostgreSQL maps UUID to `uuid`, integers and
+revisions to `bigint`, finite numbers to IEEE-754 `double precision`, booleans to `boolean`,
+datetimes to UTC-microsecond `timestamptz`, strings and canonical evidence JSON to `text`, and
+`string_list` plus validated snapshots to `jsonb`. It needs no extension. Constraints and indexes
+are explicitly and deterministically named; public ordering/cursors use deterministic bytewise
+semantics independent of database locale. Immediate `RESTRICT`, principal-scoped relationship
+validation, CAS, replay, history, topology, discovery, maintenance, projections, and error
+categories remain behaviourally equivalent to SQLite.
+
+V1-09 "round trip" means equivalent synthetic workflows produce identical normalised public
+results on SQLite and PostgreSQL. Physical cross-backend transfer, export/import, identity
+collision policy, restore, and backend migration remain V1-10. V1-09 adds no general adapter
+plugin system, mixed-backend installation, database/role administration, raw SQL, repair, backup,
+archive, purge, remote MCP, or live maintainer/homelab integration.
 
 ## Administration and release boundary
 
