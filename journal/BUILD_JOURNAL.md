@@ -5307,3 +5307,63 @@ This is a useful implementation-pressure example for the paper's discussion: bac
 memory semantics must be verified behaviorally, because similar SQL vocabulary can conceal
 different timing guarantees. The correction narrows the contract before release rather than
 emulating a misleading abstraction.
+
+---
+
+## Entry 102 — 2026-07-23
+
+**Type:** Architecture decision / lifecycle recovery contract
+
+**Decision ID:** D033
+
+**Summary:** Public v1 freezes lifecycle concurrency, idempotency, transition exclusion, and
+recovery semantics before adding durable storage or public materialise/evolve operations.
+
+**Context:**
+The SQLite relational seam can allocate, inspect, materialise, and evolve a service store, but the
+registry and service database commit independently. Composing those operations without a prior
+contract would let one adapter's failure modes define public semantics accidentally. The public-v1
+programme was therefore split into lifecycle contract, durable intent, secured WAL/contention,
+internal coordination, public composition, record runtime, and structured discovery slices before
+the PostgreSQL reference adapter.
+
+**Decision made:**
+
+- Keep manifest format, schema version, server-owned service revision, per-record version, and
+  adapter migration revision as distinct authorities.
+- Require future materialise/evolve requests to name exact service and schema revisions plus a
+  principal-scoped idempotency key; evolve supplies a complete adjacent manifest-v2 target rather
+  than SQL or a delta.
+- Resolve an existing idempotency claim before current-version admission so an exact completed
+  retry replays after the successful revision increment, an exact prepared retry resumes, and
+  changed-fingerprint reuse conflicts.
+- Use registry-held `prepared | completed | recovery_required` intent as the sole cross-store
+  transition and recovery authority. Do not add a progress flag, domain manifest, schema-version
+  row, provenance seal, or operation ledger to the service database.
+- Re-observe exact physical state and adopt an exact contained target within the same-OS-owner
+  trust boundary; refuse automatic repair of partial, extra, altered, incompatible, or deleted
+  evolution state.
+- Treat storage busy, different-key operation-in-progress, and operation uncertainty as retryable.
+  Treat malformed, unsupported, stale, changed-fingerprint, recovery-required, storage-unavailable,
+  and generic internal results as non-retryable as submitted.
+- Establish secured SQLite WAL/sidecar/contention behavior before implementing the coordinator.
+  Add public lifecycle operations only after the internal recovery matrix passes under that policy.
+
+**Why:**
+The contract separates durable evidence from physical storage state and prevents timestamps,
+process-local locks, or non-atomic flags from becoming correctness authorities. It also preserves
+the small agent-authored AIPCS primitive while making crash recovery and adapter portability
+reviewable before runtime composition.
+
+**Follow-up:**
+Implement registry service revision and durable lifecycle intent in V1-08B, then the secured SQLite
+WAL/busy policy in V1-08C and internal coordinator in V1-08D. Public materialise/evolve remain
+unavailable until V1-08E; record and discovery behavior follow in V1-08F/G before PostgreSQL.
+
+**Paper notes:**
+This is an implementation-hardening result rather than new evaluation evidence. It illustrates a
+general systems consequence of agent-authored memory schemas: durable schema authority and
+cross-store recovery must be explicit when registry metadata and physical memories cannot commit
+atomically. The paper can use the contract-first decomposition as evidence that the reference
+implementation evolved from a local prototype toward portable, inspectable failure semantics
+without changing the core agent-owned-schema claim.

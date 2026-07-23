@@ -36,6 +36,20 @@ The layers are independent. `schema_version` remains a per-service evolution cou
 optimistic-concurrency input, not an MCP compatibility version. Private `aipcs-server` 0.1 stores
 are migration sources, not a permanent public runtime compatibility promise.
 
+The frozen V1-08A lifecycle contract adds three further independent per-service values. This is a
+planned contract, not a statement that the current server exposes materialisation or evolution:
+
+- `schema_version` is the agent-authored evolution counter. An evolution names the exact current
+  value and supplies an adjacent target manifest; it is not the manifest-document version.
+- `service_revision` is a server-owned positive compare-and-swap revision for lifecycle state. A
+  seed starts at 1; each successful design, materialisation, evolution, or later operational
+  transition increments it once, while an exact replay never increments it.
+- `record_version` is a later server-owned per-record mutation revision. It is reserved by V1-08A
+  and becomes a record-runtime concern only in V1-08F.
+
+Adapter migration revisions remain private physical-layout revisions. None of these values can
+substitute for another.
+
 ## Relational and storage boundary
 
 Initial designs validate every relationship and index. Public v1 supports explicit single-service
@@ -76,6 +90,53 @@ Every mutation has an idempotency key and request fingerprint. Schema evolution 
 transitions use expected versions; record update/delete uses a server-managed revision. SQLite
 WAL/busy handling and PostgreSQL transactions satisfy the same behavioural contract. Failed
 cross-store work reconciles or exposes a deterministic repair state.
+
+### Frozen V1-08 lifecycle contract
+
+The following future semantics are frozen by V1-08A without registering a tool or changing the
+current five-tool SQLite surface. A future materialise request requires `service_id`, exact
+`expected_service_revision`, exact `expected_schema_version`, and `idempotency_key`. A future
+evolve request requires the same values plus a complete, deeply validated manifest-v2 target
+document. It does not accept agent SQL, a migration delta, or migration-history prose. Materialise
+is limited to an active designed seed at schema version 1; evolve is limited to an active
+materialised service whose target schema version is exactly one greater than the stored current
+manifest.
+
+Lifecycle admission first validates and detaches the request, then computes its canonical
+principal-scoped fingerprint and resolves an existing `(principal_id, idempotency_key)` claim
+*before* loading current expected revisions. An exact completed claim replays even after its
+successful operation incremented `service_revision`; a changed fingerprint conflicts; an exact
+prepared claim resumes deterministic reconciliation; and an exact recovery-required claim returns
+the same bounded terminal result. Only a new key checks current service/schema revisions and the
+per-service blocker before it prepares durable intent.
+
+For these future operations, malformed input, unsupported transition, stale expected revision,
+changed-fingerprint reuse, recovery-required, storage-unavailable, and generic internal failure are
+non-retryable as submitted. Storage-busy, a *different-key* operation-in-progress, and
+operation-uncertain are retryable. An exact same-key prepared claim resumes reconciliation rather
+than returning operation-in-progress.
+
+The registry-held manifest remains the sole current schema authority. A prepared lifecycle intent
+may retain one immutable admitted target snapshot as operation evidence, but the service database
+must not acquire a manifest, schema version, transition/provenance record, fingerprint, operation
+ledger, or second migration ledger. The lifecycle intent has `prepared`, `completed`, and
+`recovery_required` phases; it is the durable per-service transition authority, rather than a
+process-local mutex or a progress flag.
+
+After V1-08E public composition, the service projection adds only `service_revision` and the
+bounded aggregate `recovery_state: clear | pending | recovery_required`. It exposes no
+idempotency key, fingerprint, operation id, target snapshot, phase timestamp, fault text, or repair
+procedure. Exact target-first observation may finalise a prepared materialise or evolve operation:
+inside the documented same-operating-system-owner, contained-store boundary, an exact target that
+predates the intent cannot be distinguished from one committed before a crash. Partial,
+incompatible, extra, altered, or unexpectedly deleted state is never adopted or repaired
+automatically; it becomes `recovery_required`.
+
+V1-08C establishes the secured SQLite WAL/busy/sidecar policy before V1-08D implements and proves
+the cross-store coordinator under that final policy. V1-08E then composes generic lifecycle MCP
+operations, V1-08F establishes generic records, and V1-08G establishes structured discovery and
+branch topology. PostgreSQL starts only after V1-08G, so it proves this complete behavior rather
+than defining missing record, branch, or recovery semantics.
 
 ## Administration and release boundary
 
