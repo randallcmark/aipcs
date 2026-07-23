@@ -5889,8 +5889,10 @@ secret resolution, timeouts, supported server versions, and the meaning of cross
 - Delegate TLS/libpq credential material to the referenced DSN, document verified TLS, and make no
   remote-hosting, pooler, failover, replica, or HA claim.
 - Use independent checksummed PostgreSQL R1 ledgers, transactional DDL, transaction-scoped advisory
-  migration locks, structured `pg_catalog` inspection, schema-qualified objects, and no trusted
-  mutable `search_path`.
+  migration locks, structured `pg_catalog` inspection, schema-qualified object references wherever
+  PostgreSQL grammar permits, and no trusted mutable `search_path`. `CREATE INDEX` uses the
+  required unqualified explicit index name with a schema-qualified target table; inspection
+  verifies the resulting index schema.
 - A missing schema is uninitialised and an exact committed target is ready. Wrong ownership,
   copied namespaces, checksum mismatch, partial/altered/unknown/future state, and extra reserved
   objects fail closed. PostgreSQL does not emulate SQLite dirty/outdated/WAL phases.

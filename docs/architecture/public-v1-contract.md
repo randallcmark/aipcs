@@ -304,8 +304,11 @@ extension, tablespace, publication, replication slot, or server setting. A dedic
 non-superuser runtime role owns all AIPCS schemas and objects and has only `CONNECT` plus the
 database privilege required to create schemas. It has no `SUPERUSER`, `CREATEDB`, `CREATEROLE`,
 replication, `BYPASSRLS`, or extension privilege. Created schemas grant no access to `PUBLIC`.
-Every application object is schema-qualified and the adapter never trusts a mutable
-`search_path`. PostgreSQL roles and row-level security do not replace the fixed process principal
+Every application object reference is schema-qualified wherever PostgreSQL grammar permits it,
+and the adapter never trusts a mutable `search_path`. `CREATE INDEX` is the syntax-required
+exception: its validated explicit index name is unqualified while its target table is
+schema-qualified, and inspection verifies that PostgreSQL created the index in that exact table
+schema. PostgreSQL roles and row-level security do not replace the fixed process principal
 or establish an authentication/hosted-tenancy claim.
 
 V1-09 uses Psycopg 3's synchronous API as a private optional dependency. The initial certified
