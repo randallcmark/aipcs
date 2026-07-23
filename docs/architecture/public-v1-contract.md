@@ -2,7 +2,7 @@
 
 **Status:** Canonical implementation-contract update
 **Date:** 2026-07-23
-**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, and 104
+**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, 104, and 105
 
 This contract preserves the May 2026 technical design as historical working design and research
 archaeology. It does not change the AIPCS pattern: the agent remains the architect of its persistent
@@ -129,8 +129,15 @@ remains storage-busy. An inspection-time migration error is operation-uncertain 
 state was returned; it is not inferred as incompatible. Once a physical action or registry commit
 may have taken effect, a failure whose durable outcome cannot be proven is operation-uncertain; it
 never becomes recovery-required from exception text or an assumed rollback. Every registry UoW is
-closed on every path, and only an exact unsafe observation or the registry's exact final CAS
-refusal makes recovery-required durable.
+closed on every path.
+
+SQLite's exact crash-resumable foundation migration exposes committed `prepared` WAL states as
+`dirty` between its bounded physical phases. A same-key coordinator therefore runs the existing
+foundation migration action once for an observed dirty foundation, discards the return, and
+re-observes. Exact prepared state converges to ready; generic historical dirt is not repaired and
+remains dirty. Only that freshly re-observed dirt after a successful bounded migration attempt, an
+exact incompatible/domain-unsafe observation, or the registry's exact final CAS refusal makes
+recovery-required durable.
 
 The registry-held manifest remains the sole current schema authority. A prepared lifecycle intent
 may retain one immutable admitted target snapshot as operation evidence, but the service database

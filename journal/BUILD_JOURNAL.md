@@ -2060,6 +2060,7 @@ Use this for quick orientation when resuming work after a break.
 | D033 | 2026-07-23 | Freeze lifecycle concurrency, idempotency, and recovery before composition | Registry intent and exact physical observation must govern independent-store recovery | 102 |
 | D034 | 2026-07-23 | Version and secure local SQLite WAL/contention policy | Cross-store coordination needs deterministic writer, busy, sidecar, snapshot, and checkpoint behavior | 103 |
 | D035 | 2026-07-23 | Keep V1-08D as one private re-observing coordinator | Prove registry-first intent and target-first reconciliation before any public lifecycle surface | 104 |
+| D036 | 2026-07-23 | Resume an exact dirty SQLite foundation once before terminal recovery | Crash-resumable prepared WAL state is externally observable during a valid same-key migration and must be distinguished by bounded action plus re-observation | 105 |
 
 ---
 
@@ -5499,3 +5500,59 @@ This is implementation-hardening evidence, not a new memory-quality result. It d
 agent-authored schema evolution still needs an explicit systems boundary: admission must prove a
 requested relational change is implementable, and independent durable stores require observable
 intent plus re-observation rather than an assumed distributed transaction.
+
+---
+
+## Entry 105 — 2026-07-23
+
+**Type:** Architecture correction / concurrency evidence
+
+**Decision ID:** D036
+
+**Summary:** A prepared lifecycle coordinator resumes an exactly dirty SQLite foundation once and
+requires fresh post-action dirt before making recovery-required durable.
+
+**Context:**
+The first raw simultaneous same-key materialise process test exposed a false terminal recovery.
+Worker A had committed the service-store WAL policy's exact `prepared` marker and was crossing the
+documented connection boundary before finalising it. Worker B observed that committed state as
+`MigrationState(..., "dirty")`. The pure planner treated any dirty foundation as terminally unsafe,
+so B made the shared registry intent recovery-required while A was still completing a valid,
+crash-resumable migration.
+
+This is not an adapter corruption or missing lock. The prepared DELETE/WAL states are deliberate
+durable recovery points, and `SQLiteServiceStoreCatalog.migrate()` already serialises writers and
+adopts them safely. A generic historical dirty state is also deliberately reported as dirty, but
+the same migration method returns it unchanged and performs no repair.
+
+**Decision made:**
+
+- For a prepared lifecycle intent, `FoundationObservation.DIRTY` selects the existing
+  `PREPARE_FOUNDATION` action instead of immediate recovery-required.
+- The coordinator may invoke that action only once per call, discards its return, and independently
+  re-observes.
+- If the fresh observation is ready, coordination continues normally. If it is still exactly dirty
+  after the successful bounded migration action, recovery-required becomes durable.
+- Busy, unavailable, migration-error, and unexpected post-action outcomes retain their frozen
+  bounded mappings. Incompatible foundation and unsafe domain observations remain immediately
+  recovery-required.
+- Do not add a lease, fencing token, process mutex, progress flag, retry loop, sleep, or new storage
+  protocol method.
+
+**Why:**
+The action-plus-re-observation pair distinguishes two states that the intentionally small public
+migration vocabulary cannot: an exact prepared WAL phase that the adapter can finish, and
+historical dirt that it refuses to repair. It preserves fail-closed behavior without allowing one
+cooperating same-key worker to misclassify another worker's visible recovery checkpoint as terminal
+corruption.
+
+**Follow-up:**
+Add the direct simultaneous same-key process regression, retain the deterministic one-effect test,
+and rerun the exhaustive recovery truth table, coordinator fault matrix, real SQLite process suite,
+and separately installed artifact proof.
+
+**Paper notes:**
+This is useful systems evidence for the paper's implementation discussion: exact durable state is
+not sufficient without phase semantics. A crash-recovery marker can also be a valid live
+coordination point, so safe reconciliation may require one bounded idempotent action followed by
+fresh observation rather than immediate terminal classification.
