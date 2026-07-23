@@ -5631,17 +5631,20 @@ model.
   lifecycle authority and inspection would create both latency and a second interpretation path.
 
 **Completion evidence:**
-V1-08E is implemented in `aipcs-mcp` commit
-`6c3b6fb44e053968506f7b873ece0cb913afd3a5`. The full source suite passes 937 tests; Ruff,
+V1-08E is implemented in `aipcs-mcp` commits
+`6c3b6fb44e053968506f7b873ece0cb913afd3a5` and
+`58b106ab84c58871e5af693e58d6dbe1f1d06c8e`. The full source suite passes 939 tests; Ruff,
 diff, and public-history hygiene gates pass. The exact clean-commit release verifier independently
 builds and installs wheel and sdist, proves site-packages origin from an external working
 directory under isolated Python, and exercises the seven-tool lifecycle, success/replay, restart,
 principal isolation, changed-fingerprint/stale-revision failures, recovery-required replay and
-projection, and redaction through real MCP stdio. The intended-source digest is
-`8d8fc5ce2936a62be9f5b0b0a2358a8f6083cdf5d1340ecdf372463c1e4e63f4`; exact clean-copy
+projection, and redaction through real MCP stdio. Source real-stdio process proof also covers
+same-key cooperation, different-key exclusion before storage work, and one terminal
+revision/effect/audit. The intended-source digest is
+`9049c17c3d29ac8db0ff29cd991d3754fa77d062a775b94bf4758b0b63cec690`; exact clean-copy
 artifact digests are
-`d7a961baaf789687fca8b2dcbd493a16194e41b94ba76410e7cd30ea5a60af63` for the wheel and
-`9199a8f2a073c96dfe4c68ae87e1c96d7100c140d7bd0f7df3162fb482a45dd8` for the sdist.
+`c3343d201f7ba0492985705fb129a416ab0885a653c0164ff8917ecdc04fa3b1` for the wheel and
+`8d3b4f31ddedb5500b72b0d31acc7c5ba938a3f62ff1f3d47d4072cf302e379e` for the sdist.
 
 **Follow-up:**
 Proceed to V1-08F generic record contracts and runtime without weakening the V1-08E lifecycle,
