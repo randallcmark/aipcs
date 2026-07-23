@@ -5630,10 +5630,22 @@ model.
 - Deriving recovery state from physical inspection was rejected because the registry is the sole
   lifecycle authority and inspection would create both latency and a second interpretation path.
 
+**Completion evidence:**
+V1-08E is implemented in `aipcs-mcp` commit
+`6c3b6fb44e053968506f7b873ece0cb913afd3a5`. The full source suite passes 937 tests; Ruff,
+diff, and public-history hygiene gates pass. The exact clean-commit release verifier independently
+builds and installs wheel and sdist, proves site-packages origin from an external working
+directory under isolated Python, and exercises the seven-tool lifecycle, success/replay, restart,
+principal isolation, changed-fingerprint/stale-revision failures, recovery-required replay and
+projection, and redaction through real MCP stdio. The intended-source digest is
+`8d8fc5ce2936a62be9f5b0b0a2358a8f6083cdf5d1340ecdf372463c1e4e63f4`; exact clean-copy
+artifact digests are
+`d7a961baaf789687fca8b2dcbd493a16194e41b94ba76410e7cd30ea5a60af63` for the wheel and
+`9199a8f2a073c96dfe4c68ae87e1c96d7100c140d7bd0f7df3162fb482a45dd8` for the sdist.
+
 **Follow-up:**
-Implement V1-08E in `aipcs-mcp`, prove real stdio materialise/evolve, replay, restart,
-concurrency, recovery-required, projection privacy, and independently installed wheel/sdist
-behavior, then align this journal with the public commit and validation evidence.
+Proceed to V1-08F generic record contracts and runtime without weakening the V1-08E lifecycle,
+recovery, isolation, or release gates.
 
 **Paper notes:**
 This is public-product hardening rather than new experimental evidence. It illustrates a useful

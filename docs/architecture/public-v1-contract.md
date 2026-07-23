@@ -222,6 +222,13 @@ request has durably prepared. No configuration field, standalone lifecycle/admin
 retry loop, lease, mutex, PostgreSQL behavior, record operation, or repair workflow is added by
 this slice.
 
+V1-08E is implemented in `aipcs-mcp` commit
+`6c3b6fb44e053968506f7b873ece0cb913afd3a5`. Its source suite, public-history hygiene gate, and
+exact-commit release verifier pass. Independently installed wheel and sdist artifacts exercise
+the seven-tool contract, materialise/evolve success and replay, process restart, principal
+isolation, changed-fingerprint and stale-revision failures, terminal recovery-required behavior,
+aggregate recovery projection, and response redaction through real MCP stdio.
+
 ### Frozen V1-08C SQLite physical policy
 
 Local SQLite v1 requires Python 3.12 or newer and SQLite 3.51.3 or newer on Linux/macOS POSIX, on
