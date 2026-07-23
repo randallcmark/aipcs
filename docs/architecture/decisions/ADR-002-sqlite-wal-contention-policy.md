@@ -2,6 +2,8 @@
 
 **Status:** Accepted
 **Date:** 2026-07-23
+**Implemented:** `aipcs-mcp` commit
+`c7e3752cc77898984b192721f0af56f2cd1b603c`
 **BUILD_JOURNAL entry:** 103
 
 ---
@@ -55,10 +57,16 @@ remove WAL/SHM operational files as part of opening and closing a valid WAL data
 
 The main database and every accepted `-wal`, `-shm`, or temporarily authorized `-journal` sibling
 remain contained, regular, same-owner, mode `0600`, single-link files. The adapter validates them
-through descriptor-relative no-follow opens and `fstat`, pins live identities while a connection
-is active, and revalidates safe SQLite-created replacements at defined handoff points. It never
-manually edits, copies, renames, truncates, repairs, or deletes a sidecar. A rollback journal is
-authorized only during exact DELETE preparation or explicit migration-owned hot-journal recovery.
+through descriptor-relative no-follow operations. Full `openat`/`fstat` validation occurs before
+SQLite opens and after it closes. Live checks use descriptor-relative no-follow metadata lookup
+without opening and closing another descriptor, because POSIX `close()` can cancel SQLite
+advisory locks on the same inode. The root and main database retain pinned identities. A
+cooperating peer may legitimately unlink a checkpointed WAL/SHM pathname while another process
+retains SQLite's internal descriptor, then recreate it for a later connection. Python does not
+expose those SQLite descriptors, so every current sidecar pathname is revalidated without
+claiming cross-process inode continuity. The adapter never manually edits, copies, renames,
+truncates, repairs, or deletes a sidecar. A rollback journal is authorized only during exact
+DELETE preparation or explicit migration-owned hot-journal recovery.
 
 Every connection applies and verifies one immutable SQLite policy: WAL-ready state for ordinary
 access, `locking_mode=NORMAL`, `synchronous=FULL`, foreign keys on, trusted schema off, recursive
@@ -107,14 +115,16 @@ SQLite policy tables, revisions, sidecars, or PRAGMAs.
 - a migration can wait for more than one configured busy interval because its finite split phases
   acquire independent SQLite locks;
 - safe inspection may have observable SQLite-managed sidecar effects;
-- sidecar identity checks secure accidental/other-user interference but do not defend against a
+- sidecar metadata checks secure containment and reject unsafe files, but pathname identity
+  continuity cannot distinguish legitimate SQLite peer churn and does not defend against a
   malicious process with the same OS identity.
 
 **Follow-up actions:**
 
-- implement and adversarially test registry R3 and service-store R2 in V1-08C;
-- prove real spawned-process contention, crash recovery, snapshots, checkpoint progress, and
-  installed wheel/sdist behavior;
+- V1-08C implemented and adversarially tested registry R3 and service-store R2 in
+  `aipcs-mcp` commit `c7e3752cc77898984b192721f0af56f2cd1b603c`;
+- that slice proved real spawned-process contention, crash recovery, snapshots, checkpoint
+  progress, and installed wheel/sdist behavior;
 - implement V1-08D coordination only after the V1-08C gates pass;
 - define WAL-aware backup/export and explicit checkpoint administration in their later slices.
 
@@ -145,4 +155,6 @@ SQLite policy tables, revisions, sidecars, or PRAGMAs.
 - Official behavior references: [SQLite WAL](https://www.sqlite.org/wal.html),
   [SQLite PRAGMAs](https://www.sqlite.org/pragma.html),
   [SQLite result codes](https://www.sqlite.org/rescode.html), and
+  [SQLite's POSIX `close()` advisory-lock warning](https://www.sqlite.org/howtocorrupt.html#_posix_advisory_locks_canceled_by_a_separate_thread_doing_close_),
+  plus
   [Python `sqlite3`](https://docs.python.org/3/library/sqlite3.html).

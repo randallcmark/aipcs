@@ -151,9 +151,15 @@ Inspection observes one explicit read snapshot and never changes application/sch
 journal mode, or checkpoint policy. SQLite may still create, rebuild, retain, replace, or remove
 WAL/SHM operational siblings during a valid open/close. The database and accepted sidecars remain
 contained regular same-owner mode-`0600` single-link files, validated by descriptor-relative
-no-follow opens and pinned identities for the live connection. The adapter never edits or removes
-WAL/SHM itself. A rollback journal is authorized only during exact DELETE preparation or explicit
-migration-owned hot-journal recovery.
+no-follow operations. Full `openat`/`fstat` validation occurs before SQLite opens and after it
+closes. Live checks use descriptor-relative no-follow metadata lookup without opening and closing
+another descriptor, because POSIX `close()` can cancel SQLite advisory locks on the same inode.
+The root and main database retain pinned identities. A cooperating peer may legitimately unlink
+or recreate a WAL/SHM pathname while another process retains SQLite's internal descriptor, which
+Python does not expose, so each current sidecar pathname is revalidated without claiming
+cross-process inode continuity. The adapter never edits or removes WAL/SHM itself. A rollback
+journal is authorized only during exact DELETE preparation or explicit migration-owned
+hot-journal recovery.
 
 Connections verify WAL readiness, `locking_mode=NORMAL`, `synchronous=FULL`, foreign keys,
 trusted-schema and recursive-trigger settings, query-only intent, `wal_autocheckpoint=1000`, and

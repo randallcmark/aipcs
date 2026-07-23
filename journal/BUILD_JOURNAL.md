@@ -5396,8 +5396,12 @@ WAL-reset corruption bug through 3.51.2.
 - Accept only exact clean predecessor/DELETE, prepared/DELETE, prepared/WAL, or ready target/WAL
   states; re-inspect under `BEGIN IMMEDIATE` and fail every other combination closed.
 - Treat WAL/SHM as SQLite-owned operational files within the same contained, same-owner,
-  mode-`0600`, no-follow, single-link security boundary; pin and revalidate live identities but
-  never manipulate sidecar contents.
+  mode-`0600`, no-follow, single-link security boundary; pin root/main-file identities, revalidate
+  every current sidecar pathname, and never manipulate sidecar contents. A cooperating peer can
+  unlink or recreate a sidecar while another process retains an unexposed SQLite descriptor, so
+  cross-process WAL/SHM inode continuity is not claimed. Full `openat`/`fstat` validation is
+  pre-open/post-close only; live no-follow metadata lookup must not open and close an independent
+  descriptor because POSIX `close()` can cancel SQLite's advisory locks on that inode.
 - Give logical inspections one snapshot while acknowledging that valid SQLite opens may have
   observable WAL/SHM lifecycle effects.
 - Expose one strict `sqlite_busy_timeout_ms` setting, default 5,000 and range 1..30,000, and add a
@@ -5414,9 +5418,10 @@ contention from uncertain commits, makes interrupted mode changes inspectable, a
 private-file boundary despite SQLite-managed sidecar churn.
 
 **Follow-up:**
-Implement registry R3/service-store R2 and the real-process/crash/release matrix in V1-08C. Begin
-the V1-08D cross-store coordinator only after those gates pass. Later backup/admin slices must add
-WAL-aware copy and explicit checkpoint workflows.
+Registry R3/service-store R2 and the real-process/crash/release matrix were implemented in
+`aipcs-mcp` commit `c7e3752cc77898984b192721f0af56f2cd1b603c`. Begin the V1-08D cross-store
+coordinator only after those gates pass. Later backup/admin slices must add WAL-aware copy and
+explicit checkpoint workflows.
 
 **Paper notes:**
 This is implementation-hardening evidence, not a new memory-quality result. It is a useful example

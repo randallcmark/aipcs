@@ -18,7 +18,10 @@
 ## Multi-tenant / multi-agent considerations
 
 - AIPCS services are user-scoped — no cross-user data access
-- Locking model for multi-agent access to the same service is an open question (Q004) — don't implement without a decision
+- Public v1 resolves same-host, same-effective-user process coordination for
+  local SQLite: WAL permits concurrent readers and SQLite serialises one
+  writer. Hosted, cross-user, and multi-host coordination remain outside that
+  decision and require an explicit design before implementation.
 - Keep authority layers explicit: static harness rules, tool contracts, ordinary memory, and any behavior-shaping memory or admin controls must remain distinguishable
 - Record any security tradeoff in the BUILD_JOURNAL and update `docs/quality/technical-debt.md`
 

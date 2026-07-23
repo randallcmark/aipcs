@@ -35,7 +35,11 @@ It is the working design document — decisions recorded here should be reflecte
 
 V1 establishes the core AIPCS runtime: the MCP-native primitive server, the two-state service lifecycle, the schema design and materialisation flow, and the schema evolution model.
 
-V1 explicitly defers: Tier 3 elevated access implementation, multi-agent locking, domain taxonomy registry, and CLI tooling.
+This historical v1 design explicitly deferred Tier 3 elevated access,
+multi-agent locking, the domain taxonomy registry, and CLI tooling. The later
+public-v1 contract resolves local same-host, same-effective-user SQLite
+coordination: WAL permits concurrent readers and SQLite serialises one writer.
+Hosted, cross-user, and multi-host coordination remain deferred.
 
 V1 must be sufficient to:
 - Receive a user hint and plant a tool seed

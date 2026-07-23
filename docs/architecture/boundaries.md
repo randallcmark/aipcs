@@ -50,6 +50,10 @@ AIPCS is composed of three distinct trust zones:
 - Schema Validator enforces schema design requirements before materialisation
 - `owner_id` enforced on every entity at the Domain Service layer
 - Audit log in Registry DB records all management tool calls
-- Gaps: multi-agent locking (Q004), schema conflict resolution (Q005), Tier 3 consent mechanism (Q011)
+- Local public-v1 coordination is resolved for same-host, same-effective-user
+  SQLite processes: WAL permits concurrent readers and SQLite serialises one
+  writer. Remaining gaps are hosted/cross-user/multi-host coordination (the
+  residual scope of Q004), schema conflict resolution (Q005), and the Tier 3
+  consent mechanism (Q011).
 
 Record gaps in [../quality/technical-debt.md](../quality/technical-debt.md).
