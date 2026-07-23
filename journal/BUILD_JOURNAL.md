@@ -5490,10 +5490,12 @@ truth. The private slice gives public lifecycle composition a proven internal ta
 expanding the current five-tool server prematurely.
 
 **Follow-up:**
-Implement and adversarially prove V1-08D against the existing registry R3 and service-store R2 WAL
-adapters, including same-key/different-key processes, crash boundaries, target-first adoption,
-final CAS races, and separately installed wheel/sdist restart. V1-08E then owns request parsing,
-runtime construction, public projections, and MCP result mapping.
+V1-08D was implemented in `aipcs-mcp` commit
+`7856338f0490343b2e126b3b5a0e845d65d9509f`. Deterministic, real-SQLite, and spawned-process
+proof covers same-key/different-key processes, cross-store fault boundaries, target-first restart
+adoption, unsafe-state recovery, final CAS races, and separately installed wheel/sdist restart.
+Both artifacts preserve the existing five-tool SQLite MCP surface. V1-08E now owns request
+parsing, runtime construction, public projections, and MCP result mapping.
 
 **Paper notes:**
 This is implementation-hardening evidence, not a new memory-quality result. It demonstrates that
@@ -5547,9 +5549,12 @@ cooperating same-key worker to misclassify another worker's visible recovery che
 corruption.
 
 **Follow-up:**
-Add the direct simultaneous same-key process regression, retain the deterministic one-effect test,
-and rerun the exhaustive recovery truth table, coordinator fault matrix, real SQLite process suite,
-and separately installed artifact proof.
+The direct simultaneous same-key process regression was added in `aipcs-mcp` commit
+`7856338f0490343b2e126b3b5a0e845d65d9509f`. The raw barrier race passed 20 consecutive runs and
+the complete six-case coordinator process suite passed five consecutive runs. The exhaustive
+recovery truth table, coordinator fault matrix, real SQLite restart suite, full source/clean-copy
+gates, and separately installed wheel/sdist completion-and-recovery proof also passed before the
+slice was closed.
 
 **Paper notes:**
 This is useful systems evidence for the paper's implementation discussion: exact durable state is

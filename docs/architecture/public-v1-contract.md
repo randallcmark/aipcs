@@ -93,10 +93,11 @@ cross-store work reconciles or exposes a deterministic repair state.
 
 ### Frozen V1-08 lifecycle contract
 
-The following future semantics are frozen by V1-08A without registering a tool or changing the
-current five-tool SQLite surface. A future materialise request requires `service_id`, exact
+The following lifecycle semantics were frozen by V1-08A. V1-08D implements their private
+coordinator without registering a tool or changing the current five-tool SQLite surface. A future
+public materialise request requires `service_id`, exact
 `expected_service_revision`, exact `expected_schema_version`, and `idempotency_key`. A future
-evolve request requires the same values plus a complete, deeply validated manifest-v2 target
+public evolve request requires the same values plus a complete, deeply validated manifest-v2 target
 document. It does not accept agent SQL, a migration delta, or migration-history prose. Materialise
 is limited to an active designed seed at schema version 1; evolve is limited to an active
 materialised service whose target schema version is exactly one greater than the stored current
@@ -138,6 +139,14 @@ re-observes. Exact prepared state converges to ready; generic historical dirt is
 remains dirty. Only that freshly re-observed dirt after a successful bounded migration attempt, an
 exact incompatible/domain-unsafe observation, or the registry's exact final CAS refusal makes
 recovery-required durable.
+
+This private coordinator is implemented in `aipcs-mcp` commit
+`7856338f0490343b2e126b3b5a0e845d65d9509f`. Its deterministic, real-SQLite, and spawned-process
+proof covers admission, cross-store fault boundaries, exact-target restart adoption, persistent
+unsafe-state recovery, same-key cooperation, different-key exclusion, and independent services.
+Separately installed wheel and sdist restart smokes exercise completion and recovery while both
+artifacts preserve the existing five-tool SQLite MCP surface. Runtime, MCP, CLI, configuration,
+and public projections remain uncomposed until V1-08E.
 
 The registry-held manifest remains the sole current schema authority. A prepared lifecycle intent
 may retain one immutable admitted target snapshot as operation evidence, but the service database
@@ -201,8 +210,9 @@ These are private SQLite physical mechanics, not backend-neutral schema or lifec
 The full decision, alternatives, and validation boundary are recorded in
 [ADR-002](decisions/ADR-002-sqlite-wal-contention-policy.md).
 
-V1-08D implements and proves the cross-store coordinator under this final policy. V1-08E then
-composes generic lifecycle MCP operations, V1-08F establishes generic records, and V1-08G
+V1-08D implements and proves the cross-store coordinator under this final policy in
+`aipcs-mcp` commit `7856338f0490343b2e126b3b5a0e845d65d9509f`. V1-08E then composes generic
+lifecycle MCP operations, V1-08F establishes generic records, and V1-08G
 establishes structured discovery and branch topology. PostgreSQL starts only after V1-08G, so it
 proves this complete behavior rather than defining missing record, branch, or recovery semantics.
 
