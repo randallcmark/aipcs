@@ -5904,7 +5904,8 @@ secret resolution, timeouts, supported server versions, and the meaning of cross
   operation-uncertain; integrity failures to existing bounded product outcomes; and unknown
   failures to internal error.
 - Use native PostgreSQL types behind the unchanged logical contract, deterministic explicit
-  identifiers and bytewise ordering, immediate RESTRICT, and principal-scoped relationship checks.
+  identifiers, built-in `C` collation for portable bytewise text behavior, immediate RESTRICT, and
+  principal-scoped relationship checks.
 - V1-09 parity means identical normalised public outcomes for equivalent synthetic workflows.
   Physical SQLite↔PostgreSQL transfer and collision/restore policy remain V1-10.
 - Release proof creates and destroys exact disposable PostgreSQL containers and never falls back

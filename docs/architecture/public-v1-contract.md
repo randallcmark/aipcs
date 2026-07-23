@@ -351,8 +351,10 @@ The pure relational contract remains authoritative. PostgreSQL maps UUID to `uui
 revisions to `bigint`, finite numbers to IEEE-754 `double precision`, booleans to `boolean`,
 datetimes to UTC-microsecond `timestamptz`, strings and canonical evidence JSON to `text`, and
 `string_list` plus validated snapshots to `jsonb`. It needs no extension. Constraints and indexes
-are explicitly and deterministically named; public ordering/cursors use deterministic bytewise
-semantics independent of database locale. Immediate `RESTRICT`, principal-scoped relationship
+are explicitly and deterministically named. Text columns and text comparison/index expressions
+use the built-in deterministic `C` collation so equality, uniqueness, public ordering, and cursor
+boundaries remain bytewise and independent of the operator database's default locale. Immediate
+`RESTRICT`, principal-scoped relationship
 validation, CAS, replay, history, topology, discovery, maintenance, projections, and error
 categories remain behaviourally equivalent to SQLite.
 
