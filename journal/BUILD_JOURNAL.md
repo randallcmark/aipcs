@@ -2061,6 +2061,7 @@ Use this for quick orientation when resuming work after a break.
 | D034 | 2026-07-23 | Version and secure local SQLite WAL/contention policy | Cross-store coordination needs deterministic writer, busy, sidecar, snapshot, and checkpoint behavior | 103 |
 | D035 | 2026-07-23 | Keep V1-08D as one private re-observing coordinator | Prove registry-first intent and target-first reconciliation before any public lifecycle surface | 104 |
 | D036 | 2026-07-23 | Resume an exact dirty SQLite foundation once before terminal recovery | Crash-resumable prepared WAL state is externally observable during a valid same-key migration and must be distinguished by bounded action plus re-observation | 105 |
+| D037 | 2026-07-23 | Freeze the bounded V1-08E public lifecycle wire contract | Public composition needs exact request, capability, version, projection, and error semantics without exposing coordinator or storage evidence | 106 |
 
 ---
 
@@ -5561,3 +5562,81 @@ This is useful systems evidence for the paper's implementation discussion: exact
 not sufficient without phase semantics. A crash-recovery marker can also be a valid live
 coordination point, so safe reconciliation may require one bounded idempotent action followed by
 fresh observation rather than immediate terminal classification.
+
+---
+
+## Entry 106 — 2026-07-23
+
+**Type:** Architecture decision / public lifecycle composition
+
+**Decision ID:** D037
+
+**Summary:** V1-08E exposes the proven coordinator through two generic MCP operations with a
+versioned, aggregate-only public boundary.
+
+**Context:**
+V1-08A through V1-08D froze and proved lifecycle admission, durable intent, SQLite contention,
+re-observation, concurrency, and recovery. Public composition still had five genuine wire gaps:
+the evolve target field name, lifecycle error codes, capability declaration, contract-version
+increment, and how transient callers observe pending state without exposing an operation object.
+It also needed one read-only registry seam so ordinary service projections could derive current
+recovery state without inspecting physical storage.
+
+**Decision made:**
+
+- Register exactly `aipcs_service_materialise` and `aipcs_service_evolve` for a fully bound ready
+  SQLite runtime; stateless remains server-info only.
+- Use `schema` for evolve's complete adjacent manifest-v2 target, matching design's public
+  vocabulary while applying evolve-specific validation.
+- Keep strict flat requests, configured principal, and fixed MCP provenance. Callers cannot submit
+  SQL, deltas, physical storage, operation evidence, recovery choices, principal, or provenance.
+- Add explicit bounded public codes for unsupported transition, stale revision, changed
+  fingerprint, operation in progress, recovery required, storage busy, operation uncertain, and
+  storage unavailable. Map malformed input to `validation_failed` and internal failure to
+  `internal_error`; preserve the frozen retryability table.
+- Retain `registry_lifecycle` for seed/list/inspect/design and add
+  `materialisation_lifecycle` for the two fully bound coordinator tools.
+- Advance the capability identifier to full SemVer `1.1.0`. This pre-release cut does not decide
+  later support, deprecation, or maintenance policy.
+- Add only `service_revision` and aggregate
+  `recovery_state: clear | pending | recovery_required` to the shared service projection. Derive
+  that value through one principal/service-scoped registry read in the service snapshot; never
+  inspect physical storage to answer it.
+- Keep lifecycle failures as `result: null`. After a retryable result, inspect/list is the public
+  way to observe `pending`; no operation record or repair instruction crosses the boundary.
+- Compose registry, catalog, domain store, and coordinator from one resolved SQLite policy, while
+  allocating no service store at startup and adding no configuration, repair, admin CLI, retry
+  loop, record, PostgreSQL, or remote-MCP behavior.
+
+**Why:**
+An explicit wire contract prevents transport code from inventing semantics around the already
+proven coordinator. Separate capability flags preserve the meaning of the existing registry loop;
+exact error codes let an agent distinguish contention, uncertainty, staleness, unsupported work,
+and terminal recovery without receiving private evidence. The aggregate recovery state gives
+useful durable visibility while keeping the registry row and physical store outside the public
+model.
+
+**Alternatives considered:**
+
+- `target_manifest` was rejected as an unnecessary second public name for the same complete schema
+  document already exposed by design.
+- Collapsing lifecycle outcomes into `conflict`, `invalid_state`, and `internal_error` was rejected
+  because it would erase the retry and recovery distinctions deliberately frozen in V1-08A.
+- Expanding `registry_lifecycle` was rejected because existing consumers already use it to mean the
+  seed/list/inspect/design registry loop.
+- Returning operation detail in retryable errors was rejected because the bounded service
+  projection is sufficient and does not expose keys, fingerprints, targets, phases, or fault
+  evidence.
+- Deriving recovery state from physical inspection was rejected because the registry is the sole
+  lifecycle authority and inspection would create both latency and a second interpretation path.
+
+**Follow-up:**
+Implement V1-08E in `aipcs-mcp`, prove real stdio materialise/evolve, replay, restart,
+concurrency, recovery-required, projection privacy, and independently installed wheel/sdist
+behavior, then align this journal with the public commit and validation evidence.
+
+**Paper notes:**
+This is public-product hardening rather than new experimental evidence. It illustrates a useful
+boundary for the implementation section: agents receive stable generic lifecycle primitives and
+bounded durable state, while cross-store operation evidence and physical recovery mechanics remain
+private.

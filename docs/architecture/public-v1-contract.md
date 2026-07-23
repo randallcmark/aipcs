@@ -2,7 +2,7 @@
 
 **Status:** Canonical implementation-contract update
 **Date:** 2026-07-23
-**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, 104, and 105
+**Evidence:** BUILD_JOURNAL Entries 100, 102, 103, 104, 105, and 106
 
 This contract preserves the May 2026 technical design as historical working design and research
 archaeology. It does not change the AIPCS pattern: the agent remains the architect of its persistent
@@ -163,6 +163,64 @@ inside the documented same-operating-system-owner, contained-store boundary, an 
 predates the intent cannot be distinguished from one committed before a crash. Partial,
 incompatible, extra, altered, or unexpectedly deleted state is never adopted or repaired
 automatically; it becomes `recovery_required`.
+
+### Frozen V1-08E public composition contract
+
+V1-08E registers exactly `aipcs_service_materialise` and `aipcs_service_evolve` in a ready SQLite
+runtime. Stateless remains server-info only. `registry_lifecycle` retains its existing meaning for
+seed/list/inspect/design; a separate `materialisation_lifecycle` feature is true only when both new
+tools and their coordinator are fully bound. This additive public cut changes
+`aipcs_mcp_contract` from the historical pre-release `1.0` identifier to the full SemVer value
+`1.1.0`. It does not establish support windows, deprecation policy, or a general release-version
+policy, which remain a later release-governance decision.
+
+The materialise request is the strict flat object
+`{service_id, expected_service_revision, expected_schema_version, idempotency_key}`. The evolve
+request adds one field named `schema`, using the same complete manifest-v2 public document shape
+as design without design's initial-schema restriction. `service_id` is a non-zero lowercase
+canonical UUID; revisions are strict integers rather than booleans or coerced numbers;
+`expected_service_revision` is positive and bounded by the signed-64-bit service-revision range;
+materialise requires expected schema version 1; and evolve requires a positive current schema
+version below the maximum so its complete target is exactly one version greater. Unknown fields,
+caller-supplied principal/provenance, SQL, deltas, recovery choices, and physical-storage inputs are
+rejected before registry or service-store work. MCP supplies the configured principal and fixed
+`created_via="mcp"`.
+
+The public lifecycle error-code mapping is exact and bounded:
+
+| Coordinator category | Public error code | Retryable |
+| --- | --- | --- |
+| `malformed_input` | `validation_failed` | No |
+| `unsupported_transition` | `unsupported_transition` | No |
+| `stale_revision` | `stale_revision` | No |
+| `changed_fingerprint` | `changed_fingerprint` | No |
+| `operation_in_progress` | `operation_in_progress` | Yes |
+| `recovery_required` | `recovery_required` | No |
+| `storage_busy` | `storage_busy` | Yes |
+| `operation_uncertain` | `operation_uncertain` | Yes |
+| `storage_unavailable` | `storage_unavailable` | No |
+| `internal_failure` | `internal_error` | No |
+
+Messages remain generic and contain no principal, key, fingerprint, manifest, operation evidence,
+locator, path, DSN, SQL, driver text, audit content, or repair instruction. Missing and
+cross-principal services are indistinguishable from stale expected state at this lifecycle
+boundary. A failure envelope retains `result: null`; after a retryable outcome callers use
+inspect/list to observe the aggregate `recovery_state` rather than receiving an operation object.
+
+Every public service projection obtains `recovery_state` from one principal/service-scoped,
+read-only registry aggregate in the same short registry snapshot used for the service read:
+no active lifecycle row is `clear`, a durable `prepared` row is `pending`, and a terminal
+`recovery_required` row is `recovery_required`. Completed rows are clear. The aggregate never
+inspects physical storage and exposes no lifecycle-row detail. Lifecycle success/replay projects
+the completed terminal service as `clear`, including the existing safe logical
+`storage {backend, namespace}` and `materialised_at` fields where applicable.
+
+The ready SQLite composition root constructs the registry adapter, service-store catalog,
+domain-schema store, and coordinator from the same resolved location and busy-timeout policy.
+Startup migrates only the registry; it allocates or migrates no service store until a lifecycle
+request has durably prepared. No configuration field, standalone lifecycle/admin/repair CLI,
+retry loop, lease, mutex, PostgreSQL behavior, record operation, or repair workflow is added by
+this slice.
 
 ### Frozen V1-08C SQLite physical policy
 
