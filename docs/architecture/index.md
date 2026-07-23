@@ -45,6 +45,11 @@ Relational foreign keys use portable immediate `ON DELETE RESTRICT` and `ON UPDA
 Required cycles are rejected and nullable cycles are staged through null relationship values; see
 [ADR-001](decisions/ADR-001-immediate-restrict.md).
 
+SQLite local-v1 storage uses a versioned, crash-resumable WAL policy with secured operational
+sidecars, numeric busy classification, bounded per-lock waiting, one-snapshot inspection, and
+PASSIVE migration checkpoints. It requires SQLite 3.51.3 or newer on one same-host local POSIX
+filesystem; see [ADR-002](decisions/ADR-002-sqlite-wal-contention-policy.md).
+
 ## Historical Two-State Service Lifecycle
 
 Every AIPCS domain service exists in one of two states:

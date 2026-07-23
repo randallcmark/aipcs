@@ -5367,3 +5367,58 @@ cross-store recovery must be explicit when registry metadata and physical memori
 atomically. The paper can use the contract-first decomposition as evidence that the reference
 implementation evolved from a local prototype toward portable, inspectable failure semantics
 without changing the core agent-owned-schema claim.
+
+---
+
+## Entry 103 — 2026-07-23
+
+**Type:** Architecture decision / SQLite WAL and contention policy
+
+**Decision ID:** D034
+
+**Summary:** Public v1 adopts a versioned, crash-resumable, secured SQLite WAL policy before
+cross-store lifecycle coordination.
+
+**Context:**
+The local SQLite implementation still used rollback-journal DELETE mode, fixed timeout behavior,
+categorical sidecar rejection, and no real multi-process contention proof. V1-08A/B established
+durable lifecycle intent, but V1-08D cannot safely coordinate registry and service stores until
+SQLite writer acquisition, busy classification, WAL recovery, sidecar security, snapshots, and
+checkpoint behavior are deterministic. Upstream SQLite also documents a multi-connection
+WAL-reset corruption bug through 3.51.2.
+
+**Decision made:**
+
+- Require Python 3.12+ and SQLite 3.51.3+ for local SQLite v1 on one same-host local POSIX
+  filesystem and same effective OS user.
+- Record WAL as registry R3 and service-store R2, with one permanent exact policy row whose
+  `prepared | ready` phase makes DELETE-to-WAL conversion crash-resumable.
+- Accept only exact clean predecessor/DELETE, prepared/DELETE, prepared/WAL, or ready target/WAL
+  states; re-inspect under `BEGIN IMMEDIATE` and fail every other combination closed.
+- Treat WAL/SHM as SQLite-owned operational files within the same contained, same-owner,
+  mode-`0600`, no-follow, single-link security boundary; pin and revalidate live identities but
+  never manipulate sidecar contents.
+- Give logical inspections one snapshot while acknowledging that valid SQLite opens may have
+  observable WAL/SHM lifecycle effects.
+- Expose one strict `sqlite_busy_timeout_ms` setting, default 5,000 and range 1..30,000, and add a
+  bounded `StorageBusy` derived only from numeric SQLite BUSY-family codes or checkpoint busy.
+- Keep `synchronous=FULL`, set `wal_autocheckpoint=1000`, run one PASSIVE checkpoint on every
+  explicit ready migration, and add no application retry loop or process-local lock.
+- Preserve MCP, manifest, lifecycle, and backend-neutral storage contracts; PostgreSQL later proves
+  the behavioral outcomes without inheriting SQLite's physical mechanisms.
+
+**Why:**
+The policy makes local multi-process coordination depend on SQLite's durable writer lock and exact
+versioned evidence rather than timing, pathnames, or in-process state. It distinguishes retryable
+contention from uncertain commits, makes interrupted mode changes inspectable, and preserves the
+private-file boundary despite SQLite-managed sidecar churn.
+
+**Follow-up:**
+Implement registry R3/service-store R2 and the real-process/crash/release matrix in V1-08C. Begin
+the V1-08D cross-store coordinator only after those gates pass. Later backup/admin slices must add
+WAL-aware copy and explicit checkpoint workflows.
+
+**Paper notes:**
+This is implementation-hardening evidence, not a new memory-quality result. It is a useful example
+of the difference between an agent-authored logical memory schema and the storage policy required
+to make that schema durable and safely evolvable under concurrent agent processes.

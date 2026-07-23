@@ -1,8 +1,8 @@
 # Public-v1 Primitive Server Contract
 
 **Status:** Canonical implementation-contract update
-**Date:** 2026-07-21
-**Evidence:** BUILD_JOURNAL Entry 100
+**Date:** 2026-07-23
+**Evidence:** BUILD_JOURNAL Entries 100, 102, and 103
 
 This contract preserves the May 2026 technical design as historical working design and research
 archaeology. It does not change the AIPCS pattern: the agent remains the architect of its persistent
@@ -132,11 +132,50 @@ predates the intent cannot be distinguished from one committed before a crash. P
 incompatible, extra, altered, or unexpectedly deleted state is never adopted or repaired
 automatically; it becomes `recovery_required`.
 
-V1-08C establishes the secured SQLite WAL/busy/sidecar policy before V1-08D implements and proves
-the cross-store coordinator under that final policy. V1-08E then composes generic lifecycle MCP
-operations, V1-08F establishes generic records, and V1-08G establishes structured discovery and
-branch topology. PostgreSQL starts only after V1-08G, so it proves this complete behavior rather
-than defining missing record, branch, or recovery semantics.
+### Frozen V1-08C SQLite physical policy
+
+Local SQLite v1 requires Python 3.12 or newer and SQLite 3.51.3 or newer on Linux/macOS POSIX, on
+one host and one operator-owned local filesystem, with cooperating processes running as the same
+effective user. Network filesystems, Windows, multi-host access, and a hostile same-user process
+are outside this support boundary.
+
+WAL adoption is a versioned, split-phase physical migration: registry revision 3 and service-store
+revision 2 each add one exact singleton policy row for `aipcs.sqlite.wal.v1`, with compiled checksum
+and `prepared | ready` phase. Migration commits the prepared dirty predecessor in DELETE mode,
+switches the persistent journal mode, then commits ready target history under `BEGIN IMMEDIATE`.
+Only an exact clean predecessor/DELETE, prepared/DELETE, prepared/WAL, or ready target/WAL is
+accepted. Fresh creation uses the same state machine; every other marker, ledger, header, or
+history combination fails closed. Competing migrators re-inspect under the SQLite writer lock.
+
+Inspection observes one explicit read snapshot and never changes application/schema state,
+journal mode, or checkpoint policy. SQLite may still create, rebuild, retain, replace, or remove
+WAL/SHM operational siblings during a valid open/close. The database and accepted sidecars remain
+contained regular same-owner mode-`0600` single-link files, validated by descriptor-relative
+no-follow opens and pinned identities for the live connection. The adapter never edits or removes
+WAL/SHM itself. A rollback journal is authorized only during exact DELETE preparation or explicit
+migration-owned hot-journal recovery.
+
+Connections verify WAL readiness, `locking_mode=NORMAL`, `synchronous=FULL`, foreign keys,
+trusted-schema and recursive-trigger settings, query-only intent, `wal_autocheckpoint=1000`, and
+one configured busy timeout. The public field `sqlite_busy_timeout_ms` has range `1..30000`,
+default `5000`, and exact TOML/environment/CLI representations. It configures both Python connect
+waiting and SQLite's busy handler; there is no adapter retry loop.
+
+`StorageBusy` is a bounded condition created only from numeric SQLite BUSY-family result codes or
+a PASSIVE checkpoint busy indicator. It is not inferred from driver text, elapsed time,
+`SQLITE_LOCKED`, or an uncertain post-commit outcome. Every explicit migration that observes or
+creates a ready WAL store performs one PASSIVE checkpoint and an independent final readiness
+observation. A valid partial PASSIVE checkpoint is successful progress. Ordinary reads and writes
+do not initiate explicit checkpoints.
+
+These are private SQLite physical mechanics, not backend-neutral schema or lifecycle semantics.
+The full decision, alternatives, and validation boundary are recorded in
+[ADR-002](decisions/ADR-002-sqlite-wal-contention-policy.md).
+
+V1-08D implements and proves the cross-store coordinator under this final policy. V1-08E then
+composes generic lifecycle MCP operations, V1-08F establishes generic records, and V1-08G
+establishes structured discovery and branch topology. PostgreSQL starts only after V1-08G, so it
+proves this complete behavior rather than defining missing record, branch, or recovery semantics.
 
 ## Administration and release boundary
 
